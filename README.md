@@ -1,1 +1,74 @@
-# hyperlane-aleo
+# Hyperlane-Aleo
+
+> [!WARNING]  
+> This project is currently under development and not intended to be used in production.
+
+This project is an implementation of Hyperlane for the Aleo, designed for
+a seamless interchain communication following the Hyperlane spec.
+
+## [hook_manager/src](./hook_manager/src)
+
+`hook_manager` implements the hook management system for Hyperlane on Aleo. It provides functionality for registering, executing, and managing post-dispatch hooks that are called after message dispatch operations. The hook manager coordinates between different hook types including merkle tree hooks for message verification and other custom hooks that extend the protocol's capabilities.
+
+## [ism_manager/src](./ism_manager/src)
+
+`ism_manager` implements the Interchain Security Module (ISM) management system for message verification on Aleo. It handles the validation of incoming messages by coordinating with various ISM types including multisig ISMs for signature verification and other security modules. The ISM manager ensures that only properly authenticated messages are processed, providing the security foundation for cross-chain communication.
+
+## [mailbox/src](./mailbox/src)
+
+`mailbox` implements the core message passing functionality for Hyperlane on Aleo. It serves as the central hub for dispatching outbound messages and processing inbound messages. The mailbox coordinates with both the hook manager for post-dispatch operations and the ISM manager for message verification, providing a unified interface for cross-chain message delivery and execution.
+
+## Development
+
+Getting started:
+
+Install the custom leo compiler to include `ECDSA` leo operations and raw hash functions.
+
+```bash
+// Download the source code.
+> git clone https://github.com/ProvableHQ/leo.git
+
+// Checkout the desired branch. You may use a branch name or a specific commit.
+> git checkout feat/hash-raw-ecdsa-ops
+
+// Install the compiler.
+> cargo install --path .
+
+// Run the compiler.
+> leo ...
+```
+
+**Building the project:**
+
+```bash
+leo build
+```
+
+**Running tests:**
+
+```bash
+leo test
+```
+
+**Running a local devnet:**
+
+```bash
+leo devnet --storage tmp --snarkos ./snarkos --snarkos-features test_network --consensus-heights 0,1,2,3,4,5,6,7,8,9
+```
+
+## Open Issues
+
+- [ ] `merkle_tree_hook` use `keccak`
+- [ ] Use `u128` for byte arrays
+- [ ] Hook usage: Figure out a way for dynamic `credit_amounts` when calling hooks
+- [ ] Verify Signatures dynamically in `ism_manager`
+- [ ] Finish Process & Dispatch logic
+- [ ] `hyp_token_manager`
+- [ ] Add CI/CD pipeline
+
+## License
+
+This project is licensed under the Apache License, Version 2.0.  
+See the [LICENSE](LICENSE) file for the full terms.
+
+Copyright 2025 Abacus Works, Inc.
