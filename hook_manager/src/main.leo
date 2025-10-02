@@ -278,8 +278,6 @@ program hook_manager.aleo {
                 size /= 2;
             }
         }
-        // As the loop should always end prematurely with the `return` statement,
-        // this code should be unreachable. We assert `false` just to be safe.
         return tree;
     }
 
