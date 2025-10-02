@@ -301,15 +301,20 @@ program hook_manager.aleo {
         return current;
     }
 
-    async transition post_dispatch(hook: address, metadata: [u8; 256], message: [u8; 256], message_id: [u128; 2], credits_amount: u64) -> Future {
+    async transition post_dispatch(hook: address, metadata: [u8; 256], message: [u8; 256], credits_amount: u64) -> Future {
         let transfer = credits.aleo/transfer_public(self.address, credits_amount);
-        return finalize_post_dispatch(hook, metadata, message, message_id, self.caller, credits_amount, transfer);
+        return finalize_post_dispatch(hook, metadata, message, self.caller, credits_amount, transfer);
     }
 
-    async function finalize_post_dispatch(hook: address, metadata: [u8; 256], message: [u8; 256], message_id: [u128; 2], caller: address, credits_amount: u64, transfer: Future) {
+    async function finalize_post_dispatch(hook: address, metadata: [u8; 256], message: [u8; 256], caller: address, credits_amount: u64, transfer: Future) {
         assert(hooks.contains(hook));
         let type: u8 = hooks.get(hook);
         transfer.await();
+
+        // TODO: for some absurd reason, this crashes the compiler
+        // let hash = Keccak256::hash_native_raw(message);
+        // let current = Deserialize::from_bits_raw::[[u128; 2]](hash);
+        let message_id = [0u128; 2];
 
         if type == HOOK_MERKLE_TREE {
             let merkle_tree_hook = merkle_tree_hooks.get(hook);
