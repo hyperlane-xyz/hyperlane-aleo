@@ -160,11 +160,28 @@ program ism_manager.aleo {
         routes.set(key, module);
     }
 
-    async transition verify(ism: address, message: [u8; 256], metadata: [u8; 256]) ->  Future {
-        return finalize_verify(ism, message, metadata);
+    async transition verify(ism: address, message: [u8; 256], message_length: u32, metadata: [u8; 256]) ->  Future {
+        return finalize_verify(ism, message, message_length, metadata);
     }
 
-    async function finalize_verify(ism: address, raw_message: [u8; 256], metadata: [u8; 256]) {
+    inline get_message_id(raw_message: [u8; 256], message_length: u32) -> [u8; 32] {
+        // assert(message_length > 77);
+        // for k in 120u32..128u32 {
+        //     if message_length == k {
+        //         let message = [0u8; k];
+        //         for i in 0u32..k {
+        //             message[i] = raw_message[i];
+        //         }
+        //         let hash = Keccak256::hash_native_raw(message);
+        //         return Deserialize::from_bits_raw::[[u8; 32]](hash);
+        //     }
+        // }
+        return [0u8; 32];
+    }
+
+    async function finalize_verify(ism: address, raw_message: [u8; 256], message_length: u32, metadata: [u8; 256]) {
+        let message_id = get_message_id(raw_message, message_length);
+        assert_neq(message_id, [0u8; 32]);
         let message = parse_message(raw_message);
         // We have a max depth of 4 for recursive routing isms
         let ism_address: address = ism;
@@ -181,7 +198,7 @@ program ism_manager.aleo {
             } else if ism_type == ISM_MESSAGE_ID_MULTISIG {
                 // MessageIdIsm logic ...
                 let multisig = message_id_multisigs.get(ism_address);
-                verify_message_id(multisig, message, metadata);
+                verify_message_id(multisig, message, message_id, metadata);
                 return;
             } else if ism_type == ISM_UNUSED {
                 // NoopIsm continue with no verification
@@ -224,10 +241,8 @@ program ism_manager.aleo {
         return false;
     }
 
-    inline verify_message_id(multisig: MessageIdMultisigIsm, message: Message, metadata: [u8; 256]) {
-        let message_id: [u8; 32] = [0u8; 32]; // TODO: keccack raw_message
+    inline verify_message_id(multisig: MessageIdMultisigIsm, message: Message, message_id: [u8; 32], metadata: [u8; 256]) {
         let merkle_tree_hook = origin_merkle_tree_hook(metadata);
-
         let hash = domain_hash(message.origin_domain, merkle_tree_hook);
 
         let msg: [u8; 100] = [0u8; 100];
@@ -241,6 +256,8 @@ program ism_manager.aleo {
         msg[65] = metadata[MERKLE_INDEX_OFFSET + 1];
         msg[66] = metadata[MERKLE_INDEX_OFFSET + 2];
         msg[67] = metadata[MERKLE_INDEX_OFFSET + 3];
+
+        assert_neq(msg, [0u8; 100]);
 
         // TODO: keccak_raw the msg
         let checkpoint: [u8; 32] = [0u8; 32];
@@ -348,9 +365,12 @@ program ism_manager.aleo {
             hash[16], hash[17], hash[18], hash[19], hash[20], hash[21], hash[22], hash[23], 
             hash[24], hash[25], hash[26], hash[27], hash[28], hash[29], hash[30], hash[31]
         ];
+        assert_neq(msg, [0u8; 60]);
 
         // TODO: keccak hash of the complete message
-        return [0u8; 32];
+        let value = [0u8; 32];
+        value[0] = msg[0];
+        return value;
     }
 
     inline signature_at(metadata: [u8; 256], index: u8) -> [u8; 65] {

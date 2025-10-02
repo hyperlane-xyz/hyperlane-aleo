@@ -12,40 +12,39 @@ program hook_manager.aleo {
     const MAX_LEAVES: u32 = (2u64 ** TREE_DEPTH - 1) as u32;
 
     // keccak256 zero hashes
-    // TODO: use correct zero hashes
     const ZERO_HASHES: [[u128; 2]; TREE_DEPTH] = [
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128],
-        [0u128, 1u128]
+        [0u128,0u128],
+        [200636014418684474793900124069647889069u128,241087320001230136080519585693436229163u128],
+        [93974531276030024843854739648391266740u128,63871773629875849864439396521971482176u128],
+        [66294067272630431583104841350689447201u128,177756802695730322470865725932422475556u128],
+        [17747458619593854979588589471465572325u128,91154039873745303917061774773470934559u128],
+        [41440521891025744745128838831940743182u128,60894629520669430433793374864326529801u128],
+        [59903522946444936989019680377850199176u128,138372656349779401676123096700574490028u128],
+        [3180262733561280138502805056821254143u128,174708888174609290132996609679840034611u128],
+        [48455171203811811641967620231072081816u128,233066451124647651551022141310218850885u128],
+        [334080689485914854275740245880500189902u128,298184847794429370937316245747346618882u128],
+        [282653557140816677488147447345498217721u128,220339046210024952190566302967731665406u128],
+        [145672768088204442335147548738764583416u128,195359773238112912523174698163665391889u128],
+        [21418297075731751014499913670238572596u128,208490304233564026108050214927462029255u128],
+        [281404733672930043025800266103516225473u128,249742050973351594617409037165098847317u128],
+        [289879148739902069907218623618383439708u128,272153760179965878774948581978868862730u128],
+        [293159551140992943817529578958841871322u128,279338235662809517033392482105447374970u128],
+        [322093384055859711002317835595919209255u128,42000488150413793222910142038008516924u128],
+        [122254499464535460357349615889605317601u128,163409875357997099341612933566874181274u128],
+        [59132542617709958082991564676137889114u128,213307109849065044721731388145721391918u128],
+        [81821347195604723027123097456320473780u128,213231151757453664031032733501577239314u128],
+        [336114429845119848727407931190249152198u128,301360598096960973755532425519001651903u128],
+        [320542506166910886628941017057425965556u128,289604304606881051317113816162407361165u128],
+        [270315001578019215236444169667452771418u128,159359836010757059645879798671718049365u128],
+        [222279943939488608983982977534856788045u128,110191212380795297761298100413926971842u128],
+        [133196525511722763539122868050171643853u128,317818349342580659794271157815744496524u128],
+        [155004929552231825612177418997554921226u128,187928388822560161625857840976354543861u128],
+        [133005247855215888074055167590444355000u128,277185228623223348062409148812927309868u128],
+        [297025694464961376815096585744545123459u128,40897156374938635533147054173498873588u128],
+        [6336040213458809633392154838101667430u128,62367222880804479430297662353502398838u128],
+        [202117996738898010692652600915964103224u128,46042986625269866222220954975551057138u128],
+        [85413120008009180910770793363078390675u128,71567477878241302074513460496530530059u128],
+        [297864792032486788802704391190316402820u128,225086078672275754295496924647458870974u128]
     ];
 
     const TOKEN_EXCHANGE_RATE_SCALE: u128 = 10000000000u128; // 1e10
@@ -76,7 +75,7 @@ program hook_manager.aleo {
     }
 
     struct InsertedIntoTreeEvent {
-        id: [u8; 32],
+        id: [u128; 2],
         index: u32,
     }
 
@@ -92,7 +91,7 @@ program hook_manager.aleo {
     }
 
     struct GasPaymentEvent {
-        id: [u8; 32],
+        id: [u128; 2],
         destination_domain: u32,
         gas_amount: u128,
         payment: u64,
@@ -186,12 +185,12 @@ program hook_manager.aleo {
         igps.set(igp_address, igp);
     }
 
-    async transition pay_for_gas(igp: address, message_id: [u8; 32], destination_domain: u32, gas_limit: u128, credits_amount: u64) -> Future {
+    async transition pay_for_gas(igp: address, message_id: [u128; 2], destination_domain: u32, gas_limit: u128, credits_amount: u64) -> Future {
         let transfer: Future = credits.aleo/transfer_public(self.caller, credits_amount);
         return finalize_pay_for_gas(igp, message_id, destination_domain, gas_limit, credits_amount, transfer);
     }
 
-    async function finalize_pay_for_gas(igp_address: address, message_id: [u8; 32], destination_domain: u32, gas_limit: u128, credits_amount: u64, transfer: Future) {
+    async function finalize_pay_for_gas(igp_address: address, message_id: [u128; 2], destination_domain: u32, gas_limit: u128, credits_amount: u64, transfer: Future) {
         let key = GasConfigKey {
             destination: destination_domain,
             igp: igp_address,
@@ -247,7 +246,7 @@ program hook_manager.aleo {
         let root = merkle_tree_root(tree);
         let hook = MerkleTreeHook {
             tree,
-            root,
+            root: [0u128, 2],
             nonce: current_nonce,
             parent,
         };
@@ -263,28 +262,22 @@ program hook_manager.aleo {
         merkle_tree_hooks.set(hook_address, hook);
     }
 
-
     inline insert_into_tree(tree: Tree, value: [u128; 2]) -> Tree {
         assert(tree.count < MAX_LEAVES);
         tree.count += 1;
         let size = tree.count;
         let node: [u128; 2] = value;
-        for i in 0u8..1u8 {
-            assert(false);
+        for i in 0u32..TREE_DEPTH {
             if ((size & 1) == 1) {
                 tree.branch[i] = node;
-                return tree;
+            } else {
+                let branch = tree.branch[i];
+                let digest: [u128; 4] = [branch[0], branch[1], node[0], node[1]];
+                let hash = Keccak256::hash_native_raw(digest);
+                node = Deserialize::from_bits_raw::[[u128; 2]](hash);
+                size /= 2;
             }
-
-            let digest: [u128; 4] = [tree.branch[i][0], tree.branch[i][1], node[0], node[1]];
-            // TODO: write the keccak into the node
-            // node = keccak256(digest);
-            node[0] = digest[0];
-            size /= 2;
         }
-        // As the loop should always end prematurely with the `return` statement,
-        // this code should be unreachable. We assert `false` just to be safe.
-        assert(false);
         return tree;
     }
 
@@ -292,19 +285,17 @@ program hook_manager.aleo {
         let index = tree.count;
         let current: [u128; 2] = [0u128; 2];
 
-        for i in 0u8..1u8 {
+        for i in 0u32..TREE_DEPTH {
             let ithBit = (index >> i) & 1u32;
             let next = tree.branch[i];
             if ithBit == 1 {
                 let digest: [u128; 4] = [next[0], next[1], current[0], current[1]];
-                // TODO: write the keccak into current
-                // current = keccack256(digest)
-                current[0] = digest[0];
+                let hash = Keccak256::hash_native_raw(digest);
+                current = Deserialize::from_bits_raw::[[u128; 2]](hash);
             } else {
                 let digest: [u128; 4] = [current[0], current[1], ZERO_HASHES[i][0], ZERO_HASHES[i][1]];
-                // TODO: write the keccak into current
-                // current = keccack256(digest)
-                current[0] = digest[0];
+                let hash = Keccak256::hash_native_raw(digest);
+                current = Deserialize::from_bits_raw::[[u128; 2]](hash);
             }
         }
         return current;
@@ -318,8 +309,12 @@ program hook_manager.aleo {
     async function finalize_post_dispatch(hook: address, metadata: [u8; 256], message: [u8; 256], caller: address, credits_amount: u64, transfer: Future) {
         assert(hooks.contains(hook));
         let type: u8 = hooks.get(hook);
-        let message_id = [0u8; 32]; // TODO: keccak the message to get its id
         transfer.await();
+
+        // TODO: for some absurd reason, this crashes the compiler
+        // let hash = Keccak256::hash_native_raw(message);
+        // let current = Deserialize::from_bits_raw::[[u128; 2]](hash);
+        let message_id = [0u128; 2];
 
         if type == HOOK_MERKLE_TREE {
             let merkle_tree_hook = merkle_tree_hooks.get(hook);
@@ -327,7 +322,7 @@ program hook_manager.aleo {
             assert_eq(merkle_tree_hook.parent, caller);
             
             let index: u32 = merkle_tree_hook.tree.count; 
-            merkle_tree_hook.tree = insert_into_tree(merkle_tree_hook.tree, [0u128; 2]);
+            merkle_tree_hook.tree = insert_into_tree(merkle_tree_hook.tree, message_id);
             merkle_tree_hook.root = merkle_tree_root(merkle_tree_hook.tree);
 
             // update the merkle_tree_hook
