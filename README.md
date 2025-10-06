@@ -58,11 +58,12 @@ leo devnet --storage tmp --snarkos ./snarkos --snarkos-features test_network --c
 
 ## Open Issues
 
-- [ ] `merkle_tree_hook` use `keccak`
-- [ ] Use `u128` for byte arrays
-- [ ] Hook usage: Figure out a way for dynamic `credit_amounts` when calling hooks
-- [ ] Verify Signatures dynamically in `ism_manager`
+- [x] `merkle_tree_hook` use `keccak`
+- [x] Use `u128` for byte arrays
+- [x] Hook usage: Figure out a way for dynamic `credit_amounts` when calling hooks
+- [x] Verify Signatures dynamically in `ism_manager`
 - [ ] Finish Process & Dispatch logic
+- [ ] Validator Announce
 - [ ] `hyp_token_manager`
 - [ ] Add CI/CD pipeline
 
