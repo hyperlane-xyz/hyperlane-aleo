@@ -41,6 +41,11 @@ program mailbox.aleo {
         id: [u128; 2]
     }
 
+    struct CreditAllowance {
+        spender: address,
+        amount: u64,
+    }
+
     struct ProcessEvent {
         sequence: u32,
         id: MessageId,
@@ -113,7 +118,11 @@ program mailbox.aleo {
         current_mailbox.process_count += 1; 
     }
 
-    async transition dispatch(passed_mailbox: Mailbox, destination_domain: u32, recipient_address: Bytes32, message_body: [u8; 179], credits_amount: u64) -> Future {
+    /// Dispatch
+    /// Createa a new message based on given inputs and dispatch it
+    /// - passed_mailbox: Is the current mailbox state, this is necessary to initialize `post_dispatch` futures
+    /// - hook_allowance: mapping from hook_address -> allowed credits to spent. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
+    async transition dispatch(passed_mailbox: Mailbox, destination_domain: u32, recipient_address: Bytes32, message_body: [u8; 179], hook_allowance: [CreditAllowance; 4]) -> Future {
         assert_neq(passed_mailbox.default_hook, NULL_ADDRESS);
         assert_neq(passed_mailbox.required_hook, NULL_ADDRESS);
 
@@ -133,8 +142,8 @@ program mailbox.aleo {
         let id = static_message_id(raw);
         // initialize futures for the post_dispatch hook assuming all of the passed arugments are correct.
         // TODO: create correct hook_metadata
-        let default_hook = hook_manager.aleo/post_dispatch(passed_mailbox.default_hook, metadata, raw, credits_amount);
-        let required_hook = hook_manager.aleo/post_dispatch(passed_mailbox.required_hook, metadata, raw, 0u64); // TODO: we need a way to make this dynamic
+        let default_hook = hook_manager.aleo/post_dispatch(passed_mailbox.default_hook, metadata, raw, hook_allowance);
+        let required_hook = hook_manager.aleo/post_dispatch(passed_mailbox.required_hook, metadata, raw, hook_allowance); 
 
         return finalize_dispatch(
             passed_mailbox,
