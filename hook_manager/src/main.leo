@@ -105,6 +105,11 @@ program hook_manager.aleo {
         index: u32,
     }
 
+    struct CreditAllowance {
+        spender: address,
+        amount: u64,
+    }
+
     mapping nonce: bool => u32;
     // Mapping for IGPs
     mapping igps: address => InterchainGasPaymaster;
@@ -301,8 +306,19 @@ program hook_manager.aleo {
         }
         return current;
     }
+    
+    /// Post Dispatch
+    /// - hook_allowance: mapping from hook_address -> allowed credits to spent. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
+    async transition post_dispatch(hook: address, metadata: [u8; 256], message: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
+        // find the allowance for the given hook, default to 0
+        let credits_amount = 0u64;
+        for i in 0u8..4u8 {
+            let allowance = hook_allowance[i];
+            if allowance.spender == hook {
+                credits_amount = allowance.amount;
+            }
+        }
 
-    async transition post_dispatch(hook: address, metadata: [u8; 256], message: [u8; 256], credits_amount: u64) -> Future {
         let transfer = credits.aleo/transfer_public(self.address, credits_amount);
         return finalize_post_dispatch(hook, metadata, message, self.caller, credits_amount, transfer);
     }
