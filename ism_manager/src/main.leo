@@ -2,37 +2,16 @@
 // The 'ism_manager' program.
 program ism_manager.aleo {
 
-    const ORIGIN_MERKLE_TREE_OFFSET: u8 = 0;
-    const MERKLE_ROOT_OFFSET: u8 = 32;
-    const MERKLE_INDEX_OFFSET: u8 = 64;
-    const SIGNATURES_OFFSET: u8 = 68;
-    const SIGNATURE_LENGTH: u8 = 65;
+    mapping nonce: bool => u32;
+    // Mapping for DomainRoutingIsm
+    mapping domain_routing_isms: address => DomainRoutingIsm;
+    // Mapping for MsgIdMultisigIsms
+    mapping message_id_multisigs: address => MessageIdMultisigIsm;
+    // Routes for RoutingIsm
+    mapping routes: IsmRouteKey => address;
+    // Mapping from ism address to ISM Type
+    mapping isms: address => u8;
 
-    const ISM_UNUSED: u8 = 0;
-    const ISM_ROUTING: u8 = 1;
-    const ISM_MERKLE_ROOT_MULTISIG: u8 = 4;
-    const ISM_MESSAGE_ID_MULTISIG: u8 = 5;
-
-    const MAX_VALIDATORS: u8 = 10;
-    const MAX_THRESHOLD: u8 = 6;
-    const METADATA_LENGTH: u32 = 512;
-    const MESSAGE_LENGTH: u32 = 256;
-    const MESSAGE_BODY_LENGTH: u8 = (MESSAGE_LENGTH - 77) as u8; // Message has 77Bytes without the body
-
-    struct Bytes32 {
-        bytes: [u8; 32]
-    }
-
-    struct Message {
-        version: u8,
-        nonce: u32,
-        origin_domain: u32,
-        sender: Bytes32,
-        destination_domain: u32,
-        recipient: Bytes32,
-        body: [u8; MESSAGE_BODY_LENGTH],
-    }
-        
     struct EthAddress {
         bytes: [u8; 20],
     }
@@ -56,18 +35,25 @@ program ism_manager.aleo {
 
     struct IsmRouteKey {
         ism: address,
-        domain: u32,        
+        domain: u32,
     }
 
-    mapping nonce: bool => u32;
-    // Mapping for DomainRoutingIsm
-    mapping domain_routing_isms: address => DomainRoutingIsm;
-    // Mapping for MsgIdMultisigIsms
-    mapping message_id_multisigs: address => MessageIdMultisigIsm;
-    // Routes for RoutingIsm
-    mapping routes: IsmRouteKey => address;
-    // Mapping from ism address to ISM Type
-    mapping isms: address => u8;
+    const ORIGIN_MERKLE_TREE_OFFSET: u8 = 0;
+    const MERKLE_ROOT_OFFSET: u8 = 32;
+    const MERKLE_INDEX_OFFSET: u8 = 64;
+    const SIGNATURES_OFFSET: u8 = 68;
+    const SIGNATURE_LENGTH: u8 = 65;
+
+    const ISM_UNUSED: u8 = 0;
+    const ISM_ROUTING: u8 = 1;
+    const ISM_MERKLE_ROOT_MULTISIG: u8 = 4;
+    const ISM_MESSAGE_ID_MULTISIG: u8 = 5;
+
+    const MAX_VALIDATORS: u8 = 10;
+    const MAX_THRESHOLD: u8 = 6;
+    const METADATA_LENGTH: u32 = 512;
+    const MESSAGE_LENGTH: u32 = 256;
+    const MESSAGE_BODY_LENGTH: u8 = (MESSAGE_LENGTH - 77) as u8; // Message has 77Bytes without the body
 
     @noupgrade
     async constructor() {}
@@ -167,9 +153,9 @@ program ism_manager.aleo {
     }
 
     /// Verifies the message validity by using the given ism
-    /// This method assumes that the caller makes sure that the passed message_id belongs to the passed message 
-    async transition verify(ism: address, message: [u8; MESSAGE_LENGTH], message_id: [u128; 2], metadata: [u8; METADATA_LENGTH]) ->  Future {
-        return finalize_verify(ism, message, message_id,  metadata);
+    /// This method assumes that the caller makes sure that the passed message_id belongs to the passed message
+    async transition verify(ism: address, message: [u8; MESSAGE_LENGTH], message_id: [u128; 2], metadata: [u8; METADATA_LENGTH]) -> Future {
+        return finalize_verify(ism, message, message_id, metadata);
     }
 
     async function finalize_verify(ism: address, raw_message: [u8; MESSAGE_LENGTH], message_id: [u128; 2], metadata: [u8; METADATA_LENGTH]) {
@@ -185,7 +171,7 @@ program ism_manager.aleo {
                 let multisig = message_id_multisigs.get(ism_address);
                 let signatures = parse_signatures(metadata);
 
-                // TODO: calucalte digest in a better way
+                // TODO: calculate digest in a better way
                 let merkle_tree_hook = origin_merkle_tree_hook(metadata);
                 let hash = domain_hash(origin_domain_id, merkle_tree_hook);
 
@@ -204,13 +190,13 @@ program ism_manager.aleo {
 
                 let checkpoint_bits = Keccak256::hash_native_raw(msg);
                 let checkpoint = Deserialize::from_bits_raw::[[u8; 32]](checkpoint_bits);
-                
+
                 let digest = to_eth_signed_message_hash(checkpoint);
 
                 let validators = multisig.validators;
                 let valid_signatures = 0u8;
 
-                // We can assue that the signatures are passed in the same order as the validators. 
+                // We can assume that the signatures are passed in the same order as the validators.
                 // However, aleo doesn't support branching and dynamic array indexing
                 // This makes it impossible for us to implement a more time efficient algorithm like in the EVM implementation
                 for signature_index in 0u8..MAX_THRESHOLD {
@@ -219,16 +205,16 @@ program ism_manager.aleo {
                         valid_signatures += valid ? 1 : 0;
                     }
                 }
-                assert(valid_signatures >= multisig.threshold);            
+                assert(valid_signatures >= multisig.threshold);
             } else if ism_type == ISM_UNUSED {
                 // NoopIsm continue with no verification
                 return;
-            } 
+            }
 
             assert_eq(ism_type, ISM_ROUTING);
             // ISM can only be the RoutingIsm at this point
             // Route to the underlying ism based on the message `origin_domain`
-            // We have to assume the routing ism on the default path, 
+            // We have to assume the routing ism on the default path,
             let key = IsmRouteKey {
                 ism: ism_address,
                 domain: origin_domain_id,
