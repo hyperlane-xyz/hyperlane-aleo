@@ -10,6 +10,7 @@ program hook_manager.aleo {
 
     const TREE_DEPTH: u32 = 32;
     const MAX_LEAVES: u32 = (2u64 ** TREE_DEPTH - 1) as u32;
+    const DEFAULT_GAS_LIMIT: u128 = 50000;
 
     // keccak256 zero hashes
     const ZERO_HASHES: [[u128; 2]; TREE_DEPTH] = [
@@ -201,7 +202,7 @@ program hook_manager.aleo {
         let quote = quote_gas_payment(config, gas_limit);
 
         // Revert if the quoted fee does not match the transfer amount
-        assert(quote == credits_amount);
+        assert_eq(quote, credits_amount);
         transfer.await();
 
         // TODO: maybe refactor the logic
@@ -310,11 +311,7 @@ program hook_manager.aleo {
         assert(hooks.contains(hook));
         let type: u8 = hooks.get(hook);
         transfer.await();
-
-        // TODO: for some absurd reason, this crashes the compiler
-        // let hash = Keccak256::hash_native_raw(message);
-        // let current = Deserialize::from_bits_raw::[[u128; 2]](hash);
-        let message_id = [0u128; 2];
+        let message_id = static_message_id(message);
 
         if type == HOOK_MERKLE_TREE {
             let merkle_tree_hook = merkle_tree_hooks.get(hook);
@@ -349,15 +346,22 @@ program hook_manager.aleo {
                 destination: destination_domain,
                 igp: hook,
             };
-            assert(destination_gas_configs.contains(key));
+
+            let config_exists = destination_gas_configs.contains(key);
+            // If there is no gas config, we don't emit any pay for gas event
+            if !config_exists {
+                // assert that the payment is zero when there is no config
+                assert_eq(credits_amount, 0u64);
+                return;
+            }
 
             let config = destination_gas_configs.get(key);
             let gas_limit = metadata_gas_limit(metadata);
-            gas_limit = gas_limit == 0 ? 50000 : gas_limit;
+            gas_limit = gas_limit == 0 ? DEFAULT_GAS_LIMIT : gas_limit;
 
             let quote = quote_gas_payment(config, gas_limit + config.gas_overhead);
             // Revert if the quoted fee does not match the transfer amount
-            assert(quote == credits_amount);
+            assert_eq(quote, credits_amount);
 
             // TODO: maybe refactor to shared code
             let event_key = EventKey {
@@ -397,5 +401,11 @@ program hook_manager.aleo {
             value = value << 8u32 | bytes[i] as u128;
         }
         return value;
+    }
+
+    /// Returns the message id based on the static sized message
+    inline static_message_id(message: [u8; 256]) -> [u128; 2] {
+        let hash = Keccak256::hash_native_raw(message);
+        return Deserialize::from_bits_raw::[[u128; 2]](hash);
     }
 }
