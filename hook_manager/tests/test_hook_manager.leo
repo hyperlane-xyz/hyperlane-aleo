@@ -3,6 +3,7 @@ program test_hook_manager.aleo {
     transition create_noop() {
         assert_neq(5u32, 5u32);
     }
-
+    
+    @noupgrade
     async constructor() {}
 }
