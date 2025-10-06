@@ -3,6 +3,80 @@ import credits.aleo;
 // The 'hook_manager' program.
 program hook_manager.aleo {
     
+    mapping nonce: bool => u32;
+    // Mapping for IGPs
+    mapping igps: address => InterchainGasPaymaster;
+    // DestinationGasConfigs
+    mapping destination_gas_configs: GasConfigKey => DomainGasConfig;
+    // Mapping for MerkleTreeHook
+    mapping merkle_tree_hooks: address => MerkleTreeHook;
+    // Mapping from ism address to Hook Type
+    mapping hooks: address => u8;
+    // Events
+    // GasPayment Events: sequence => Event
+    mapping gas_payment_events: EventKey => GasPaymentEvent;
+    // InsertedIntoTree Events: sequence => Event
+    mapping inserted_into_tree_events: EventKey => InsertedIntoTreeEvent;
+
+    struct InterchainGasPaymaster {
+        hook_owner: address,
+        nonce: u32,
+        // We need to track each IGPs balance, because only the `hook_manager` program has a balance in the credits program
+        balance: u64,
+        // Used for sequencing events
+        count: u32,
+    }
+
+    struct Tree {
+        branch: [[u128; 2]; TREE_DEPTH],
+        count: u32,
+    }
+
+    struct MerkleTreeHook {
+        parent: address,
+        root: [u128; 2],
+        tree: Tree,
+        nonce: u32,
+    }
+
+    struct NoopHook {
+        nonce: u32,
+    }
+
+    struct InsertedIntoTreeEvent {
+        id: [u128; 2],
+        index: u32,
+    }
+
+    struct GasConfigKey {
+        igp: address,
+        destination: u32,
+    }
+
+    struct DomainGasConfig {
+        gas_overhead: u128,
+        exchange_rate: u128,
+        gas_price: u128,
+    }
+
+    struct GasPaymentEvent {
+        id: [u128; 2],
+        destination_domain: u32,
+        gas_amount: u128,
+        payment: u64,
+        index: u32,
+    }
+
+    struct EventKey {
+        hook: address,
+        index: u32,
+    }
+
+    struct CreditAllowance {
+        spender: address,
+        amount: u64,
+    }
+
     const HOOK_UNUSED: u8 = 0;
     const HOOK_MERKLE_TREE: u8 = 3;
     const HOOK_INTERCHAIN_GAS_PAYMASTER: u8 = 4;
@@ -50,81 +124,6 @@ program hook_manager.aleo {
 
     const TOKEN_EXCHANGE_RATE_SCALE: u128 = 10000000000u128; // 1e10
 
-    struct InterchainGasPaymaster {
-        hook_owner: address,
-        nonce: u32,
-        // We need to track each IGPs balance, because only the `hook_manager` program has a balance in the credits program
-        balance: u64,
-        // Used for sequencing events
-        count: u32,
-    }
-
-    struct Tree {
-        branch: [[u128; 2]; TREE_DEPTH],
-        count: u32,
-    }
-
-    struct MerkleTreeHook {
-        parent: address,
-        root: [u128; 2],
-        tree: Tree,
-        nonce: u32,
-    }
-
-    struct NoopHook {
-        nonce: u32,
-    }
-
-    struct InsertedIntoTreeEvent {
-        id: [u128; 2],
-        index: u32,
-    }
-
-    struct GasConfigKey {
-        igp: address,
-        destination: u32
-    }
-
-    struct DomainGasConfig {
-        gas_overhead: u128,
-        exchange_rate: u128,
-        gas_price: u128,
-    }
-
-    struct GasPaymentEvent {
-        id: [u128; 2],
-        destination_domain: u32,
-        gas_amount: u128,
-        payment: u64,
-        index: u32,
-    }
-
-    // Struct for indexing events
-    struct EventKey {
-        hook: address,
-        index: u32,
-    }
-
-    struct CreditAllowance {
-        spender: address,
-        amount: u64,
-    }
-
-    mapping nonce: bool => u32;
-    // Mapping for IGPs
-    mapping igps: address => InterchainGasPaymaster;
-    // DestinationGasConfigs
-    mapping destination_gas_configs: GasConfigKey => DomainGasConfig;
-    // Mapping for MerkleTreeHook
-    mapping merkle_tree_hooks: address => MerkleTreeHook;
-    // Mapping from ism address to Hook Type
-    mapping hooks: address => u8;
-    // Events
-    // GasPayment Events: sequence => Event
-    mapping gas_payment_events: EventKey => GasPaymentEvent;
-    // InsertedIntoTree Events: sequence => Event
-    mapping inserted_into_tree_events: EventKey => InsertedIntoTreeEvent;
-
     @noupgrade
     async constructor() {}
 
@@ -169,7 +168,7 @@ program hook_manager.aleo {
         assert(!contains);
 
         nonce.set(true, current_nonce + 1);
-        hooks.set(hook_address, HOOK_INTERCHAIN_GAS_PAYMASTER);    
+        hooks.set(hook_address, HOOK_INTERCHAIN_GAS_PAYMASTER);
         igps.set(hook_address, hook);
     }
 
@@ -308,7 +307,7 @@ program hook_manager.aleo {
     }
     
     /// Post Dispatch
-    /// - hook_allowance: mapping from hook_address -> allowed credits to spent. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
+    /// - hook_allowance: mapping from hook_address -> allowed credits to spend. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
     async transition post_dispatch(hook: address, metadata: [u8; 256], message: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
         // find the allowance for the given hook, default to 0
         let credits_amount = 0u64;
