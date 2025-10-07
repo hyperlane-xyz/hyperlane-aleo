@@ -22,6 +22,12 @@
       "location": "local",
       "path": "hook_manager",
       "edition": null
+    },
+    {
+      "name": "validator_announce.aleo",
+      "location": "local",
+      "path": "validator_announce",
+      "edition": null
     }
   ],
   "dev_dependencies": null
