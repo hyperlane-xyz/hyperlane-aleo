@@ -1,4 +1,3 @@
-
 // The 'ism_manager' program.
 program ism_manager.aleo {
 
@@ -20,7 +19,6 @@ program ism_manager.aleo {
         validators: [EthAddress; MAX_VALIDATORS],
         validator_count: u8,
         threshold: u8,
-        ism_owner: address,
         nonce: u32,
     }
 
@@ -49,11 +47,10 @@ program ism_manager.aleo {
     const ISM_MERKLE_ROOT_MULTISIG: u8 = 4;
     const ISM_MESSAGE_ID_MULTISIG: u8 = 5;
 
-    const MAX_VALIDATORS: u8 = 10;
-    const MAX_THRESHOLD: u8 = 6;
+    const MAX_VALIDATORS: u8 = 6;
     const METADATA_LENGTH: u32 = 512;
     const MESSAGE_LENGTH: u32 = 256;
-    const MESSAGE_BODY_LENGTH: u8 = (MESSAGE_LENGTH - 77) as u8; // Message has 77Bytes without the body
+    const MESSAGE_BODY_LENGTH: u8 = 179; // Message has 77Bytes without the body: 256 - 77 = 179
 
     @noupgrade
     async constructor() {}
@@ -80,13 +77,13 @@ program ism_manager.aleo {
     }
 
     async transition init_message_id_multisig(validators: [EthAddress; MAX_VALIDATORS], validator_count: u8, threshold: u8) -> Future {
-        let owner_address: address = self.caller;
-        return finalize_msg_id_multisig(validators, validator_count, threshold, owner_address);
+        return finalize_msg_id_multisig(validators, validator_count, threshold);
     }
 
-    async function finalize_msg_id_multisig(validators: [EthAddress; MAX_VALIDATORS], validator_count: u8, threshold: u8, owner_address: address) {
+    async function finalize_msg_id_multisig(validators: [EthAddress; MAX_VALIDATORS], validator_count: u8, threshold: u8) {
         assert(threshold > 0);
-        assert(threshold <= MAX_THRESHOLD);
+        assert(threshold <= MAX_VALIDATORS);
+        assert(validator_count <= MAX_VALIDATORS);
 
         let current_nonce = nonce.get_or_use(true, 0u32);
 
@@ -94,7 +91,6 @@ program ism_manager.aleo {
             validators,
             validator_count,
             threshold,
-            ism_owner: owner_address,
             nonce: current_nonce,
         };
 
@@ -103,7 +99,6 @@ program ism_manager.aleo {
         // Sanity check, this should be super unlikely
         let contains = message_id_multisigs.contains(ism_address);
         assert(!contains);
-
         message_id_multisigs.set(ism_address, ism);
         nonce.set(true, current_nonce + 1);
         isms.set(ism_address, ISM_MESSAGE_ID_MULTISIG);
@@ -159,6 +154,8 @@ program ism_manager.aleo {
     }
 
     async function finalize_verify(ism: address, raw_message: [u8; MESSAGE_LENGTH], message_id: [u128; 2], metadata: [u8; METADATA_LENGTH]) {
+        // TODO: for some reason this is more efficient instead of a constant
+        let zero_sig = [0u8; 65];
         // We have a max depth of 4 for recursive routing isms
         let origin_domain_id = message_origin_domain_id(raw_message);
         let ism_address: address = ism;
@@ -171,41 +168,26 @@ program ism_manager.aleo {
                 let multisig = message_id_multisigs.get(ism_address);
                 let signatures = parse_signatures(metadata);
 
-                // TODO: calculate digest in a better way
-                let merkle_tree_hook = origin_merkle_tree_hook(metadata);
-                let hash = domain_hash(origin_domain_id, merkle_tree_hook);
-
-                let msg: [u8; 100] = [0u8; 100];
-                let id_bytes = message_id_bytes(message_id);
-                for k in 0u8..32u8 {
-                    msg[k] = hash[k];
-                    msg[k + 32] = metadata[MERKLE_ROOT_OFFSET + k];
-                    msg[k + 32 + 32 + 4] = id_bytes[k];
-                }
-
-                msg[64] = metadata[MERKLE_INDEX_OFFSET + 0];
-                msg[65] = metadata[MERKLE_INDEX_OFFSET + 1];
-                msg[66] = metadata[MERKLE_INDEX_OFFSET + 2];
-                msg[67] = metadata[MERKLE_INDEX_OFFSET + 3];
-
-                let checkpoint_bits = Keccak256::hash_native_raw(msg);
-                let checkpoint = Deserialize::from_bits_raw::[[u8; 32]](checkpoint_bits);
-
-                let digest = to_eth_signed_message_hash(checkpoint);
+                let digest = get_message_id_digest(
+                    origin_domain_id,
+                    metadata,
+                    message_id,
+                );
 
                 let validators = multisig.validators;
                 let valid_signatures = 0u8;
 
-                // We can assume that the signatures are passed in the same order as the validators.
-                // However, aleo doesn't support branching and dynamic array indexing
-                // This makes it impossible for us to implement a more time efficient algorithm like in the EVM implementation
-                for signature_index in 0u8..MAX_THRESHOLD {
-                    for validator_index in 0u8..MAX_VALIDATORS {
-                        let valid = ECDSA::verify_digest_eth(digest, validators[validator_index].bytes, signatures[signature_index]);
-                        valid_signatures += valid ? 1 : 0;
-                    }
+                // We assume that the signatures are passed in the same order as the validators.
+                for index in 0u8..MAX_VALIDATORS {
+                    let sig = signatures[index];
+                    let valid = sig == zero_sig ? false : ECDSA::verify_digest_eth(digest, validators[index].bytes, sig);
+                    // TODO: we should check following: signature_index < multisig.validator_count && validator_index < multisig.validator_count && 
+                    // However, it is equally likely to generate a malicous signature for the null-address as it is for every other address
+                    // We therefore don't test for this cases, as aleo will have to go through every statement anyways and this would add extra complexity
+                    valid_signatures += valid ? 1 : 0;
                 }
                 assert(valid_signatures >= multisig.threshold);
+                return;
             } else if ism_type == ISM_UNUSED {
                 // NoopIsm continue with no verification
                 return;
@@ -222,6 +204,44 @@ program ism_manager.aleo {
             assert(routes.contains(key));
             ism_address = routes.get(key);
         }
+    }
+
+    inline get_message_id_digest(origin_domain: u32, metadata: [u8; METADATA_LENGTH], message_id: [u128; 2]) -> [u8; 32] {
+        // TODO: calculate digest in a better way
+        let merkle_tree_hook = origin_merkle_tree_hook(metadata);
+        let hash = domain_hash(origin_domain, merkle_tree_hook);
+        let id_bytes = message_id_bytes(message_id);
+        let msg: [u8; 100] = [
+            // domain hash
+            hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7],
+            hash[8], hash[9], hash[10], hash[11], hash[12], hash[13], hash[14], hash[15],
+            hash[16], hash[17], hash[18], hash[19], hash[20], hash[21], hash[22], hash[23],
+            hash[24], hash[25], hash[26], hash[27], hash[28], hash[29], hash[30], hash[31],
+            
+            // checkpoint root
+            metadata[MERKLE_ROOT_OFFSET], metadata[MERKLE_ROOT_OFFSET + 1], metadata[MERKLE_ROOT_OFFSET + 2], metadata[MERKLE_ROOT_OFFSET + 3],
+            metadata[MERKLE_ROOT_OFFSET + 4], metadata[MERKLE_ROOT_OFFSET + 5], metadata[MERKLE_ROOT_OFFSET + 6], metadata[MERKLE_ROOT_OFFSET + 7],
+            metadata[MERKLE_ROOT_OFFSET + 8], metadata[MERKLE_ROOT_OFFSET + 9], metadata[MERKLE_ROOT_OFFSET + 10], metadata[MERKLE_ROOT_OFFSET + 11],
+            metadata[MERKLE_ROOT_OFFSET + 12], metadata[MERKLE_ROOT_OFFSET + 13], metadata[MERKLE_ROOT_OFFSET + 14], metadata[MERKLE_ROOT_OFFSET + 15],
+            metadata[MERKLE_ROOT_OFFSET + 16], metadata[MERKLE_ROOT_OFFSET + 17], metadata[MERKLE_ROOT_OFFSET + 18], metadata[MERKLE_ROOT_OFFSET + 19],
+            metadata[MERKLE_ROOT_OFFSET + 20], metadata[MERKLE_ROOT_OFFSET + 21], metadata[MERKLE_ROOT_OFFSET + 22], metadata[MERKLE_ROOT_OFFSET + 23],
+            metadata[MERKLE_ROOT_OFFSET + 24], metadata[MERKLE_ROOT_OFFSET + 25], metadata[MERKLE_ROOT_OFFSET + 26], metadata[MERKLE_ROOT_OFFSET + 27],
+            metadata[MERKLE_ROOT_OFFSET + 28], metadata[MERKLE_ROOT_OFFSET + 29], metadata[MERKLE_ROOT_OFFSET + 30], metadata[MERKLE_ROOT_OFFSET + 31],
+            
+            // merkle index
+            metadata[MERKLE_INDEX_OFFSET + 0], metadata[MERKLE_INDEX_OFFSET + 1], metadata[MERKLE_INDEX_OFFSET + 2], metadata[MERKLE_INDEX_OFFSET + 3],
+            
+            // message id
+            id_bytes[0], id_bytes[1], id_bytes[2], id_bytes[3], id_bytes[4], id_bytes[5], id_bytes[6], id_bytes[7],
+            id_bytes[8], id_bytes[9], id_bytes[10], id_bytes[11], id_bytes[12], id_bytes[13], id_bytes[14], id_bytes[15],
+            id_bytes[16], id_bytes[17], id_bytes[18], id_bytes[19], id_bytes[20], id_bytes[21], id_bytes[22], id_bytes[23],
+            id_bytes[24], id_bytes[25], id_bytes[26], id_bytes[27], id_bytes[28], id_bytes[29], id_bytes[30], id_bytes[31],
+        ];
+
+        let checkpoint_bits = Keccak256::hash_native_raw(msg);
+        let checkpoint = Deserialize::from_bits_raw::[[u8; 32]](checkpoint_bits);
+
+        return to_eth_signed_message_hash(checkpoint);
     }
 
     // Interpret bytes as big-endian: b0 is most significant, b3 is least.
@@ -247,28 +267,18 @@ program ism_manager.aleo {
         let b2: u8 = ((origin >> 16u32) % 256u32) as u8;
         let b1: u8 = ((origin >> 8u32) % 256u32) as u8;
         let b0: u8 = (origin % 256u32) as u8;
-
-        let msg: [u8; 45] = [0u8; 45];
-
-        // origin is BE encoded
-        msg[0] = b3;
-        msg[1] = b2;
-        msg[2] = b1;
-        msg[3] = b0;
-        // merkle tree hook
-        for i in 0u8..32u8 {
-            msg[i + 4] = merkle_tree_hook[i];
-        }
-        // 'HYPERLANE' encoded as UTF-8 (9 bytes)
-        msg[36] = 72u8; // H
-        msg[37] = 89u8; // Y
-        msg[38] = 80u8; // P
-        msg[39] = 69u8; // E
-        msg[40] = 82u8; // R
-        msg[41] = 76u8; // L
-        msg[42] = 65u8; // A
-        msg[43] = 78u8; // N
-        msg[44] = 69u8; // E
+        let msg: [u8; 45] = [
+            b3, b2, b1, b0, // origin is BE encoded
+            merkle_tree_hook[0], merkle_tree_hook[1], merkle_tree_hook[2], merkle_tree_hook[3],
+            merkle_tree_hook[4], merkle_tree_hook[5], merkle_tree_hook[6], merkle_tree_hook[7],
+            merkle_tree_hook[8], merkle_tree_hook[9], merkle_tree_hook[10], merkle_tree_hook[11],
+            merkle_tree_hook[12], merkle_tree_hook[13], merkle_tree_hook[14], merkle_tree_hook[15],
+            merkle_tree_hook[16], merkle_tree_hook[17], merkle_tree_hook[18], merkle_tree_hook[19],
+            merkle_tree_hook[20], merkle_tree_hook[21], merkle_tree_hook[22], merkle_tree_hook[23],
+            merkle_tree_hook[24], merkle_tree_hook[25], merkle_tree_hook[26], merkle_tree_hook[27],
+            merkle_tree_hook[28], merkle_tree_hook[29], merkle_tree_hook[30], merkle_tree_hook[31],
+            72u8, 89u8, 80u8, 69u8, 82u8, 76u8, 65u8, 78u8, 69u8 // 'HYPERLANE' encoded as UTF-8
+        ];
 
         let hash = Keccak256::hash_native_raw(msg);
         return Deserialize::from_bits_raw::[[u8; 32]](hash);
@@ -278,55 +288,58 @@ program ism_manager.aleo {
         // [5-8]       - origin domain (4 bytes)
         let origin_domain_id = 0u32;
         for i in 0u8..4u8 {
-            origin_domain_id = origin_domain_id << 1u32 + message[5 + i] as u32;
+            origin_domain_id = origin_domain_id << 8u32 | message[i + 5] as u32;
         }
         return origin_domain_id;
     }
 
     inline to_eth_signed_message_hash(hash: [u8; 32]) -> [u8; 32] {
-        let digest: [u8; 60] = [0u8; 60];
-        // "\x19Ethereum Signed Message:\n32"
-        digest[0]  = 25u8;  // \x19
-        digest[1]  = 69u8;  // E
-        digest[2]  = 116u8; // t
-        digest[3]  = 104u8; // h
-        digest[4]  = 101u8; // e
-        digest[5]  = 114u8; // r
-        digest[6]  = 101u8; // e
-        digest[7]  = 117u8; // u
-        digest[8]  = 109u8; // m
-        digest[9]  = 32u8;  // (space)
-        digest[10] = 83u8;  // S
-        digest[11] = 105u8; // i
-        digest[12] = 103u8; // g
-        digest[13] = 110u8; // n
-        digest[14] = 101u8; // e
-        digest[15] = 100u8; // d
-        digest[16] = 32u8;  // (space)
-        digest[17] = 77u8;  // M
-        digest[18] = 101u8; // e
-        digest[19] = 115u8; // s
-        digest[20] = 115u8; // s
-        digest[21] = 97u8;  // a
-        digest[22] = 103u8; // g
-        digest[23] = 101u8; // e
-        digest[24] = 58u8;  // :
-        digest[25] = 10u8;  // \n
-        digest[26] = 51u8;  // '3'
-        digest[27] = 50u8;  // '2'
-
-        // Append 32-byte hash
-        for i in 0u8..32u8 {
-            digest[28 + i] = hash[i];
-        }
+        let digest: [u8; 60] = [
+            25u8,   // \x19
+            69u8,   // E
+            116u8,  // t
+            104u8,  // h
+            101u8,  // e
+            114u8,  // r
+            101u8,  // e
+            117u8,  // u
+            109u8,  // m
+            32u8,   // (space)
+            83u8,   // S
+            105u8,  // i
+            103u8,  // g
+            110u8,  // n
+            101u8,  // e
+            100u8,  // d
+            32u8,   // (space)
+            77u8,   // M
+            101u8,  // e
+            115u8,  // s
+            115u8,  // s
+            97u8,   // a
+            103u8,  // g
+            101u8,  // e
+            58u8,   // :
+            10u8,   // \n
+            51u8,   // '3'
+            50u8,   // '2'
+            hash[0], hash[1], hash[2], hash[3],
+            hash[4], hash[5], hash[6], hash[7],
+            hash[8], hash[9], hash[10], hash[11],
+            hash[12], hash[13], hash[14], hash[15],
+            hash[16], hash[17], hash[18], hash[19],
+            hash[20], hash[21], hash[22], hash[23],
+            hash[24], hash[25], hash[26], hash[27],
+            hash[28], hash[29], hash[30], hash[31]
+        ];
 
         let hash_bits = Keccak256::hash_native_raw(digest);
         return Deserialize::from_bits_raw::[[u8; 32]](hash_bits);
     }
 
-    inline parse_signatures(metadata: [u8; METADATA_LENGTH]) -> [[u8; SIGNATURE_LENGTH]; MAX_THRESHOLD] {
-        let signatures = [[0u8; SIGNATURE_LENGTH]; MAX_THRESHOLD];
-        for j in 0u8..MAX_THRESHOLD {
+    inline parse_signatures(metadata: [u8; METADATA_LENGTH]) -> [[u8; SIGNATURE_LENGTH]; MAX_VALIDATORS] {
+        let signatures = [[0u8; SIGNATURE_LENGTH]; MAX_VALIDATORS];
+        for j in 0u8..MAX_VALIDATORS {
             for i in 0u8..SIGNATURE_LENGTH {
                 signatures[j][i] = metadata[i as u32 + SIGNATURES_OFFSET as u32 + j as u32 * SIGNATURE_LENGTH as u32];
             }

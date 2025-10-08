@@ -33,12 +33,6 @@ program validator_announce.aleo {
     @noupgrade
     async constructor() {}
 
-    // compiler crashes if i remove this
-    transition main(public a: u32, b: u32) -> u32 {
-        let c: u32 = a + b;
-        return c;
-    }
-
     async transition init(mailbox: [u8; 32], local_domain: u32) -> Future {
         return finalize_init(mailbox, local_domain);
     }
