@@ -62,7 +62,7 @@ program validator_announce.aleo {
         let sequence = storage_sequences.get_or_use(validator_eth_address, 0u8);
 
         let digest = announcement_digest(state.local_domain, state.mailbox, storage_location);
-        let valid = ECDSA::verify_digest_eth(digest, validator, sig);
+        let valid = ECDSA::verify_digest_eth(sig, validator, digest);
 
         assert_eq(valid, true);
 

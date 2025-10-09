@@ -21,6 +21,9 @@ program test_validator_announce.aleo {
 
     @test
     script test_announce() {
+        let result: Future = validator_announce.aleo/init(MAILBOX, LOCAL_DOMAIN);
+        result.await();
+
         let validator: [u8; 20] = [255, 158, 134, 162, 5, 200, 135, 150, 5, 153, 219, 36, 3, 136, 45, 36, 142, 223, 191, 216];
         let sig: [u8; 65] = [49, 79, 115, 205, 135, 168, 6, 90, 7, 164, 0, 230, 148, 23, 61, 93, 182, 200, 40, 253, 157, 218, 39, 190, 206, 221, 132, 95, 3, 202, 77, 157, 33, 97, 90, 125, 131, 186, 219, 67, 185, 117, 221, 170, 15, 54, 31, 3, 153, 67, 116, 232, 24, 104, 144, 193, 253, 51, 19, 105, 252, 204, 110, 121, 0];
         let storage_location_packed: [u8; 26] = [115, 51, 58, 47, 47, 116, 101, 115, 116, 45, 115, 116, 111, 114, 97, 103, 101, 45, 108, 111, 99, 97, 116, 105, 111, 110];
@@ -36,6 +39,9 @@ program test_validator_announce.aleo {
     @test
     @should_fail
     script test_replay() {
+        let result: Future = validator_announce.aleo/init(MAILBOX, LOCAL_DOMAIN);
+        result.await();
+
         let validator: [u8; 20] = [255, 158, 134, 162, 5, 200, 135, 150, 5, 153, 219, 36, 3, 136, 45, 36, 142, 223, 191, 216];
         let sig: [u8; 65] = [49, 79, 115, 205, 135, 168, 6, 90, 7, 164, 0, 230, 148, 23, 61, 93, 182, 200, 40, 253, 157, 218, 39, 190, 206, 221, 132, 95, 3, 202, 77, 157, 33, 97, 90, 125, 131, 186, 219, 67, 185, 117, 221, 170, 15, 54, 31, 3, 153, 67, 116, 232, 24, 104, 144, 193, 253, 51, 19, 105, 252, 204, 110, 121, 0];
         let storage_location_packed: [u8; 26] = [115, 51, 58, 47, 47, 116, 101, 115, 116, 45, 115, 116, 111, 114, 97, 103, 101, 45, 108, 111, 99, 97, 116, 105, 111, 110];
@@ -46,11 +52,17 @@ program test_validator_announce.aleo {
 
         let announce: Future = validator_announce.aleo/announce(validator, storage_location, sig);
         announce.await();
+
+        let replay: Future = validator_announce.aleo/announce(validator, storage_location, sig);
+        replay.await();
     }
 
     @test
     @should_fail
     script test_invalid_sig() {
+        let result: Future = validator_announce.aleo/init(MAILBOX, LOCAL_DOMAIN);
+        result.await();
+
         let validator: [u8; 20] = [255, 158, 134, 162, 5, 200, 135, 150, 5, 153, 219, 36, 3, 136, 45, 36, 142, 223, 191, 216];
         let sig: [u8; 65] = [49, 79, 114, 205, 135, 168, 6, 90, 7, 164, 0, 230, 148, 23, 61, 93, 182, 200, 40, 253, 157, 218, 39, 190, 206, 221, 132, 95, 3, 202, 77, 157, 33, 97, 90, 125, 131, 186, 219, 67, 185, 117, 221, 170, 15, 54, 31, 3, 153, 67, 116, 232, 24, 104, 144, 193, 253, 51, 19, 105, 252, 204, 110, 121, 0];
         let storage_location_packed: [u8; 26] = [115, 50, 58, 47, 47, 116, 101, 115, 116, 45, 115, 116, 111, 114, 97, 103, 101, 45, 108, 111, 99, 97, 116, 105, 111, 110];
