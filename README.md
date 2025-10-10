@@ -53,7 +53,17 @@ leo test
 **Running a local devnet:**
 
 ```bash
-leo devnet --storage tmp --snarkos ./snarkos --snarkos-features test_network --consensus-heights 0,1,2,3,4,5,6,7,8,9
+// Download the snarkOS repo
+> git clone https://github.com/ProvableHQ/snarkOS.git
+
+// Checkout the feature branch
+> git checkout feat/bytes
+
+// Install snarkOs
+> cargo install --path . --features=test_network
+
+// Run the devnet
+> leo devnet --storage tmp --snarkos "$(which snarkos)" --snarkos-features test_network --clear-storage --num-clients 1 -y
 ```
 
 ## Open Issues
