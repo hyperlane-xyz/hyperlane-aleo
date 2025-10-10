@@ -6,3 +6,5 @@ outputs/
 build/
 utils/
 FEEDBACK.md
+tests/devnet
+test_failures.log
