@@ -6,6 +6,8 @@ program ism_manager.aleo {
     mapping domain_routing_isms: address => DomainRoutingIsm;
     // Mapping for MsgIdMultisigIsms
     mapping message_id_multisigs: address => MessageIdMultisigIsm;
+    // ISM Addresses
+    mapping ism_addresses: u32 => address;
     // Routes for RoutingIsm
     mapping routes: IsmRouteKey => address;
     // Mapping from ism address to ISM Type
@@ -102,6 +104,7 @@ program ism_manager.aleo {
         message_id_multisigs.set(ism_address, ism);
         nonce.set(true, current_nonce + 1);
         isms.set(ism_address, ISM_MESSAGE_ID_MULTISIG);
+        ism_addresses.set(current_nonce, ism_address);
     }
 
     async transition init_domain_routing() -> Future {
@@ -126,6 +129,7 @@ program ism_manager.aleo {
         domain_routing_isms.set(ism_address, ism);
         nonce.set(true, current_nonce + 1);
         isms.set(ism_address, ISM_ROUTING);
+        ism_addresses.set(current_nonce, ism_address);
     }
 
     async transition set_domain(ism: address, domain: u32, module: address) -> Future {
@@ -154,55 +158,55 @@ program ism_manager.aleo {
     }
 
     async function finalize_verify(ism: address, raw_message: [u8; MESSAGE_LENGTH], message_id: [u128; 2], metadata: [u8; METADATA_LENGTH]) {
-        // TODO: for some reason this is more efficient instead of a constant
-        let zero_sig = [0u8; 65];
         // We have a max depth of 4 for recursive routing isms
         let origin_domain_id = message_origin_domain_id(raw_message);
         let ism_address: address = ism;
+
+        // Calculate signatures and digest outside of the loop
+        // This reduces the amount of code that gets generated
+        let signatures = parse_signatures(metadata);
+        let digest = get_message_id_digest(
+            origin_domain_id,
+            metadata,
+            message_id,
+        );
+
         for i: u8 in 0u8..4u8 {
             assert(isms.contains(ism));
             let ism_type: u8 = isms.get(ism);
-
             if ism_type == ISM_MESSAGE_ID_MULTISIG {
                 // MessageIdIsm logic
                 let multisig = message_id_multisigs.get(ism_address);
-                let signatures = parse_signatures(metadata);
-
-                let digest = get_message_id_digest(
-                    origin_domain_id,
-                    metadata,
-                    message_id,
-                );
-
                 let validators = multisig.validators;
                 let valid_signatures = 0u8;
 
                 // We assume that the signatures are passed in the same order as the validators.
                 for index in 0u8..MAX_VALIDATORS {
-                    let sig = signatures[index];
-                    let valid = sig == zero_sig ? false : ECDSA::verify_digest_eth(digest, validators[index].bytes, sig);
-                    // TODO: we should check following: signature_index < multisig.validator_count && validator_index < multisig.validator_count && 
+                    let valid = ECDSA::verify_digest_eth(signatures[index], validators[index].bytes, digest);
+                    // TODO: we should check following: signature_index < multisig.validator_count && validator_index < multisig.validator_count
                     // However, it is equally likely to generate a malicous signature for the null-address as it is for every other address
                     // We therefore don't test for this cases, as aleo will have to go through every statement anyways and this would add extra complexity
                     valid_signatures += valid ? 1 : 0;
                 }
                 assert(valid_signatures >= multisig.threshold);
-                return;
-            } else if ism_type == ISM_UNUSED {
-                // NoopIsm continue with no verification
-                return;
+            } else if ism_type == ISM_UNUSED || ism_type == ISM_ROUTING {
+                // NoopIsm and RoutingISM continue and do nothing
+            } else {
+                // unkown ism
+                assert(false);
             }
 
-            assert_eq(ism_type, ISM_ROUTING);
-            // ISM can only be the RoutingIsm at this point
-            // Route to the underlying ism based on the message `origin_domain`
-            // We have to assume the routing ism on the default path,
+            // We have to execute the RoutingISM logic in the inner loop
+            // Otherwise the compiler complains that an outer variable, here the `ism_address`, is not assigned on every iteration
             let key = IsmRouteKey {
                 ism: ism_address,
                 domain: origin_domain_id,
             };
-            assert(routes.contains(key));
-            ism_address = routes.get(key);
+
+            // This logic here will be executed for every ISM type, there is no way around this as Aleo forbids branching
+            // This means the `routes.get(key)` function will be executed for every ism type and will fail for non-routing isms.
+            // We bypass this by using `get_or_use`
+            ism_address = routes.get_or_use(key, ism_address);
         }
     }
 
@@ -357,5 +361,4 @@ program ism_manager.aleo {
         }
         return Deserialize::from_bits_raw::[[u8; 32]](bits);
     }
-
 }
