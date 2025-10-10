@@ -12,6 +12,8 @@ program hook_manager.aleo {
     mapping merkle_tree_hooks: address => MerkleTreeHook;
     // Mapping from ism address to Hook Type
     mapping hooks: address => u8;
+    // Mapping to find hook addresses
+    mapping hook_addresses: u32 => address;
     // Events
     // GasPayment Events: sequence => Event
     mapping gas_payment_events: EventKey => GasPaymentEvent;
@@ -83,9 +85,11 @@ program hook_manager.aleo {
     const HOOK_PAUSABLE: u8 = 7;
 
     const TREE_DEPTH: u32 = 32;
-    const MAX_LEAVES: u32 = (2u64 ** TREE_DEPTH - 1) as u32;
+    const MAX_LEAVES: u32 = 4294967295u32; // 2**32-1
     const DEFAULT_GAS_LIMIT: u128 = 50000;
 
+    // Merkle root with empty leafs
+    const ZERO_ROOT: [u128; 2] = [96697620089336775378094670865426525735u128, 116761479129358376777137895554163725990u128];
     // keccak256 zero hashes
     const ZERO_HASHES: [[u128; 2]; TREE_DEPTH] = [
         [0u128,0u128],
@@ -134,18 +138,19 @@ program hook_manager.aleo {
     async function finalize_noop() {
         let current_nonce = nonce.get_or_use(true, 0u32);
 
-        let ism = NoopHook {
+        let hook = NoopHook {
             nonce: current_nonce,
         };
 
-        let ism_address = BHP256::hash_to_address(ism);
+        let hook_address = BHP256::hash_to_address(hook);
 
         // Sanity check, this should be super unlikely
-        let contains = hooks.contains(ism_address);
+        let contains = hooks.contains(hook_address);
         assert(!contains);
 
+        hook_addresses.set(current_nonce, hook_address);
         nonce.set(true, current_nonce + 1);
-        hooks.set(ism_address, HOOK_UNUSED);
+        hooks.set(hook_address, HOOK_UNUSED);
     }
 
     async transition init_igp() -> Future {
@@ -167,6 +172,7 @@ program hook_manager.aleo {
         let contains = hooks.contains(hook_address);
         assert(!contains);
 
+        hook_addresses.set(current_nonce, hook_address);
         nonce.set(true, current_nonce + 1);
         hooks.set(hook_address, HOOK_INTERCHAIN_GAS_PAYMASTER);
         igps.set(hook_address, hook);
@@ -230,7 +236,6 @@ program hook_manager.aleo {
         igps.set(igp_address, current_igp);
     }
 
-
     inline quote_gas_payment(config: DomainGasConfig, gas_limit: u128) -> u64 {
         // TODO: double check overflow
         let quote = (gas_limit * config.gas_price * config.exchange_rate) / TOKEN_EXCHANGE_RATE_SCALE;
@@ -248,20 +253,19 @@ program hook_manager.aleo {
             branch: ZERO_HASHES,
             count: 0,
         };
-        let root = merkle_tree_root(tree);
         let hook = MerkleTreeHook {
             tree,
-            root: [0u128, 2],
+            root: ZERO_ROOT,
             nonce: current_nonce,
             parent,
         };
 
         let hook_address = BHP256::hash_to_address(hook);
-
         // Sanity check, this should be super unlikely
         let contains = hooks.contains(hook_address);
         assert(!contains);
 
+        hook_addresses.set(current_nonce, hook_address);
         nonce.set(true, current_nonce + 1);
         hooks.set(hook_address, HOOK_MERKLE_TREE);
         merkle_tree_hooks.set(hook_address, hook);
@@ -270,17 +274,19 @@ program hook_manager.aleo {
     inline insert_into_tree(tree: Tree, value: [u128; 2]) -> Tree {
         assert(tree.count < MAX_LEAVES);
         tree.count += 1;
-        let size = tree.count;
+        let index = tree.count;
         let node: [u128; 2] = value;
+        let inserted = false;
         for i in 0u32..TREE_DEPTH {
-            if ((size & 1) == 1) {
+            if ((index & 1) > 0 && !inserted) {
                 tree.branch[i] = node;
+                inserted = true;
             } else {
                 let branch = tree.branch[i];
                 let digest: [u128; 4] = [branch[0], branch[1], node[0], node[1]];
                 let hash = Keccak256::hash_native_raw(digest);
                 node = Deserialize::from_bits_raw::[[u128; 2]](hash);
-                size /= 2;
+                index /= 2;
             }
         }
         return tree;
@@ -292,8 +298,8 @@ program hook_manager.aleo {
 
         for i in 0u32..TREE_DEPTH {
             let ithBit = (index >> i) & 1u32;
-            let next = tree.branch[i];
             if ithBit == 1 {
+                let next = tree.branch[i];
                 let digest: [u128; 4] = [next[0], next[1], current[0], current[1]];
                 let hash = Keccak256::hash_native_raw(digest);
                 current = Deserialize::from_bits_raw::[[u128; 2]](hash);
@@ -305,6 +311,7 @@ program hook_manager.aleo {
         }
         return current;
     }
+
     
     /// Post Dispatch
     /// - hook_allowance: mapping from hook_address -> allowed credits to spend. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
@@ -318,7 +325,7 @@ program hook_manager.aleo {
             }
         }
 
-        let transfer = credits.aleo/transfer_public(self.address, credits_amount);
+        let transfer = credits.aleo/transfer_public_as_signer(self.address, credits_amount);
         return finalize_post_dispatch(hook, metadata, message, self.caller, credits_amount, transfer);
     }
 
@@ -333,7 +340,7 @@ program hook_manager.aleo {
             // Only the parent is allowed to call the merkle_tree_hook
             assert_eq(merkle_tree_hook.parent, caller);
             
-            let index: u32 = merkle_tree_hook.tree.count; 
+            let index: u32 = merkle_tree_hook.tree.count;
             merkle_tree_hook.tree = insert_into_tree(merkle_tree_hook.tree, message_id);
             merkle_tree_hook.root = merkle_tree_root(merkle_tree_hook.tree);
 
@@ -347,12 +354,12 @@ program hook_manager.aleo {
                 hook,
                 index,
             };
+            // TODO: maybe emit the event with [u8; 32] instead of the u128 encoding
             let event = InsertedIntoTreeEvent {
                 id: message_id,
                 index,
             };
             inserted_into_tree_events.set(event_key, event);
-            return;
         } else if type == HOOK_INTERCHAIN_GAS_PAYMASTER {
             let igp = igps.get(hook);
 
@@ -396,13 +403,12 @@ program hook_manager.aleo {
             igp.count += 1;
 
             igps.set(hook, igp);
-            return;
         } else if type == HOOK_UNUSED {
-            return;
+            // Do nothing ...
+        } else {
+            // Unkown hook type
+            assert(false);
         }
-
-        // Unkown hook type
-        assert(false);
     }
 
     inline bytes_to_u32(b0: u8, b1: u8, b2: u8, b3: u8) -> u32 {
