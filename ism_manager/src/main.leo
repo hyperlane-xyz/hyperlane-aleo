@@ -76,6 +76,7 @@ program ism_manager.aleo {
 
         nonce.set(true, current_nonce + 1);
         isms.set(ism_address, ISM_UNUSED);
+        ism_addresses.set(current_nonce, ism_address);
     }
 
     async transition init_message_id_multisig(validators: [EthAddress; MAX_VALIDATORS], validator_count: u8, threshold: u8) -> Future {
@@ -151,6 +152,25 @@ program ism_manager.aleo {
         routes.set(key, module);
     }
 
+    async transition remove_domain(ism: address, domain: u32) -> Future {
+        return finalize_remove_domain(ism, domain, self.caller);
+    }
+
+    async function finalize_remove_domain(ism: address, domain: u32, caller: address) {
+        assert(domain_routing_isms.contains(ism));
+
+        let routing_ism: DomainRoutingIsm = domain_routing_isms.get(ism);
+
+        assert_eq(routing_ism.ism_owner, caller);
+
+        let key: IsmRouteKey = IsmRouteKey {
+            ism,
+            domain,
+        };
+
+        routes.remove(key);
+    }
+
     /// Verifies the message validity by using the given ism
     /// This method assumes that the caller makes sure that the passed message_id belongs to the passed message
     async transition verify(ism: address, message: [u8; MESSAGE_LENGTH], message_id: [u128; 2], metadata: [u8; METADATA_LENGTH]) -> Future {
@@ -160,6 +180,7 @@ program ism_manager.aleo {
     async function finalize_verify(ism: address, raw_message: [u8; MESSAGE_LENGTH], message_id: [u128; 2], metadata: [u8; METADATA_LENGTH]) {
         // We have a max depth of 4 for recursive routing isms
         let origin_domain_id = message_origin_domain_id(raw_message);
+        // Local variable for re-assignment
         let ism_address: address = ism;
 
         // Calculate signatures and digest outside of the loop
@@ -170,10 +191,9 @@ program ism_manager.aleo {
             metadata,
             message_id,
         );
-
+        let ism_type: u8 = isms.get(ism);
         for i: u8 in 0u8..4u8 {
-            assert(isms.contains(ism));
-            let ism_type: u8 = isms.get(ism);
+            assert(isms.contains(ism_address));
             if ism_type == ISM_MESSAGE_ID_MULTISIG {
                 // MessageIdIsm logic
                 let multisig = message_id_multisigs.get(ism_address);
@@ -195,7 +215,6 @@ program ism_manager.aleo {
                 // unkown ism
                 assert(false);
             }
-
             // We have to execute the RoutingISM logic in the inner loop
             // Otherwise the compiler complains that an outer variable, here the `ism_address`, is not assigned on every iteration
             let key = IsmRouteKey {
@@ -207,6 +226,13 @@ program ism_manager.aleo {
             // This means the `routes.get(key)` function will be executed for every ism type and will fail for non-routing isms.
             // We bypass this by using `get_or_use`
             ism_address = routes.get_or_use(key, ism_address);
+            ism_type = isms.get(ism_address);
+        }
+
+        // When the ism_type is still the RoutingISM after iterating over the loop
+        // it means that we've encounter recursion
+        if ism_type == ISM_ROUTING {
+            assert(false);
         }
     }
 
