@@ -274,16 +274,6 @@ program ism_manager.aleo {
         return to_eth_signed_message_hash(checkpoint);
     }
 
-    // Interpret bytes as big-endian: b0 is most significant, b3 is least.
-    inline bytes_to_u32_be(b0: u8, b1: u8, b2: u8, b3: u8) -> u32 {
-        let value =
-            ((b0 as u32) << 24u32) +
-            ((b1 as u32) << 16u32) +
-            ((b2 as u32) << 8u32) +
-            (b3 as u32);
-        return value;
-    }
-
     inline origin_merkle_tree_hook(metadata: [u8; METADATA_LENGTH]) -> [u8; 32] {
         let merkle_tree_hook: [u8; 32] = [0u8; 32];
         for i: u8 in 0u8..32u8 {

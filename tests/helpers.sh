@@ -42,12 +42,56 @@ assert_mapping_value() {
 
     resp="$(curl -fsS "$url" 2>/dev/null || true)"
     resp_clean="$(printf "%s" "$resp" | tr -d '\n"')"
+    expected_clean="$(printf "%s" "$expected" | tr -d '\n"')"
 
-    if [ "$resp_clean" != "$expected" ]; then
-        echo "Assertion failed ($program/$mapping/$key): expected '$expected' got '$resp_clean'" >&2
+    if [ "$resp_clean" != "$expected_clean" ]; then
+        echo "Assertion failed ($program/$mapping/$key): expected '$expected' got '$resp'" >&2
         return 1
     fi
-    echo "Assertion passed ($program/$mapping/$key): $expected"
+    echo "Assertion passed ($program/$mapping/$key)"
+    return 0
+}
+
+# get_mapping_value <program> <mapping> <key>
+# Fetches the mapping value and writes the raw curl response (unchanged) to stdout.
+# Returns:
+#   0 on success
+#   1 on usage error or fetch error
+get_mapping_value() {
+    program="$1"
+    mapping="$2"
+    key="$3"
+
+    if [ -z "$program" ] || [ -z "$mapping" ] || [ -z "$key" ]; then
+        echo "Usage: get_mapping_value <program> <mapping> <key>" >&2
+        return 1
+    fi
+
+    urlencode() {
+        local s="$1" out="" c i
+        for (( i=0; i<${#s}; i++ )); do
+            c=${s:i:1}
+            case "$c" in
+                [a-zA-Z0-9._~-]) out+="$c" ;;
+                *) printf -v out '%s%%%02X' "$out" "'$c" ;;
+            esac
+        done
+        printf '%s' "$out"
+    }
+
+    encoded_key="$(urlencode "$key")"
+
+    base="${BASE_NODE_URL:-http://localhost:3030/testnet}"
+    base="${base%/}"
+    url="$base/program/$program/mapping/$mapping/$encoded_key"
+
+    resp="$(curl -fsS "$url")" || {
+        echo "Failed to fetch mapping value from $url" >&2
+        return 1
+    }
+
+    # Output raw curl response
+    printf "%s" "$resp"
     return 0
 }
 

@@ -76,7 +76,10 @@ if [ -n "$MODULE_FILTER" ]; then
     fi
     module_dirs=( "./tests/$MODULE_FILTER" )
 else
-    mapfile -t module_dirs < <(find ./tests -mindepth 1 -maxdepth 1 -type d | sort)
+    module_dirs=()
+    while IFS= read -r dir; do
+        module_dirs+=("$dir")
+    done < <(find ./tests -mindepth 1 -maxdepth 1 -type d | sort)
 fi
 
 # If only devnet directory exists (and maybe filtered it out), skip if no real modules
