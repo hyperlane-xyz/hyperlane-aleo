@@ -178,6 +178,40 @@ program hook_manager.aleo {
         igps.set(hook_address, hook);
     }
 
+    async transition set_destination_gas_config(public igp: address, public destination_domain: u32, public config: DomainGasConfig) -> public Future {
+        return finalize_set_gas_config(igp, destination_domain, config, self.caller);
+    }
+
+    async function finalize_set_gas_config(igp_address: address, destination_domain: u32, config: DomainGasConfig, caller: address) {
+        assert(igps.contains(igp_address));
+
+        let igp = igps.get(igp_address);
+        assert_eq(igp.hook_owner, caller);
+
+        let key = GasConfigKey {
+            igp: igp_address,
+            destination: destination_domain,
+        };
+        destination_gas_configs.set(key, config);
+    }
+
+    async transition remove_destination_gas_config(public igp: address, public destination_domain: u32) -> public Future {
+        return finalize_remove_gas_config(igp, destination_domain, self.caller);
+    }
+
+    async function finalize_remove_gas_config(igp_address: address, destination_domain: u32, caller: address) {
+        assert(igps.contains(igp_address));
+
+        let igp = igps.get(igp_address);
+        assert_eq(igp.hook_owner, caller);
+
+        let key = GasConfigKey {
+            igp: igp_address,
+            destination: destination_domain,
+        };
+        destination_gas_configs.remove(key);
+    }
+
     async transition claim(igp: address, amount: u64) -> Future {
         let transfer = credits.aleo/transfer_public(self.caller, amount);
         return finalize_claim(igp, self.caller, amount, transfer);
@@ -197,14 +231,14 @@ program hook_manager.aleo {
     }
 
     async transition pay_for_gas(igp: address, message_id: [u128; 2], destination_domain: u32, gas_limit: u128, credits_amount: u64) -> Future {
-        let transfer: Future = credits.aleo/transfer_public(self.caller, credits_amount);
+        let transfer: Future = credits.aleo/transfer_public_as_signer(self.address, credits_amount);
         return finalize_pay_for_gas(igp, message_id, destination_domain, gas_limit, credits_amount, transfer);
     }
 
     async function finalize_pay_for_gas(igp_address: address, message_id: [u128; 2], destination_domain: u32, gas_limit: u128, credits_amount: u64, transfer: Future) {
         let key = GasConfigKey {
-            destination: destination_domain,
             igp: igp_address,
+            destination: destination_domain,
         };
         assert(destination_gas_configs.contains(key));
 
@@ -315,7 +349,7 @@ program hook_manager.aleo {
     
     /// Post Dispatch
     /// - hook_allowance: mapping from hook_address -> allowed credits to spend. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
-    async transition post_dispatch(hook: address, metadata: [u8; 256], message: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
+    async transition post_dispatch(hook: address, message: [u8; 256], metadata: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
         // find the allowance for the given hook, default to 0
         let credits_amount = 0u64;
         for i in 0u8..4u8 {
@@ -326,10 +360,10 @@ program hook_manager.aleo {
         }
 
         let transfer = credits.aleo/transfer_public_as_signer(self.address, credits_amount);
-        return finalize_post_dispatch(hook, metadata, message, self.caller, credits_amount, transfer);
+        return finalize_post_dispatch(hook, message, metadata, self.caller, credits_amount, transfer);
     }
 
-    async function finalize_post_dispatch(hook: address, metadata: [u8; 256], message: [u8; 256], caller: address, credits_amount: u64, transfer: Future) {
+    async function finalize_post_dispatch(hook: address, message: [u8; 256], metadata: [u8; 256], caller: address, credits_amount: u64, transfer: Future) {
         assert(hooks.contains(hook));
         let type: u8 = hooks.get(hook);
         transfer.await();
@@ -363,29 +397,27 @@ program hook_manager.aleo {
         } else if type == HOOK_INTERCHAIN_GAS_PAYMASTER {
             let igp = igps.get(hook);
 
-            let destination_domain: u32 = bytes_to_u32(message[41], message[42], message[43], message[44]);
+            let destination_domain = messgae_destination_domain(message);
             let key = GasConfigKey {
                 destination: destination_domain,
                 igp: hook,
             };
+            
+            // If the config does not exist, we default to a zero quote
+            let config = destination_gas_configs.get_or_use(key, DomainGasConfig {
+                gas_overhead: 0u128,
+                exchange_rate: 0u128,
+                gas_price: 0u128,
+            });
 
-            let config_exists = destination_gas_configs.contains(key);
-            // If there is no gas config, we don't emit any pay for gas event
-            if !config_exists {
-                // assert that the payment is zero when there is no config
-                assert_eq(credits_amount, 0u64);
-                return;
-            }
-
-            let config = destination_gas_configs.get(key);
             let gas_limit = metadata_gas_limit(metadata);
             gas_limit = gas_limit == 0 ? DEFAULT_GAS_LIMIT : gas_limit;
+            let destination_gas_limit = gas_limit + config.gas_overhead;
 
-            let quote = quote_gas_payment(config, gas_limit + config.gas_overhead);
+            let quote = quote_gas_payment(config, destination_gas_limit);
             // Revert if the quoted fee does not match the transfer amount
             assert_eq(quote, credits_amount);
 
-            // TODO: maybe refactor to shared code
             let event_key = EventKey {
                 hook,
                 index: igp.count,
@@ -393,8 +425,8 @@ program hook_manager.aleo {
             let event = GasPaymentEvent {
                 id: message_id,
                 index: igp.count,
-                gas_amount: gas_limit,
-                payment: credits_amount,
+                gas_amount: destination_gas_limit,
+                payment: quote,
                 destination_domain,
             };
             gas_payment_events.set(event_key, event);
@@ -411,9 +443,13 @@ program hook_manager.aleo {
         }
     }
 
-    inline bytes_to_u32(b0: u8, b1: u8, b2: u8, b3: u8) -> u32 {
-        let value = b3 as u32 << 24u32 + b2 as u32 << 16u32 + b1 as u32 << 8u32 + b0 as u32;
-        return value;
+    inline messgae_destination_domain(message: [u8; 256]) -> u32 {
+        // [41-44]     - destination domain (4 bytes)
+        let destination_domain = 0u32;
+        for i in 0u8..4u8 {
+            destination_domain = destination_domain << 8u32 | message[i + 41] as u32;
+        }
+        return destination_domain;
     }
 
     inline metadata_gas_limit(bytes: [u8; 256]) -> u128 {
