@@ -20,6 +20,16 @@ program hook_manager.aleo {
     // InsertedIntoTree Events: sequence => Event
     mapping inserted_into_tree_events: EventKey => InsertedIntoTreeEvent;
 
+    struct Message {
+        version: u8,
+        nonce: u32,
+        origin_domain: u32,
+        sender: [u8; 32],
+        destination_domain: u32,
+        recipient: [u8; 32],
+        body: [u128; 8],
+    }
+
     struct InterchainGasPaymaster {
         hook_owner: address,
         nonce: u32,
@@ -349,7 +359,7 @@ program hook_manager.aleo {
     
     /// Post Dispatch
     /// - hook_allowance: mapping from hook_address -> allowed credits to spend. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
-    async transition post_dispatch(hook: address, message: [u8; 256], metadata: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
+    async transition post_dispatch(hook: address, message: Message, metadata: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
         // find the allowance for the given hook, default to 0
         let credits_amount = 0u64;
         for i in 0u8..4u8 {
@@ -363,7 +373,7 @@ program hook_manager.aleo {
         return finalize_post_dispatch(hook, message, metadata, self.caller, credits_amount, transfer);
     }
 
-    async function finalize_post_dispatch(hook: address, message: [u8; 256], metadata: [u8; 256], caller: address, credits_amount: u64, transfer: Future) {
+    async function finalize_post_dispatch(hook: address, message: Message, metadata: [u8; 256], caller: address, credits_amount: u64, transfer: Future) {
         assert(hooks.contains(hook));
         let type: u8 = hooks.get(hook);
         transfer.await();
@@ -397,9 +407,8 @@ program hook_manager.aleo {
         } else if type == HOOK_INTERCHAIN_GAS_PAYMASTER {
             let igp = igps.get(hook);
 
-            let destination_domain = messgae_destination_domain(message);
             let key = GasConfigKey {
-                destination: destination_domain,
+                destination: message.destination_domain,
                 igp: hook,
             };
             
@@ -427,7 +436,7 @@ program hook_manager.aleo {
                 index: igp.count,
                 gas_amount: destination_gas_limit,
                 payment: quote,
-                destination_domain,
+                destination_domain: message.destination_domain,
             };
             gas_payment_events.set(event_key, event);
             
@@ -461,7 +470,7 @@ program hook_manager.aleo {
     }
 
     /// Returns the message id based on the static sized message
-    inline static_message_id(message: [u8; 256]) -> [u128; 2] {
+    inline static_message_id(message: Message) -> [u128; 2] {
         let hash = Keccak256::hash_native_raw(message);
         return Deserialize::from_bits_raw::[[u128; 2]](hash);
     }

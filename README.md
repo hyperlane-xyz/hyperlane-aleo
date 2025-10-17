@@ -72,8 +72,9 @@ leo test
 - [x] Use `u128` for byte arrays
 - [x] Hook usage: Figure out a way for dynamic `credit_amounts` when calling hooks
 - [x] Verify Signatures dynamically in `ism_manager`
-- [ ] Finish Process & Dispatch logic
-- [ ] Validator Announce
+- [x] Finish Process & Dispatch logic
+- [x] Validator Announce
+- [ ] Corrent Events for agents
 - [ ] `hyp_token_manager`
 - [ ] Add CI/CD pipeline
 

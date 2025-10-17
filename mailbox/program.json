@@ -7,14 +7,14 @@
   "dependencies": [
     {
       "name": "hook_manager.aleo",
-      "location": "local",
-      "path": "../hook_manager",
+      "location": "network",
+      "path": null,
       "edition": null
     },
     {
       "name": "ism_manager.aleo",
-      "location": "local",
-      "path": "../ism_manager",
+      "location": "network",
+      "path": null,
       "edition": null
     }
   ],

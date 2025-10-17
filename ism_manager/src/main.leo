@@ -13,6 +13,16 @@ program ism_manager.aleo {
     // Mapping from ism address to ISM Type
     mapping isms: address => u8;
 
+    struct Message {
+        version: u8,
+        nonce: u32,
+        origin_domain: u32,
+        sender: [u8; 32],
+        destination_domain: u32,
+        recipient: [u8; 32],
+        body: [u128; 8],
+    }
+
     struct EthAddress {
         bytes: [u8; 20],
     }
@@ -51,8 +61,6 @@ program ism_manager.aleo {
 
     const MAX_VALIDATORS: u8 = 6;
     const METADATA_LENGTH: u32 = 512;
-    const MESSAGE_LENGTH: u32 = 256;
-    const MESSAGE_BODY_LENGTH: u8 = 179; // Message has 77Bytes without the body: 256 - 77 = 179
 
     @noupgrade
     async constructor() {}
@@ -173,13 +181,12 @@ program ism_manager.aleo {
 
     /// Verifies the message validity by using the given ism
     /// This method assumes that the caller makes sure that the passed message_id belongs to the passed message
-    async transition verify(ism: address, message: [u8; MESSAGE_LENGTH], message_id: [u128; 2], metadata: [u8; METADATA_LENGTH]) -> Future {
+    async transition verify(ism: address, message: Message, message_id: [u128; 2], metadata: [u8; METADATA_LENGTH]) -> Future {
         return finalize_verify(ism, message, message_id, metadata);
     }
 
-    async function finalize_verify(ism: address, raw_message: [u8; MESSAGE_LENGTH], message_id: [u128; 2], metadata: [u8; METADATA_LENGTH]) {
+    async function finalize_verify(ism: address, message: Message, message_id: [u128; 2], metadata: [u8; METADATA_LENGTH]) {
         // We have a max depth of 4 for recursive routing isms
-        let origin_domain_id = message_origin_domain_id(raw_message);
         // Local variable for re-assignment
         let ism_address: address = ism;
 
@@ -187,7 +194,7 @@ program ism_manager.aleo {
         // This reduces the amount of code that gets generated
         let signatures = parse_signatures(metadata);
         let digest = get_message_id_digest(
-            origin_domain_id,
+            message.origin_domain,
             metadata,
             message_id,
         );
@@ -219,7 +226,7 @@ program ism_manager.aleo {
             // Otherwise the compiler complains that an outer variable, here the `ism_address`, is not assigned on every iteration
             let key = IsmRouteKey {
                 ism: ism_address,
-                domain: origin_domain_id,
+                domain: message.origin_domain,
             };
 
             // This logic here will be executed for every ISM type, there is no way around this as Aleo forbids branching
@@ -302,15 +309,6 @@ program ism_manager.aleo {
 
         let hash = Keccak256::hash_native_raw(msg);
         return Deserialize::from_bits_raw::[[u8; 32]](hash);
-    }
-
-    inline message_origin_domain_id(message: [u8; MESSAGE_LENGTH]) -> u32 {
-        // [5-8]       - origin domain (4 bytes)
-        let origin_domain_id = 0u32;
-        for i in 0u8..4u8 {
-            origin_domain_id = origin_domain_id << 8u32 | message[i + 5] as u32;
-        }
-        return origin_domain_id;
     }
 
     inline to_eth_signed_message_hash(hash: [u8; 32]) -> [u8; 32] {
