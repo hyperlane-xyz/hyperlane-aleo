@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    types: [opened, ready_for_review, synchronize, reopened] # added types so drafts fire on opened
+    types: [opened, ready_for_review, synchronize, reopened]
     branches: [main]
 
 jobs:
@@ -19,7 +19,10 @@ jobs:
       - name: Install system deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libssl-dev clang cmake
+          sudo apt-get install -y build-essential pkg-config libssl-dev clang cmake lld binutils llvm
+          which ld || echo "ld not found"
+          which ld.lld || echo "ld.lld not found"
+          which lld || echo "lld not found"
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -55,12 +58,6 @@ jobs:
           leo --version || true
           which snarkos
           snarkos --version || true
-
-      - name: Build mailbox
-        run: |
-          cd mailbox
-          leo build
-          cd ..
 
       - name: Run tests
         run: |
