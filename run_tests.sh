@@ -121,7 +121,7 @@ printf "${GREEN}Leo devnet started (PID: %s)${RESET}\n\n" "$DEVNET_PID"
 
 # Wait for devnet to be ready
 printf "${CYAN}Waiting for devnet to be ready with height 10...${RESET}\n"
-max_attempts=90
+max_attempts=300
 attempt=0
 while [ $attempt -lt $max_attempts ]; do
     if height=$(curl -s http://localhost:3030/testnet/block/latest 2>/dev/null | grep -o '"height": [0-9]*' | grep -o '[0-9]*' | head -1); then
