@@ -41,13 +41,14 @@ Install the custom leo compiler to include `ECDSA` leo operations and raw hash f
 **Building the project:**
 
 ```bash
+cd mailbox
 leo build
 ```
 
 **Running tests:**
 
 ```bash
-leo test
+./run_tests.sh
 ```
 
 **Running a local devnet:**

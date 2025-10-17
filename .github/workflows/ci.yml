@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, ready_for_review, synchronize, reopened] # added types so drafts fire on opened
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev clang cmake
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Install custom Leo compiler
+        run: |
+          git clone https://github.com/ProvableHQ/leo.git
+          cd leo
+          git checkout feat/hash-raw-ecdsa-ops
+          cargo install --path .
+          cd ..
+
+      - name: Install SnarkOS (feature branch)
+        run: |
+          git clone https://github.com/ProvableHQ/snarkOS.git
+          cd snarkOS
+          git checkout feat/bytes
+          cargo install --path . --features=test_network
+          cd ..
+
+      - name: Verify installations
+        run: |
+          which leo
+          leo --version || true
+          which snarkos
+          snarkos --version || true
+
+      - name: Build mailbox
+        run: |
+          cd mailbox
+          leo build
+          cd ..
+
+      - name: Run tests
+        run: |
+          chmod +x ./run_tests.sh
+          ./run_tests.sh
