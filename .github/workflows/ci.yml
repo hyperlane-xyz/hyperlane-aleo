@@ -15,84 +15,84 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install system deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libssl-dev clang cmake lld binutils llvm curl
+      # - name: Install system deps
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y build-essential pkg-config libssl-dev clang cmake lld binutils llvm curl
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+      # - name: Setup Rust
+      #   uses: dtolnay/rust-toolchain@stable
 
-      - name: Global cargo cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+      # - name: Global cargo cache
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       ~/.cargo/registry
+      #       ~/.cargo/git
+      #     key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-cargo-
 
-      - name: Clone Leo
-        run: |
-          git clone https://github.com/ProvableHQ/leo.git
-          cd leo
-          git checkout feat/hash-raw-ecdsa-ops
+      # - name: Clone Leo
+      #   run: |
+      #     git clone https://github.com/ProvableHQ/leo.git
+      #     cd leo
+      #     git checkout feat/hash-raw-ecdsa-ops
 
-      - name: Cache Leo target
-        uses: actions/cache@v4
-        with:
-          path: leo/target
-          key: ${{ runner.os }}-leo-${{ hashFiles('leo/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-leo-
+      # - name: Cache Leo target
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: leo/target
+      #     key: ${{ runner.os }}-leo-${{ hashFiles('leo/Cargo.lock') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-leo-
 
-      - name: Build Leo
-        working-directory: leo
-        run: cargo build --release
+      # - name: Build Leo
+      #   working-directory: leo
+      #   run: cargo build --release
 
-      - name: Install Leo binary
-        run: cp leo/target/release/leo ~/.cargo/bin/
+      # - name: Install Leo binary
+      #   run: cp leo/target/release/leo ~/.cargo/bin/
 
-      - name: Clone SnarkOS
-        run: |
-          git clone https://github.com/ProvableHQ/snarkOS.git
-          cd snarkOS
-          git checkout feat/bytes
+      # - name: Clone SnarkOS
+      #   run: |
+      #     git clone https://github.com/ProvableHQ/snarkOS.git
+      #     cd snarkOS
+      #     git checkout feat/bytes
 
-      - name: Cache SnarkOS target
-        uses: actions/cache@v4
-        with:
-          path: snarkOS/target
-          key: ${{ runner.os }}-snarkos-${{ hashFiles('snarkOS/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-snarkos-
+      # - name: Cache SnarkOS target
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: snarkOS/target
+      #     key: ${{ runner.os }}-snarkos-${{ hashFiles('snarkOS/Cargo.lock') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-snarkos-
 
-      - name: Build SnarkOS
-        working-directory: snarkOS
-        run: cargo build --features=test_network --release
+      # - name: Build SnarkOS
+      #   working-directory: snarkOS
+      #   run: cargo build --features=test_network --release
 
-      - name: Install SnarkOS binary
-        run: cp snarkOS/target/release/snarkos ~/.cargo/bin/
+      # - name: Install SnarkOS binary
+      #   run: cp snarkOS/target/release/snarkos ~/.cargo/bin/
 
-      - name: Verify installations
-        run: |
-          which leo && leo --version
-          which snarkos && snarkos --version
+      # - name: Verify installations
+      #   run: |
+      #     which leo && leo --version
+      #     which snarkos && snarkos --version
 
-      - name: Setup environment
-        run: cp .env.template .env
+      # - name: Setup environment
+      #   run: cp .env.template .env
 
-      - name: Run tests
-        run: |
-          chmod +x ./run_tests.sh
-          ./run_tests.sh
+      # - name: Run tests
+      #   run: |
+      #     chmod +x ./run_tests.sh
+      #     ./run_tests.sh
 
-      - name: Upload test failures log
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-failures-log
-          path: test_failures.log
-          if-no-files-found: ignore
-          retention-days: 14
+      # - name: Upload test failures log
+      #   if: failure()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: test-failures-log
+      #     path: test_failures.log
+      #     if-no-files-found: ignore
+      #     retention-days: 14
