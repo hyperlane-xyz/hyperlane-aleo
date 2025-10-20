@@ -146,7 +146,7 @@ any_test_failed=0
 
 for module_dir in "${module_dirs[@]}"; do
     module_name=$(basename "$module_dir")
-    printf "${BOLD}${CYAN}--- Running tests for module: %s ---${RESET}\n" "$module_name"
+    printf "${BOLD}${CYAN}==== Running tests for module: %s ====${RESET}\n" "$module_name"
 
     test_scripts=()
     while IFS= read -r line; do
