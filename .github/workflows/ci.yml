@@ -87,3 +87,12 @@ jobs:
         run: |
           chmod +x ./run_tests.sh
           ./run_tests.sh
+
+      - name: Upload test failures log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failures-log
+          path: test_failures.log
+          if-no-files-found: ignore
+          retention-days: 14
