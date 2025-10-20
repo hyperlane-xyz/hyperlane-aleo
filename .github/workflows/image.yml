@@ -1,0 +1,20 @@
+name: Build Image
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Set up Depot CLI
+        uses: depot/setup-action@v1
+      - uses: depot/build-push-action@v1
+        with:
+          project: cd990stk4v
+          context: .
+          file: ./tests/Dockerfile
