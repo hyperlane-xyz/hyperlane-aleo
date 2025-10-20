@@ -1,5 +1,4 @@
 name: CI
-
 on:
   push:
     branches: [main]
@@ -20,39 +19,69 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential pkg-config libssl-dev clang cmake lld binutils llvm curl
-          which ld || echo "ld not found"
-          which ld.lld || echo "ld.lld not found"
-          which lld || echo "lld not found"
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install custom Leo compiler
+      - name: Global cargo cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Clone Leo
         run: |
           git clone https://github.com/ProvableHQ/leo.git
           cd leo
           git checkout feat/hash-raw-ecdsa-ops
-          cargo install --path .
-          cd ..
 
-      - name: Install SnarkOS (feature branch)
+      - name: Cache Leo target
+        uses: actions/cache@v4
+        with:
+          path: leo/target
+          key: ${{ runner.os }}-leo-${{ hashFiles('leo/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-leo-
+
+      - name: Build Leo
+        working-directory: leo
+        run: cargo build --release
+
+      - name: Install Leo binary
+        run: cp leo/target/release/leo ~/.cargo/bin/
+
+      - name: Clone SnarkOS
         run: |
           git clone https://github.com/ProvableHQ/snarkOS.git
           cd snarkOS
           git checkout feat/bytes
-          cargo install --path . --features=test_network
-          cd ..
+
+      - name: Cache SnarkOS target
+        uses: actions/cache@v4
+        with:
+          path: snarkOS/target
+          key: ${{ runner.os }}-snarkos-${{ hashFiles('snarkOS/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-snarkos-
+
+      - name: Build SnarkOS
+        working-directory: snarkOS
+        run: cargo build --features=test_network --release
+
+      - name: Install SnarkOS binary
+        run: cp snarkOS/target/release/snarkos ~/.cargo/bin/
 
       - name: Verify installations
         run: |
-          which leo
-          leo --version || true
-          which snarkos
-          snarkos --version || true
+          which leo && leo --version
+          which snarkos && snarkos --version
 
       - name: Setup environment
-        run: |
-          cp .env.template .env
+        run: cp .env.template .env
 
       - name: Run tests
         run: |
