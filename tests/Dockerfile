@@ -12,7 +12,6 @@ RUN apt-get install -y git
 
 RUN git clone https://github.com/ProvableHQ/leo.git /opt/leo \
     && cd /opt/leo \
-    && git checkout feat/hash-raw-ecdsa-ops \
     && cargo build --release \
     && cp /opt/leo/target/release/leo /usr/local/cargo/bin/
 
