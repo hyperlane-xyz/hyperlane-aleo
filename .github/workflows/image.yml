@@ -21,3 +21,5 @@ jobs:
           project: cd990stk4v
           context: .
           file: ./tests/Dockerfile
+          push: true
+          tags: hyperlane-aleo-ci-image
