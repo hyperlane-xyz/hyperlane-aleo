@@ -21,5 +21,6 @@ RUN git clone https://github.com/ProvableHQ/snarkOS.git /opt/snarkOS \
     && cargo build --features=test_network --release \
     && cp /opt/snarkOS/target/release/snarkos /usr/local/cargo/bin/
 
+RUN apt-get install -y python3 python3-pip
 
 CMD ["/bin/bash"]
