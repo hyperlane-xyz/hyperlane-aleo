@@ -17,19 +17,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
       - name: Setup environment
         run: cp .env.template .env
 
+      - name: Install python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
       - name: Run tests
         run: |
-          chmod +x ./run_tests.sh
-          ./run_tests.sh
-
-      - name: Upload test failures log
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-failures-log
-          path: test_failures.log
-          if-no-files-found: ignore
-          retention-days: 14
+          python -m pytest -s -vv --log-cli-level=INFO

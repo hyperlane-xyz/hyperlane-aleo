@@ -25,13 +25,13 @@ Getting started:
 Install the latest version of the leo compiler.
 
 ```bash
-// Download the source code.
+# Download the source code.
 > git clone https://github.com/ProvableHQ/leo.git
 
-// Install the compiler.
+# Install the compiler.
 > cargo install --path .
 
-// Run the compiler.
+# Run the compiler.
 > leo ...
 ```
 
@@ -45,22 +45,26 @@ leo build
 **Running tests:**
 
 ```bash
-./run_tests.sh
+# Install python requirements
+pip3 install -r requirements.txt
+
+# Run tests
+python3 -m pytest -s -vv --log-cli-level=INFO
 ```
 
 **Running a local devnet:**
 
 ```bash
-// Download the snarkOS repo
+# Download the snarkOS repo
 > git clone https://github.com/ProvableHQ/snarkOS.git
 
-// Checkout the feature branch
+# Checkout the feature branch
 > git checkout feat/bytes
 
-// Install snarkOs
+# Install snarkOs
 > cargo install --path . --features=test_network
 
-// Run the devnet
+# Run the devnet
 > leo devnet --storage tmp --snarkos "$(which snarkos)" --snarkos-features test_network --clear-storage --num-clients 1 -y
 ```
 

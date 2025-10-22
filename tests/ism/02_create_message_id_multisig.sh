@@ -1,5 +1,0 @@
-#/bin/sh
-. "$(cd "$(dirname "$0")" && pwd)/../helpers.sh"
-cd ./ism_manager
-transact leo execute init_message_id_multisig '[{ bytes: [3u8, 200u8, 66u8, 219u8, 134u8, 166u8, 163u8, 229u8, 36u8, 212u8, 166u8, 97u8, 83u8, 144u8, 193u8, 234u8, 142u8, 43u8, 149u8, 65u8] }, { bytes: [0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8] }, { bytes: [0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8] }, { bytes: [0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8] }, { bytes: [0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8] }, { bytes: [0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8,0u8] }]' 1u8 1u8 || exit 1
-assert_mapping_value ism_manager.aleo ism_addresses 0u32 aleo1jng84kfxuwvhzepgtmnvchgm2xqgzrmde2u350rv8dhdln0pa5zstj3u9d || exit 1
