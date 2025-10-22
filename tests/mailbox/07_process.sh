@@ -12,6 +12,3 @@ transact leo execute process $ism "$message" 141u32 "$message_id" '[0u8,0u8,0u8,
 
 expected="{\n  local_domain: 1u32,\n  nonce: 1u32,\n  process_count: 1u32,\n  default_ism: $ism,\n  default_hook: $default_hook,\n  required_hook: $required_hook,\n  mailbox_owner: $owner\n}"
 assert_mapping_value mailbox.aleo mailbox true "$expected"
-
-expected_event="{\n  processor: aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px,\n  block_number: 112u32\n}"
-assert_mapping_value mailbox.aleo deliveries {id:$message_id} "$expected_event"

@@ -113,7 +113,7 @@ transact() {
 
     # Build command with added flags
     local cmd=("$@")
-    cmd+=("--broadcast" "-y")
+    cmd+=("--broadcast" "-y" "--max-wait" "120" "--blocks-to-check" "500")
 
     # Run and capture all output
     local output

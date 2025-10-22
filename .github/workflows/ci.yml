@@ -1,0 +1,35 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, ready_for_review, synchronize, reopened]
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: depot-ubuntu-latest
+    container:
+      image: gcr.io/abacus-labs-dev/hyperlane-aleo-tools:v1.0.0
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        run: cp .env.template .env
+
+      - name: Run tests
+        run: |
+          chmod +x ./run_tests.sh
+          ./run_tests.sh
+
+      - name: Upload test failures log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failures-log
+          path: test_failures.log
+          if-no-files-found: ignore
+          retention-days: 14

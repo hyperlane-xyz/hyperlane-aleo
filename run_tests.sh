@@ -121,7 +121,7 @@ printf "${GREEN}Leo devnet started (PID: %s)${RESET}\n\n" "$DEVNET_PID"
 
 # Wait for devnet to be ready
 printf "${CYAN}Waiting for devnet to be ready with height 10...${RESET}\n"
-max_attempts=90
+max_attempts=300
 attempt=0
 while [ $attempt -lt $max_attempts ]; do
     if height=$(curl -s http://localhost:3030/testnet/block/latest 2>/dev/null | grep -o '"height": [0-9]*' | grep -o '[0-9]*' | head -1); then
@@ -146,7 +146,7 @@ any_test_failed=0
 
 for module_dir in "${module_dirs[@]}"; do
     module_name=$(basename "$module_dir")
-    printf "${BOLD}${CYAN}--- Running tests for module: %s ---${RESET}\n" "$module_name"
+    printf "${BOLD}${CYAN}==== Running tests for module: %s ====${RESET}\n" "$module_name"
 
     test_scripts=()
     while IFS= read -r line; do
