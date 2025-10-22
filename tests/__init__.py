@@ -184,7 +184,7 @@ def transact(*cmd, cwd=os.getcwd(), timeout: float = 90.0) -> dict:
         raise ValueError("transact: at least one command element required")
 
     base_cmd = [str(c) for c in cmd]
-    full_cmd = ["leo"] + base_cmd + ["--broadcast", "-y"]
+    full_cmd = ["leo"] + base_cmd + ["--broadcast", "-y", "--max-wait", "180", "--blocks-to-check", "500"]
 
     try:
         proc = subprocess.run(
