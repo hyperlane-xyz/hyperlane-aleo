@@ -6,7 +6,7 @@ program validator_announce.aleo {
     }
 
     struct StorageLocationKey {
-        validator: EthAddress,
+        validator: [u8; 20],
         index: u8,
     }
 
@@ -67,14 +67,13 @@ program validator_announce.aleo {
         assert_eq(valid, true);
 
         let location_key = StorageLocationKey {
+            validator,
             index: sequence,
-            validator: validator_eth_address,
         };
-
-        storage_locations.set(location_key, storage_location);
 
         sequence += 1;
         replay_protection.set(replay_id, true);
+        storage_locations.set(location_key, storage_location);
         storage_sequences.set(validator_eth_address, sequence);
     }
 

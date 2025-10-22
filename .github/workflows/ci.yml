@@ -20,16 +20,11 @@ jobs:
       - name: Setup environment
         run: cp .env.template .env
 
+      - name: Install python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+
       - name: Run tests
         run: |
-          chmod +x ./run_tests.sh
-          ./run_tests.sh
-
-      - name: Upload test failures log
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-failures-log
-          path: test_failures.log
-          if-no-files-found: ignore
-          retention-days: 14
+          python3 -m pytest -s -vv --log-cli-level=INFO

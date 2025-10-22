@@ -1,4 +1,3 @@
-import hook_manager.aleo;
 import ism_manager.aleo;
 
 // The 'mailbox' program.
@@ -22,6 +21,7 @@ program mailbox.aleo {
         default_ism: address,
         default_hook: address,
         required_hook: address,
+        dispatch_proxy: address,
         mailbox_owner: address,
     }
 
@@ -73,8 +73,21 @@ program mailbox.aleo {
             default_ism: NULL_ADDRESS,
             default_hook: NULL_ADDRESS,
             required_hook: NULL_ADDRESS,
+            dispatch_proxy: NULL_ADDRESS,
             mailbox_owner: caller
         });
+    }
+
+    async transition set_dispatch_proxy(dispatch_proxy: address) -> Future {
+        return finalize_set_dispatch_proxy(dispatch_proxy, self.caller);
+    }
+
+    async function finalize_set_dispatch_proxy(dispatch_proxy: address, caller: address) {
+        let state = mailbox.get(true);
+        assert_eq(state.mailbox_owner, caller);
+
+        state.dispatch_proxy = dispatch_proxy;
+        mailbox.set(true, state);
     }
 
     async transition set_owner(new_owner: address) -> Future {
@@ -164,47 +177,35 @@ program mailbox.aleo {
 
     /// Dispatch
     /// Creates a new message based on given inputs and dispatch it
-    /// - passed_mailbox: Is the current mailbox state, this is necessary to initialize `post_dispatch` futures
     /// - hook_allowance: mapping from hook_address -> allowed credits to spent. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
-    async transition dispatch(passed_mailbox: Mailbox, destination_domain: u32, recipient_address: [u8; 32], message_body: [u128; 8], hook_address: address, metadata: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
-        assert_neq(passed_mailbox.default_hook, NULL_ADDRESS);
-        assert_neq(passed_mailbox.required_hook, NULL_ADDRESS);
+    async transition dispatch(destination_domain: u32, recipient_address: [u8; 32], message_body: [u128; 8], message_sender: address) -> Future {
+        // Make sure that dispatch is called by the dispatch proxy and no one else
+        return finalize_dispatch(
+            destination_domain,
+            recipient_address,
+            message_body,
+            message_sender,
+            self.caller
+        );
+    }
 
-        let sender = address_to_bytes_raw(self.caller);
+    async function finalize_dispatch(destination_domain: u32, recipient_address: [u8; 32], message_body: [u128; 8], message_sender: address, caller: address) {
+        assert(mailbox.contains(true));
+        let current_mailbox: Mailbox = mailbox.get(true);
 
+        assert_eq(caller, current_mailbox.dispatch_proxy);
+
+        let sender = address_to_bytes_raw(message_sender);
         let message = Message {
             version: MAILBOX_VERSION,
-            nonce: passed_mailbox.nonce,
-            origin_domain: passed_mailbox.local_domain,
+            nonce: current_mailbox.nonce,
+            origin_domain: current_mailbox.local_domain,
             sender,
             destination_domain,
             recipient: recipient_address,
             body: message_body,
         };
         let id = static_message_id(message);
-
-        let default_hook = hook_address == NULL_ADDRESS ? passed_mailbox.default_hook : hook_address;
-        // initialize futures for the post_dispatch hook assuming all of the passed arguments are correct.
-        let default_hook_future = hook_manager.aleo/post_dispatch(default_hook, message, metadata, hook_allowance);
-        let required_hook_future = hook_manager.aleo/post_dispatch(passed_mailbox.required_hook, message, metadata, hook_allowance);
-
-        return finalize_dispatch(
-            passed_mailbox,
-            message,
-            id,
-            default_hook_future,
-            required_hook_future,
-        );
-    }
-
-    async function finalize_dispatch(passed_mailbox: Mailbox, message: Message, id: [u128; 2], default_hook: Future, required_hook: Future) {
-        assert(mailbox.contains(true));
-
-        let current_mailbox: Mailbox = mailbox.get(true);
-        assert_eq(passed_mailbox, current_mailbox);
-
-        default_hook.await();
-        required_hook.await();
 
         dispatch_events.set(current_mailbox.nonce, message);
         dispatch_id_events.set(current_mailbox.nonce, id);
@@ -225,7 +226,8 @@ program mailbox.aleo {
 
     /// Returns the message id based on the static sized message
     inline static_message_id(message: Message) -> [u128; 2] {
-        let hash = Keccak256::hash_native_raw(message);
+        let message_raw = message_to_raw(message);
+        let hash = Keccak256::hash_native_raw(message_raw);
         return Deserialize::from_bits_raw::[[u128; 2]](hash);
     }
 

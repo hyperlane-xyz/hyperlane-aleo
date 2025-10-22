@@ -1,3 +1,4 @@
+import mailbox.aleo;
 import credits.aleo;
 
 // The 'hook_manager' program.
@@ -259,7 +260,6 @@ program hook_manager.aleo {
         assert_eq(quote, credits_amount);
         transfer.await();
 
-        // TODO: maybe refactor the logic
         let current_igp = igps.get(igp_address);
         let event_key = EventKey {
             hook: igp_address,
@@ -281,7 +281,6 @@ program hook_manager.aleo {
     }
 
     inline quote_gas_payment(config: DomainGasConfig, gas_limit: u128) -> u64 {
-        // TODO: double check overflow
         let quote = (gas_limit * config.gas_price * config.exchange_rate) / TOKEN_EXCHANGE_RATE_SCALE;
         assert(quote <= 2u128 ** 64u32 - 1);
         return quote as u64;
@@ -359,7 +358,7 @@ program hook_manager.aleo {
     
     /// Post Dispatch
     /// - hook_allowance: mapping from hook_address -> allowed credits to spend. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
-    async transition post_dispatch(hook: address, message: Message, metadata: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
+    async transition post_dispatch(hook: address, metadata: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
         // find the allowance for the given hook, default to 0
         let credits_amount = 0u64;
         for i in 0u8..4u8 {
@@ -370,18 +369,24 @@ program hook_manager.aleo {
         }
 
         let transfer = credits.aleo/transfer_public_as_signer(self.address, credits_amount);
-        return finalize_post_dispatch(hook, message, metadata, self.caller, credits_amount, transfer);
+        return finalize_post_dispatch(hook, metadata, self.caller, credits_amount, transfer);
     }
 
-    async function finalize_post_dispatch(hook: address, message: Message, metadata: [u8; 256], caller: address, credits_amount: u64, transfer: Future) {
+    async function finalize_post_dispatch(hook: address, metadata: [u8; 256], caller: address, credits_amount: u64, transfer: Future) {
         assert(hooks.contains(hook));
         let type: u8 = hooks.get(hook);
         transfer.await();
-        let message_id = static_message_id(message);
+
+        // This gets the latests dispatched message from the mailbox
+        let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
+        let message = Mapping::get(mailbox.aleo/dispatch_events, mailbox.nonce - 1);
+        let message_id = Mapping::get(mailbox.aleo/dispatch_id_events, mailbox.nonce - 1);
 
         if type == HOOK_MERKLE_TREE {
             let merkle_tree_hook = merkle_tree_hooks.get(hook);
             // Only the parent is allowed to call the merkle_tree_hook
+            // We assume that the parent calls the merkle tree hook & dispatch function of the mailbox in the correct order
+            // This means the parent has to make sure, that the merkle tree hook won't get invoked twice for the same message
             assert_eq(merkle_tree_hook.parent, caller);
             
             let index: u32 = merkle_tree_hook.tree.count;
@@ -393,12 +398,10 @@ program hook_manager.aleo {
 
             assert_eq(credits_amount, 0u64);
 
-            // TODO: maybe refactor to shared code
             let event_key = EventKey {
                 hook,
                 index,
             };
-            // TODO: maybe emit the event with [u8; 32] instead of the u128 encoding
             let event = InsertedIntoTreeEvent {
                 id: message_id,
                 index,
@@ -445,6 +448,7 @@ program hook_manager.aleo {
 
             igps.set(hook, igp);
         } else if type == HOOK_UNUSED {
+            assert_eq(credits_amount, 0u64);
             // Do nothing ...
         } else {
             // Unkown hook type
@@ -467,11 +471,5 @@ program hook_manager.aleo {
             value = value << 8u32 | bytes[i] as u128;
         }
         return value;
-    }
-
-    /// Returns the message id based on the static sized message
-    inline static_message_id(message: Message) -> [u128; 2] {
-        let hash = Keccak256::hash_native_raw(message);
-        return Deserialize::from_bits_raw::[[u128; 2]](hash);
     }
 }
