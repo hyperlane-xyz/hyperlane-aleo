@@ -1,10 +1,5 @@
 name: Build and Push Aleo Tools Image to GCR
 on:
-  push:
-    branches: [main]
-  pull_request:
-    types: [opened, ready_for_review, synchronize, reopened]
-    branches: [main]
   workflow_dispatch:
     inputs:
       hyperlane_aleo_branch:
