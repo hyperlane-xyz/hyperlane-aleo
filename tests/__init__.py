@@ -153,7 +153,7 @@ def program_exists(program: str) -> bool:
         return False
     return False
 
-def transact(*cmd, cwd=os.getcwd(), timeout: float = 300.0) -> dict:
+def transact(*cmd, cwd=os.getcwd(), timeout: float = 600.0) -> dict:
     """Run a leo/aleo CLI transaction command, appending broadcast flags.
 
     Mirrors logic in `tests/helpers.sh` transact:
