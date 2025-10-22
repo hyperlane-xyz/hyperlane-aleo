@@ -22,14 +22,11 @@ a seamless interchain communication following the Hyperlane spec.
 
 Getting started:
 
-Install the custom leo compiler to include `ECDSA` leo operations and raw hash functions.
+Install the latest version of the leo compiler.
 
 ```bash
 // Download the source code.
 > git clone https://github.com/ProvableHQ/leo.git
-
-// Checkout the desired branch. You may use a branch name or a specific commit.
-> git checkout feat/hash-raw-ecdsa-ops
 
 // Install the compiler.
 > cargo install --path .
@@ -77,7 +74,7 @@ leo build
 - [x] Validator Announce
 - [ ] Corrent Events for agents
 - [ ] `hyp_token_manager`
-- [ ] Add CI/CD pipeline
+- [x] Add CI/CD pipeline
 
 ## License
 
