@@ -138,6 +138,11 @@ program mailbox.aleo {
         mailbox.set(true, state);
     }
 
+    /// Process
+    /// Verifies and processes a message.
+    /// This methods assumes that the caller ensures that the passed ism is correct.
+    /// We accept the message id as a parameter to avoid having large computation inside of transitions.
+    /// We verify whether or not the id is correct inside the finalize step of the transition.
     /// - message_length: the raw message length in bytes
     async transition process(ism: address, message: Message, message_length: u32, id: [u128; 2], metadata: [u8; 512]) -> Future {
         let processor = self.caller;
@@ -148,6 +153,7 @@ program mailbox.aleo {
     async function finalize_process(ism: address, message: Message, message_length: u32, id: [u128; 2], processor: address, verify_future: Future) {
         assert(mailbox.contains(true));
 
+        // Assert that the passed id matches the calculated id
         let calculated_id = dynamic_message_id(message, message_length);
         assert_eq(calculated_id, id);
 
@@ -231,6 +237,16 @@ program mailbox.aleo {
         return Deserialize::from_bits_raw::[[u128; 2]](hash);
     }
 
+    /// Calcualtes the message id based on a dynamic message length
+    ///
+    /// The message id is the keccak of the raw bytes of that message, this ID changes with the length of the bytes.
+    /// Other Hyperlane implementations might have dynamic message lengths, something that we can't depitc in the AVM.
+    /// We resolve this by having the caller provide the message length and copy the bytes into a fixed length array before hashing.
+    /// Note: This approach comes with following limitations:
+    /// - The maximum message length is 205 bytes (the full message size)
+    /// - The minimum message length is 77 bytes (the static part of the message without body)
+    /// - The message length has to be of the form 77 + n*8 bytes, where n is a natural number (0,1,2,...16)
+    /// - This results in only 17 possible message lengths
     inline dynamic_message_id(static_message: Message, message_length: u32) -> [u128; 2] {
         assert(message_length >= 77);
         assert((message_length - 77) % 8 == 0);

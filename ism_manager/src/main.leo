@@ -211,7 +211,7 @@ program ism_manager.aleo {
                 for index in 0u8..MAX_VALIDATORS {
                     let valid = ECDSA::verify_digest_eth(signatures[index], validators[index].bytes, digest);
                     // TODO: we should check following: signature_index < multisig.validator_count && validator_index < multisig.validator_count
-                    // However, it is equally likely to generate a malicous signature for the null-address as it is for every other address
+                    // However, it is equally likely to generate a malicious signature for the null-address as it is for every other address
                     // We therefore don't test for this cases, as aleo will have to go through every statement anyways and this would add extra complexity
                     valid_signatures += valid ? 1 : 0;
                 }
@@ -219,7 +219,7 @@ program ism_manager.aleo {
             } else if ism_type == ISM_UNUSED || ism_type == ISM_ROUTING {
                 // NoopIsm and RoutingISM continue and do nothing
             } else {
-                // unkown ism
+                // unknown ism
                 assert(false);
             }
             // We have to execute the RoutingISM logic in the inner loop
@@ -244,36 +244,30 @@ program ism_manager.aleo {
     }
 
     inline get_message_id_digest(origin_domain: u32, metadata: [u8; METADATA_LENGTH], message_id: [u128; 2]) -> [u8; 32] {
-        // TODO: calculate digest in a better way
         let merkle_tree_hook = origin_merkle_tree_hook(metadata);
         let hash = domain_hash(origin_domain, merkle_tree_hook);
         let id_bytes = message_id_bytes(message_id);
-        let msg: [u8; 100] = [
-            // domain hash
-            hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7],
-            hash[8], hash[9], hash[10], hash[11], hash[12], hash[13], hash[14], hash[15],
-            hash[16], hash[17], hash[18], hash[19], hash[20], hash[21], hash[22], hash[23],
-            hash[24], hash[25], hash[26], hash[27], hash[28], hash[29], hash[30], hash[31],
-            
-            // checkpoint root
-            metadata[MERKLE_ROOT_OFFSET], metadata[MERKLE_ROOT_OFFSET + 1], metadata[MERKLE_ROOT_OFFSET + 2], metadata[MERKLE_ROOT_OFFSET + 3],
-            metadata[MERKLE_ROOT_OFFSET + 4], metadata[MERKLE_ROOT_OFFSET + 5], metadata[MERKLE_ROOT_OFFSET + 6], metadata[MERKLE_ROOT_OFFSET + 7],
-            metadata[MERKLE_ROOT_OFFSET + 8], metadata[MERKLE_ROOT_OFFSET + 9], metadata[MERKLE_ROOT_OFFSET + 10], metadata[MERKLE_ROOT_OFFSET + 11],
-            metadata[MERKLE_ROOT_OFFSET + 12], metadata[MERKLE_ROOT_OFFSET + 13], metadata[MERKLE_ROOT_OFFSET + 14], metadata[MERKLE_ROOT_OFFSET + 15],
-            metadata[MERKLE_ROOT_OFFSET + 16], metadata[MERKLE_ROOT_OFFSET + 17], metadata[MERKLE_ROOT_OFFSET + 18], metadata[MERKLE_ROOT_OFFSET + 19],
-            metadata[MERKLE_ROOT_OFFSET + 20], metadata[MERKLE_ROOT_OFFSET + 21], metadata[MERKLE_ROOT_OFFSET + 22], metadata[MERKLE_ROOT_OFFSET + 23],
-            metadata[MERKLE_ROOT_OFFSET + 24], metadata[MERKLE_ROOT_OFFSET + 25], metadata[MERKLE_ROOT_OFFSET + 26], metadata[MERKLE_ROOT_OFFSET + 27],
-            metadata[MERKLE_ROOT_OFFSET + 28], metadata[MERKLE_ROOT_OFFSET + 29], metadata[MERKLE_ROOT_OFFSET + 30], metadata[MERKLE_ROOT_OFFSET + 31],
-            
-            // merkle index
-            metadata[MERKLE_INDEX_OFFSET + 0], metadata[MERKLE_INDEX_OFFSET + 1], metadata[MERKLE_INDEX_OFFSET + 2], metadata[MERKLE_INDEX_OFFSET + 3],
-            
-            // message id
-            id_bytes[0], id_bytes[1], id_bytes[2], id_bytes[3], id_bytes[4], id_bytes[5], id_bytes[6], id_bytes[7],
-            id_bytes[8], id_bytes[9], id_bytes[10], id_bytes[11], id_bytes[12], id_bytes[13], id_bytes[14], id_bytes[15],
-            id_bytes[16], id_bytes[17], id_bytes[18], id_bytes[19], id_bytes[20], id_bytes[21], id_bytes[22], id_bytes[23],
-            id_bytes[24], id_bytes[25], id_bytes[26], id_bytes[27], id_bytes[28], id_bytes[29], id_bytes[30], id_bytes[31],
-        ];
+        let msg: [u8; 100] = [0u8; 100];
+        
+        // domain hash (32 bytes)
+        for i in 0u8..32u8 {
+            msg[i] = hash[i];
+        }
+        
+        // checkpoint root (32 bytes)
+        for i in 0u8..32u8 {
+            msg[32u8 + i] = metadata[MERKLE_ROOT_OFFSET + i];
+        }
+        
+        // merkle index (4 bytes)
+        for i in 0u8..4u8 {
+            msg[64u8 + i] = metadata[MERKLE_INDEX_OFFSET + i];
+        }
+        
+        // message id (32 bytes)
+        for i in 0u8..32u8 {
+            msg[68u8 + i] = id_bytes[i];
+        }
 
         let checkpoint_bits = Keccak256::hash_native_raw(msg);
         let checkpoint = Deserialize::from_bits_raw::[[u8; 32]](checkpoint_bits);
@@ -294,62 +288,71 @@ program ism_manager.aleo {
         let b2: u8 = ((origin >> 16u32) % 256u32) as u8;
         let b1: u8 = ((origin >> 8u32) % 256u32) as u8;
         let b0: u8 = (origin % 256u32) as u8;
-        let msg: [u8; 45] = [
-            b3, b2, b1, b0, // origin is BE encoded
-            merkle_tree_hook[0], merkle_tree_hook[1], merkle_tree_hook[2], merkle_tree_hook[3],
-            merkle_tree_hook[4], merkle_tree_hook[5], merkle_tree_hook[6], merkle_tree_hook[7],
-            merkle_tree_hook[8], merkle_tree_hook[9], merkle_tree_hook[10], merkle_tree_hook[11],
-            merkle_tree_hook[12], merkle_tree_hook[13], merkle_tree_hook[14], merkle_tree_hook[15],
-            merkle_tree_hook[16], merkle_tree_hook[17], merkle_tree_hook[18], merkle_tree_hook[19],
-            merkle_tree_hook[20], merkle_tree_hook[21], merkle_tree_hook[22], merkle_tree_hook[23],
-            merkle_tree_hook[24], merkle_tree_hook[25], merkle_tree_hook[26], merkle_tree_hook[27],
-            merkle_tree_hook[28], merkle_tree_hook[29], merkle_tree_hook[30], merkle_tree_hook[31],
-            72u8, 89u8, 80u8, 69u8, 82u8, 76u8, 65u8, 78u8, 69u8 // 'HYPERLANE' encoded as UTF-8
-        ];
+        let msg: [u8; 45] = [0u8; 45];
+        
+        // Set origin bytes (BE encoded)
+        msg[0] = b3;
+        msg[1] = b2;
+        msg[2] = b1;
+        msg[3] = b0;
+        
+        // Copy merkle_tree_hook (32 bytes)
+        for i in 0u8..32u8 {
+            msg[4u8 + i] = merkle_tree_hook[i];
+        }
+        
+        // Set 'HYPERLANE' string
+        msg[36] = 72u8;  // H
+        msg[37] = 89u8;  // Y
+        msg[38] = 80u8;  // P
+        msg[39] = 69u8;  // E
+        msg[40] = 82u8;  // R
+        msg[41] = 76u8;  // L
+        msg[42] = 65u8;  // A
+        msg[43] = 78u8;  // N
+        msg[44] = 69u8;  // E
 
         let hash = Keccak256::hash_native_raw(msg);
         return Deserialize::from_bits_raw::[[u8; 32]](hash);
     }
 
     inline to_eth_signed_message_hash(hash: [u8; 32]) -> [u8; 32] {
-        let digest: [u8; 60] = [
-            25u8,   // \x19
-            69u8,   // E
-            116u8,  // t
-            104u8,  // h
-            101u8,  // e
-            114u8,  // r
-            101u8,  // e
-            117u8,  // u
-            109u8,  // m
-            32u8,   // (space)
-            83u8,   // S
-            105u8,  // i
-            103u8,  // g
-            110u8,  // n
-            101u8,  // e
-            100u8,  // d
-            32u8,   // (space)
-            77u8,   // M
-            101u8,  // e
-            115u8,  // s
-            115u8,  // s
-            97u8,   // a
-            103u8,  // g
-            101u8,  // e
-            58u8,   // :
-            10u8,   // \n
-            51u8,   // '3'
-            50u8,   // '2'
-            hash[0], hash[1], hash[2], hash[3],
-            hash[4], hash[5], hash[6], hash[7],
-            hash[8], hash[9], hash[10], hash[11],
-            hash[12], hash[13], hash[14], hash[15],
-            hash[16], hash[17], hash[18], hash[19],
-            hash[20], hash[21], hash[22], hash[23],
-            hash[24], hash[25], hash[26], hash[27],
-            hash[28], hash[29], hash[30], hash[31]
-        ];
+        let digest: [u8; 60] = [0u8; 60];
+        
+        // Ethereum Signed Message prefix: "\x19Ethereum Signed Message:\n32"
+        digest[0] = 25u8;   // \x19
+        digest[1] = 69u8;   // E
+        digest[2] = 116u8;  // t
+        digest[3] = 104u8;  // h
+        digest[4] = 101u8;  // e
+        digest[5] = 114u8;  // r
+        digest[6] = 101u8;  // e
+        digest[7] = 117u8;  // u
+        digest[8] = 109u8;  // m
+        digest[9] = 32u8;   // (space)
+        digest[10] = 83u8;  // S
+        digest[11] = 105u8; // i
+        digest[12] = 103u8; // g
+        digest[13] = 110u8; // n
+        digest[14] = 101u8; // e
+        digest[15] = 100u8; // d
+        digest[16] = 32u8;  // (space)
+        digest[17] = 77u8;  // M
+        digest[18] = 101u8; // e
+        digest[19] = 115u8; // s
+        digest[20] = 115u8; // s
+        digest[21] = 97u8;  // a
+        digest[22] = 103u8; // g
+        digest[23] = 101u8; // e
+        digest[24] = 58u8;  // :
+        digest[25] = 10u8;  // \n
+        digest[26] = 51u8;  // '3'
+        digest[27] = 50u8;  // '2'
+        
+        // Copy hash bytes (32 bytes)
+        for i in 0u8..32u8 {
+            digest[28u8 + i] = hash[i];
+        }
 
         let hash_bits = Keccak256::hash_native_raw(digest);
         return Deserialize::from_bits_raw::[[u8; 32]](hash_bits);

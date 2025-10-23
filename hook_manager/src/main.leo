@@ -224,6 +224,7 @@ program hook_manager.aleo {
     }
 
     async transition claim(igp: address, amount: u64) -> Future {
+        // transfer credits to the caller
         let transfer = credits.aleo/transfer_public(self.caller, amount);
         return finalize_claim(igp, self.caller, amount, transfer);
     }
@@ -232,6 +233,7 @@ program hook_manager.aleo {
         assert(igps.contains(igp_address));
 
         let igp = igps.get(igp_address);
+        // Assert that the caller is the hook owner and the IGP has enough balance
         assert_eq(igp.hook_owner, owner);
         assert(igp.balance >= amount);
 
@@ -314,6 +316,7 @@ program hook_manager.aleo {
         merkle_tree_hooks.set(hook_address, hook);
     }
 
+    /// Inserts a new value into the merkle tree
     inline insert_into_tree(tree: Tree, value: [u128; 2]) -> Tree {
         assert(tree.count < MAX_LEAVES);
         tree.count += 1;
@@ -335,6 +338,7 @@ program hook_manager.aleo {
         return tree;
     }
 
+    /// Computes the merkle root from the current tree
     inline merkle_tree_root(tree: Tree) -> [u128; 2] {
         let index = tree.count;
         let current: [u128; 2] = [0u128; 2];
@@ -357,6 +361,7 @@ program hook_manager.aleo {
 
     
     /// Post Dispatch
+    /// Fetches the latest message from the mailbox and perfroms the post_dispatch function on that.
     /// - hook_allowance: mapping from hook_address -> allowed credits to spend. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
     async transition post_dispatch(hook: address, metadata: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
         // find the allowance for the given hook, default to 0
@@ -377,8 +382,9 @@ program hook_manager.aleo {
         let type: u8 = hooks.get(hook);
         transfer.await();
 
-        // This gets the latests dispatched message from the mailbox
+        // This gets the latest dispatched message from the mailbox
         let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
+        assert(mailbox.nonce > 0);
         let message = Mapping::get(mailbox.aleo/dispatch_events, mailbox.nonce - 1);
         let message_id = Mapping::get(mailbox.aleo/dispatch_id_events, mailbox.nonce - 1);
 
@@ -387,6 +393,7 @@ program hook_manager.aleo {
             // Only the parent is allowed to call the merkle_tree_hook
             // We assume that the parent calls the merkle tree hook & dispatch function of the mailbox in the correct order
             // This means the parent has to make sure, that the merkle tree hook won't get invoked twice for the same message
+            // In pratice the parent is usually the dispatch_proxy
             assert_eq(merkle_tree_hook.parent, caller);
             
             let index: u32 = merkle_tree_hook.tree.count;
@@ -395,7 +402,7 @@ program hook_manager.aleo {
 
             // update the merkle_tree_hook
             merkle_tree_hooks.set(hook, merkle_tree_hook);
-
+            // the merkle tree hook expects no payment
             assert_eq(credits_amount, 0u64);
 
             let event_key = EventKey {
@@ -451,20 +458,13 @@ program hook_manager.aleo {
             assert_eq(credits_amount, 0u64);
             // Do nothing ...
         } else {
-            // Unkown hook type
+            // Unknown hook type
             assert(false);
         }
     }
 
-    inline messgae_destination_domain(message: [u8; 256]) -> u32 {
-        // [41-44]     - destination domain (4 bytes)
-        let destination_domain = 0u32;
-        for i in 0u8..4u8 {
-            destination_domain = destination_domain << 8u32 | message[i + 41] as u32;
-        }
-        return destination_domain;
-    }
-
+    /// Extracts the gas limit from the metadata bytes
+    /// The gas limit is stored in the first 16 bytes of the metadata as a big-endian u128
     inline metadata_gas_limit(bytes: [u8; 256]) -> u128 {
         let value = 0u128;
         for i in 0u32..16u32 {

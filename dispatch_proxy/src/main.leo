@@ -21,6 +21,9 @@ program dispatch_proxy.aleo {
 
     /// Dispatch
     /// Creates a new message based on given inputs and dispatch it
+    /// We can't initialize the hook_manager.aleo futures in the Mailbox, as the hook_manager imports the mailbox and this would create a cycling dependency.
+    /// The hook_manager has to import the mailbox to query the latest dispatched message.
+    /// We could pass the whole mailbox state in the transition and construct a message based on this, but that would effectively limit the possible messages per block to 1, as the mailbox state changes with every message.
     /// - passed_mailbox: Is the current mailbox state, this is necessary to initialize `post_dispatch` futures
     /// - hook_allowance: mapping from hook_address -> allowed credits to spent. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
     async transition dispatch(passed_state: MailboxState, destination_domain: u32, recipient_address: [u8; 32], message_body: [u128; 8], hook_address: address, metadata: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
@@ -41,13 +44,13 @@ program dispatch_proxy.aleo {
         );
     }
 
-    async function finalize_dispatch(passed_state: MailboxState, mailbox_disaptch: Future, default_hook: Future, required_hook: Future) {
+    async function finalize_dispatch(passed_state: MailboxState, mailbox_dispatch: Future, default_hook: Future, required_hook: Future) {
         let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
         assert_eq(mailbox.default_ism, passed_state.default_ism);
         assert_eq(mailbox.default_hook, passed_state.default_hook);
         assert_eq(mailbox.required_hook, passed_state.required_hook);
 
-        mailbox_disaptch.await();
+        mailbox_dispatch.await();
         default_hook.await();
         required_hook.await();
     }
