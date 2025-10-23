@@ -113,70 +113,85 @@ program validator_announce.aleo {
         let b1: u8 = ((local_domain >> 8u32) % 256u32) as u8;
         let b0: u8 = (local_domain % 256u32) as u8;
 
-        // Initialize msg with all values (local_domain in BE encoding + mailbox + "HYPERLANE_ANNOUNCMENT")
-        let msg: [u8; 58] = [
-            // local_domain BE encoded (first byte always 0)
-            b3, b2, b1, b0,
-            
-            // merkle tree hook (mailbox 32 bytes)
-            mailbox[0], mailbox[1], mailbox[2], mailbox[3],
-            mailbox[4], mailbox[5], mailbox[6], mailbox[7],
-            mailbox[8], mailbox[9], mailbox[10], mailbox[11],
-            mailbox[12], mailbox[13], mailbox[14], mailbox[15],
-            mailbox[16], mailbox[17], mailbox[18], mailbox[19],
-            mailbox[20], mailbox[21], mailbox[22], mailbox[23],
-            mailbox[24], mailbox[25], mailbox[26], mailbox[27],
-            mailbox[28], mailbox[29], mailbox[30], mailbox[31],
-            
-            // 'HYPERLANE_ANNOUNCEMENT' encoded as UTF-8
-            72u8, 89u8, 80u8, 69u8, 82u8, 76u8, 65u8, 78u8, 
-            69u8, 95u8, 65u8, 78u8, 78u8, 79u8, 85u8, 78u8, 
-            67u8, 69u8, 77u8, 69u8, 78u8, 84u8
-        ];
+        // Initialize msg with all values (local_domain in BE encoding + mailbox + "HYPERLANE_ANNOUNCEMENT")
+        let msg: [u8; 58] = [0u8; 58];
+        
+        // local_domain BE encoded
+        msg[0] = b3;
+        msg[1] = b2;
+        msg[2] = b1;
+        msg[3] = b0;
+        
+        // merkle tree hook (mailbox 32 bytes)
+        for i in 0u8..32u8 {
+            msg[4 + i] = mailbox[i];
+        }
+        
+        // 'HYPERLANE_ANNOUNCEMENT' encoded as UTF-8
+        msg[36] = 72u8;  // H
+        msg[37] = 89u8;  // Y
+        msg[38] = 80u8;  // P
+        msg[39] = 69u8;  // E
+        msg[40] = 82u8;  // R
+        msg[41] = 76u8;  // L
+        msg[42] = 65u8;  // A
+        msg[43] = 78u8;  // N
+        msg[44] = 69u8;  // E
+        msg[45] = 95u8;  // _
+        msg[46] = 65u8;  // A
+        msg[47] = 78u8;  // N
+        msg[48] = 78u8;  // N
+        msg[49] = 79u8;  // O
+        msg[50] = 85u8;  // U
+        msg[51] = 78u8;  // N
+        msg[52] = 67u8;  // C
+        msg[53] = 69u8;  // E
+        msg[54] = 77u8;  // M
+        msg[55] = 69u8;  // E
+        msg[56] = 78u8;  // N
+        msg[57] = 84u8;  // T
 
         let hash = Keccak256::hash_native_raw(msg);
         return Deserialize::from_bits_raw::[[u8; 32]](hash);
     }
 
     inline to_eth_signed_message_hash(hash: [u8; 32]) -> [u8; 32] {
-        let digest: [u8; 60] = [
-            25u8,   // \x19
-            69u8,   // E
-            116u8,  // t
-            104u8,  // h
-            101u8,  // e
-            114u8,  // r
-            101u8,  // e
-            117u8,  // u
-            109u8,  // m
-            32u8,   // (space)
-            83u8,   // S
-            105u8,  // i
-            103u8,  // g
-            110u8,  // n
-            101u8,  // e
-            100u8,  // d
-            32u8,   // (space)
-            77u8,   // M
-            101u8,  // e
-            115u8,  // s
-            115u8,  // s
-            97u8,   // a
-            103u8,  // g
-            101u8,  // e
-            58u8,   // :
-            10u8,   // \n
-            51u8,   // '3'
-            50u8,   // '2'
-            hash[0], hash[1], hash[2], hash[3],
-            hash[4], hash[5], hash[6], hash[7],
-            hash[8], hash[9], hash[10], hash[11],
-            hash[12], hash[13], hash[14], hash[15],
-            hash[16], hash[17], hash[18], hash[19],
-            hash[20], hash[21], hash[22], hash[23],
-            hash[24], hash[25], hash[26], hash[27],
-            hash[28], hash[29], hash[30], hash[31]
-        ];
+        let digest: [u8; 60] = [0u8; 60];
+        
+        // "\x19Ethereum Signed Message:\n32"
+        digest[0] = 25u8;   // \x19
+        digest[1] = 69u8;   // E
+        digest[2] = 116u8;  // t
+        digest[3] = 104u8;  // h
+        digest[4] = 101u8;  // e
+        digest[5] = 114u8;  // r
+        digest[6] = 101u8;  // e
+        digest[7] = 117u8;  // u
+        digest[8] = 109u8;  // m
+        digest[9] = 32u8;   // (space)
+        digest[10] = 83u8;  // S
+        digest[11] = 105u8; // i
+        digest[12] = 103u8; // g
+        digest[13] = 110u8; // n
+        digest[14] = 101u8; // e
+        digest[15] = 100u8; // d
+        digest[16] = 32u8;  // (space)
+        digest[17] = 77u8;  // M
+        digest[18] = 101u8; // e
+        digest[19] = 115u8; // s
+        digest[20] = 115u8; // s
+        digest[21] = 97u8;  // a
+        digest[22] = 103u8; // g
+        digest[23] = 101u8; // e
+        digest[24] = 58u8;  // :
+        digest[25] = 10u8;  // \n
+        digest[26] = 51u8;  // '3'
+        digest[27] = 50u8;  // '2'
+        
+        // Copy hash bytes
+        for i in 0u8..32u8 {
+            digest[28 + i] = hash[i];
+        }
 
         let hash_bits = Keccak256::hash_native_raw(digest);
         return Deserialize::from_bits_raw::[[u8; 32]](hash_bits);

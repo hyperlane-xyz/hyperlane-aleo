@@ -26,7 +26,7 @@ def test_init_validator_announce():
     )
     assert result.get("success"), f"Validator announce init failed: {result}"
 
-def test_announcment():
+def test_announcement():
     validator=list(bytes.fromhex("ff9e86a205c887960599db2403882d248edfbfd8"))
     storage_location=list(b's3://test-storage-location')
     signature=[49,79,115,205,135,168,6,90,7,164,0,230,148,23,61,93,182,200,40,253,157,218,39,190,206,221,132,95,3,202,77,157,33,97,90,125,131,186,219,67,185,117,221,170,15,54,31,3,153,67,116,232,24,104,144,193,253,51,19,105,252,204,110,121,0]
@@ -49,7 +49,7 @@ def test_announcment():
 
     assert stored_location == storage_location + [0] * (480 - len(storage_location)), f"Incorrect storage location, expected {storage_location} but got {stored_location}"
 
-def test_announcment_replay():
+def test_announcement_replay():
     validator=list(bytes.fromhex("ff9e86a205c887960599db2403882d248edfbfd8"))
     storage_location=list(b's3://test-storage-location')
     signature=[49,79,115,205,135,168,6,90,7,164,0,230,148,23,61,93,182,200,40,253,157,218,39,190,206,221,132,95,3,202,77,157,33,97,90,125,131,186,219,67,185,117,221,170,15,54,31,3,153,67,116,232,24,104,144,193,253,51,19,105,252,204,110,121,0]
