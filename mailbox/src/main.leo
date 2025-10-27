@@ -7,12 +7,16 @@ program mailbox.aleo {
     mapping deliveries: DeliveryKey => Delivery;
     // dispatches events map from index => message
     mapping dispatch_events: u32 => Message;
-    // dispatches id events map from index => message
+    // dispatches id events map from index => message id
     mapping dispatch_id_events: u32 => [u128; 2];
     // delivery events map from index => message id
-    mapping process_events: u32 => ProcessEvent;
+    mapping process_events: u32 => [u128; 2];
     // Mailbox state
     mapping mailbox: bool => Mailbox;
+    // Mapping to track process events from block_height => event index
+    mapping process_event_index: u32 => u32;
+    // Mapping to track dispatch events from block_height => event index
+    mapping dispatch_event_index: u32 => u32;
 
     struct Mailbox {
         local_domain: u32,
@@ -47,11 +51,6 @@ program mailbox.aleo {
     struct CreditAllowance {
         spender: address,
         amount: u64,
-    }
-
-    struct ProcessEvent {
-        sequence: u32,
-        id: [u128; 2],
     }
 
     const MAILBOX_VERSION: u8 = 3u8;
@@ -144,7 +143,7 @@ program mailbox.aleo {
     /// We accept the message id as a parameter to avoid having large computation inside of transitions.
     /// We verify whether or not the id is correct inside the finalize step of the transition.
     /// - message_length: the raw message length in bytes
-    async transition process(ism: address, message: Message, message_length: u32, id: [u128; 2], metadata: [u8; 512]) -> Future {
+    async transition process(public ism: address, public message: Message, public message_length: u32, public id: [u128; 2], public metadata: [u8; 512]) -> Future {
         let processor = self.caller;
         let verify_future = ism_manager.aleo/verify(ism, message, id, metadata);
         return finalize_process(ism, message, message_length, id, processor, verify_future);
@@ -173,10 +172,8 @@ program mailbox.aleo {
             block_number: block.height,
         });
 
-        process_events.set(block.height, ProcessEvent {
-            sequence: current_mailbox.process_count,
-            id,
-        });
+        process_events.set(current_mailbox.process_count, id);
+        dispatch_event_index.set(block.height, current_mailbox.process_count);
         current_mailbox.process_count += 1;
         mailbox.set(true, current_mailbox);
     }
@@ -184,7 +181,7 @@ program mailbox.aleo {
     /// Dispatch
     /// Creates a new message based on given inputs and dispatch it
     /// - hook_allowance: mapping from hook_address -> allowed credits to spent. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
-    async transition dispatch(destination_domain: u32, recipient_address: [u8; 32], message_body: [u128; 8], message_sender: address) -> Future {
+    async transition dispatch(public destination_domain: u32, public recipient_address: [u8; 32], public message_body: [u128; 8], public message_sender: address) -> Future {
         // Make sure that dispatch is called by the dispatch proxy and no one else
         return finalize_dispatch(
             destination_domain,
@@ -215,7 +212,7 @@ program mailbox.aleo {
 
         dispatch_events.set(current_mailbox.nonce, message);
         dispatch_id_events.set(current_mailbox.nonce, id);
-
+        dispatch_event_index.set(block.height, current_mailbox.nonce);
         current_mailbox.nonce += 1;
 
         mailbox.set(true, current_mailbox);

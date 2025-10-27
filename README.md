@@ -102,7 +102,7 @@ There are some key differences between the Aleo implementation and other Hyperla
 - [x] Verify Signatures dynamically in `ism_manager`
 - [x] Finish Process & Dispatch logic
 - [x] Validator Announce
-- [ ] Correct Events for agents
+- [x] Correct Events for agents
 - [ ] `hyp_token_manager`
 - [x] Add CI/CD pipeline
 
