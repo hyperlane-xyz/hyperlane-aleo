@@ -181,7 +181,7 @@ program ism_manager.aleo {
 
     /// Verifies the message validity by using the given ism
     /// This method assumes that the caller makes sure that the passed message_id belongs to the passed message
-    async transition verify(ism: address, message: Message, message_id: [u128; 2], metadata: [u8; METADATA_LENGTH]) -> Future {
+    async transition verify(public ism: address, public message: Message, public message_id: [u128; 2], public metadata: [u8; METADATA_LENGTH]) -> Future {
         return finalize_verify(ism, message, message_id, metadata);
     }
 

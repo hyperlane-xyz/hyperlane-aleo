@@ -26,7 +26,15 @@ program dispatch_proxy.aleo {
     /// We could pass the whole mailbox state in the transition and construct a message based on this, but that would effectively limit the possible messages per block to 1, as the mailbox state changes with every message.
     /// - passed_mailbox: Is the current mailbox state, this is necessary to initialize `post_dispatch` futures
     /// - hook_allowance: mapping from hook_address -> allowed credits to spent. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
-    async transition dispatch(passed_state: MailboxState, destination_domain: u32, recipient_address: [u8; 32], message_body: [u128; 8], hook_address: address, metadata: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
+    async transition dispatch(
+        public passed_state: MailboxState,
+        public destination_domain: u32,
+        public recipient_address: [u8; 32],
+        public message_body: [u128; 8],
+        public hook_address: address,
+        public metadata: [u8; 256],
+        public hook_allowance: [CreditAllowance; 4]
+    ) -> Future {
         assert_neq(passed_state.default_hook, NULL_ADDRESS);
         assert_neq(passed_state.required_hook, NULL_ADDRESS);
 

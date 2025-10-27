@@ -20,6 +20,9 @@ program hook_manager.aleo {
     mapping gas_payment_events: EventKey => GasPaymentEvent;
     // InsertedIntoTree Events: sequence => Event
     mapping inserted_into_tree_events: EventKey => InsertedIntoTreeEvent;
+    // Mapping to get the last event index for a given block_height
+    // We need this to be able to query events by block height
+    mapping last_event_index: EventIndexKey => u32;
 
     struct Message {
         version: u8,
@@ -83,6 +86,11 @@ program hook_manager.aleo {
     struct EventKey {
         hook: address,
         index: u32,
+    }
+
+    struct EventIndexKey {
+        hook: address,
+        block_height: u32,
     }
 
     struct CreditAllowance {
@@ -276,6 +284,12 @@ program hook_manager.aleo {
         };
         gas_payment_events.set(event_key, event);
         
+        let event_index_key = EventIndexKey {
+            hook: igp_address,
+            block_height: block.height,
+        };
+        last_event_index.set(event_index_key, current_igp.count);
+
         current_igp.balance += credits_amount;
         current_igp.count += 1;
 
@@ -363,7 +377,7 @@ program hook_manager.aleo {
     /// Post Dispatch
     /// Fetches the latest message from the mailbox and perfroms the post_dispatch function on that.
     /// - hook_allowance: mapping from hook_address -> allowed credits to spend. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
-    async transition post_dispatch(hook: address, metadata: [u8; 256], hook_allowance: [CreditAllowance; 4]) -> Future {
+    async transition post_dispatch(public hook: address, public metadata: [u8; 256], public hook_allowance: [CreditAllowance; 4]) -> Future {
         // find the allowance for the given hook, default to 0
         let credits_amount = 0u64;
         for i in 0u8..4u8 {
@@ -387,6 +401,12 @@ program hook_manager.aleo {
         assert(mailbox.nonce > 0);
         let message = Mapping::get(mailbox.aleo/dispatch_events, mailbox.nonce - 1);
         let message_id = Mapping::get(mailbox.aleo/dispatch_id_events, mailbox.nonce - 1);
+
+        // Event index key for last_event_index mapping
+        let event_index_key = EventIndexKey {
+            hook,
+            block_height: block.height,
+        };
 
         if type == HOOK_MERKLE_TREE {
             let merkle_tree_hook = merkle_tree_hooks.get(hook);
@@ -414,6 +434,8 @@ program hook_manager.aleo {
                 index,
             };
             inserted_into_tree_events.set(event_key, event);
+            last_event_index.set(event_index_key, index);
+
         } else if type == HOOK_INTERCHAIN_GAS_PAYMASTER {
             let igp = igps.get(hook);
 
@@ -449,6 +471,7 @@ program hook_manager.aleo {
                 destination_domain: message.destination_domain,
             };
             gas_payment_events.set(event_key, event);
+            last_event_index.set(event_index_key, igp.count);
             
             igp.balance += credits_amount;
             igp.count += 1;
