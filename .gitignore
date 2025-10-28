@@ -9,3 +9,5 @@ FEEDBACK.md
 tests/devnet
 test_failures.log
 *.pyc
+/venv/
+.idea
