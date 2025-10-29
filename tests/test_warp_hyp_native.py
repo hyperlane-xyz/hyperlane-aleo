@@ -147,3 +147,6 @@ def test_process_incoming_message():
     assert int(hyp_balance_after) - int(hyp_balance_before) == -999
     assert int(user_balance_after) - int(user_balance_before) == 999
 
+# TODO: test custom ISM
+# TODO: test ownership transfer
+# TODO: test transfer_remote with custom hook

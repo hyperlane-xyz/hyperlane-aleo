@@ -22,8 +22,8 @@ program hyp_native_template.aleo {
     // This can be changed by the contract owner specified in the `token_metadata`
     mapping token_metadata: bool => Metadata;
 
-    @custom
-    async constructor() { assert(true); }
+    @noupgrade
+    async constructor() {}
 
     struct RemoteRouter {
         // Domain according to the Hyperlane Spec. Can be found here: https://github.com/hyperlane-xyz/hyperlane-registry
@@ -108,6 +108,7 @@ program hyp_native_template.aleo {
         };
     }
 
+    // TODO pass Allowance
     async transition transfer_remote(public unverified_mailbox_state: MailboxState, unverified_remote_router: RemoteRouter, public destination: u32, recipient: [u128; 2], amount: u64) -> Future {
         let body_amount = convert_endianness(amount as u128);
         let message_body: [u128; 8] = [recipient[0], recipient[1], 0u128, body_amount, 0u128, 0u128, 0u128, 0u128];
@@ -116,6 +117,7 @@ program hyp_native_template.aleo {
         return finalize_transfer_remote(dispatch_future, credits_future, unverified_remote_router, destination);
     }
 
+    // TODO pass Allowance
     async transition transfer_remote_with_hook(public unverified_mailbox_state: MailboxState, unverified_remote_router: RemoteRouter, public destination: u32, recipient: [u128; 2], amount: u64, custom_hook: address, custom_hook_metadata: [u8; 256]) -> Future {
         let body_amount = convert_endianness(amount as u128);
         let message_body: [u128; 8] = [recipient[0], recipient[1], 0u128, body_amount, 0u128, 0u128, 0u128, 0u128];

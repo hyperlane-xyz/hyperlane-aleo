@@ -53,7 +53,7 @@ def _read_latest_block_height() -> int | None:
     return None
 
 
-# @pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def session_setup() -> Dict[str, Any]:
     """Start a leo devnet for the test session and wait until it is ready.
 
