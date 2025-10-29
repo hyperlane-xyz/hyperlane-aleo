@@ -17,4 +17,3 @@ python3 hypertools.py process-warp
 ```
 Generates an Aleo struct which can be used for the Leo CLI to pass. 
 Use `--help` for changing content.
-

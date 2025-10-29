@@ -2,34 +2,53 @@ import dispatch_proxy.aleo;
 import mailbox.aleo;
 import credits.aleo;
 
-// The 'hyp_native_template' program.
+/*
+ *  The 'hyp_native_template' implements the Hyperlane Hyp Native Token which is used
+ *  for bridging the native Aleo currency (credits program) to other networks. 
+ *  It needs to define an owner address which is allowed to change the configuration
+ *  of the program. If no changes are needed anymore the owner_address can be set to the
+ *  NULL_ADDRESS to prevent further modification.
+ *  This is independent from the aleo program owner which is allowed to upgrade the contract.
+ */
 program hyp_native_template.aleo {
 
-    @custom
-    async constructor() {
-        assert(true);
-    }
-
+    // The program needs to know with which other contracts from other blockchains it can communicate.
+    // For each destination chain it is required to enroll an remote router containing the correspondents address
+    // and the expected gas limit which is required to execute the transaction on the destination chain. 
+    // This can be changed by the contract owner specified in the `token_metadata`.
     mapping remote_routers: u32 => RemoteRouter;
+    
+    // Token Metadata stores necessary information about the program. 
+    // This can be changed by the contract owner specified in the `token_metadata`
     mapping token_metadata: bool => Metadata;
 
+    @custom
+    async constructor() { assert(true); }
+
     struct RemoteRouter {
+        // Domain according to the Hyperlane Spec. Can be found here: https://github.com/hyperlane-xyz/hyperlane-registry
         domain: u32,
+        // Address of the corresponding smart contract on the destination chain as bytes, left-padded.
         recipient: [u8; 32],
+        // The expected required gas to execute the transfer on the destination chain
         gas: u128,
     }
 
     struct Metadata {
+        // "human-readable"-name
         name: [u8; 128],
         token_owner: address,
+        // One can either use the default ISM (Interchain Security Module) of the mailbox
+        // or one can specify a custom ISM, which is used to validate incoming messages.
         custom_ism_address: address,
     }
 
     const NULL_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
-    const EMPTY_METADATA: [u8; 256] = [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
-    const EMPTY_ALLOWANCE: [CreditAllowance; 4]  = [CreditAllowance {spender: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, amount: 0u64}, CreditAllowance {spender: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, amount: 0u64}, CreditAllowance {spender: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, amount: 0u64}, CreditAllowance {spender: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, amount: 0u64}];
+    const EMPTY_METADATA: [u8; 256] = [0u8; 256];
+    const EMPTY_ALLOWANCE: [CreditAllowance; 4]  = [CreditAllowance {spender: NULL_ADDRESS, amount: 0u64}; 4];
 
-
+    // Init the contract by giving it a name.
+    // Whoever calls this function will be set as the owner
     async transition init(name: [u8; 128]) -> Future {
         let caller = self.caller;
         return async {
@@ -41,6 +60,7 @@ program hyp_native_template.aleo {
         };
     }
 
+    // Set a custom ISM which will be used instead of the default ISM of the mailbox
     async transition set_custom_ism(ism: address) -> Future {
         let caller = self.caller;
         return async {
@@ -52,6 +72,7 @@ program hyp_native_template.aleo {
         };
     }
 
+    // Change ownership for the configuration owner.
     async transition set_owner(new_owner: address) -> Future {
         let caller = self.caller;
         return async {
@@ -88,7 +109,7 @@ program hyp_native_template.aleo {
     }
 
     async transition transfer_remote(public unverified_mailbox_state: MailboxState, unverified_remote_router: RemoteRouter, public destination: u32, recipient: [u128; 2], amount: u64) -> Future {
-        let body_amount = parse_payload_amount(amount as u128);
+        let body_amount = convert_endianness(amount as u128);
         let message_body: [u128; 8] = [recipient[0], recipient[1], 0u128, body_amount, 0u128, 0u128, 0u128, 0u128];
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, NULL_ADDRESS, EMPTY_METADATA, EMPTY_ALLOWANCE);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
@@ -96,7 +117,8 @@ program hyp_native_template.aleo {
     }
 
     async transition transfer_remote_with_hook(public unverified_mailbox_state: MailboxState, unverified_remote_router: RemoteRouter, public destination: u32, recipient: [u128; 2], amount: u64, custom_hook: address, custom_hook_metadata: [u8; 256]) -> Future {
-        let message_body: [u128; 8] = [recipient[0], recipient[1], 0u128, amount as u128, 0u128, 0u128, 0u128, 0u128];
+        let body_amount = convert_endianness(amount as u128);
+        let message_body: [u128; 8] = [recipient[0], recipient[1], 0u128, body_amount, 0u128, 0u128, 0u128, 0u128];
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, custom_hook_metadata, EMPTY_ALLOWANCE);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
         return finalize_transfer_remote(dispatch_future, credits_future, unverified_remote_router, destination);
@@ -111,30 +133,46 @@ program hyp_native_template.aleo {
         credits_future.await();
     }
 
+    // `process` is called by the relayer to submit the transaction.
+    // This method then needs to take care of calling the underlying mailbox to double check against replay attacks
+    // and using the default ISM.
+    // Optionally the Warp contract has defined a custom ISM, in this case the default ISM from the mailbox is ignored.
+    // ISM verification happens inside the mailbox
+    // Parameters:
+    // `unverified_ism`: needs to either be the default ism from the mailbox or the custom ism stored in `token_metadata`
+    // `message`: The Hyperlane message
+    // `message_length`: Due to static array sizes in Aleo, the hyperlane message is always right-padded with zeros.
+    //                   Therefore, the length must be provided for correct hash calculation and signature verification
+    // `id`: Keccak256 hash of the Hyperlane message
+    // `metadata`: Metadata for ISM verification
     async transition process(public unverified_ism: address, message: Message, message_length: u32, id: [u128; 2], metadata: [u8; 512]) -> Future {
-        let f0: Future = mailbox.aleo/process(unverified_ism, message, message_length, id, metadata);
+        let mailbox_future: Future = mailbox.aleo/process(unverified_ism, message, message_length, id, metadata);
 
-        let amount = parse_payload_amount(message.body[3]) as u64;
+        let amount = convert_endianness(message.body[3]) as u64;
         let address_raw = [0u128, 0u128];
         address_raw[0] = message.body[0];
         address_raw[1] = message.body[1];
         let recipient = bytes_raw_to_address(address_raw);
 
-        let f1: Future = credits.aleo/transfer_public(recipient, amount);
-        return finalize_process(f0, f1, unverified_ism);
+        let credits_future: Future = credits.aleo/transfer_public(recipient, amount);
+        return finalize_process(mailbox_future, credits_future, unverified_ism);
     }
 
-    async function finalize_process(f0: Future, f1: Future, unverified_ism: address) {
+    // Validates the unverified inputs from the process transition and awaits its futures.
+    async function finalize_process(mailbox_future: Future, credits_future: Future, unverified_ism: address) {
         let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
         let state = token_metadata.get(true);
 
+        // Check if custom ISM is provided, otherwise use the default ISM from the mailbox
         let verify_ism = state.custom_ism_address == NULL_ADDRESS ? mailbox.default_ism : state.custom_ism_address;
         assert_eq(verify_ism, unverified_ism);
 
-        f0.await();
-        f1.await();
+        mailbox_future.await();
+        credits_future.await();
     }
 
+    // It uses the u128;2 array representing 32 bytes in little endian encoding.
+    // This representation gets converted to an Aleo-address.
     inline bytes_raw_to_address(a: [u128; 2]) -> address {
         let bits = Serialize::to_bits_raw(a);
         let truncated_bits = [false; 253];
@@ -144,7 +182,9 @@ program hyp_native_template.aleo {
         return Deserialize::from_bits_raw::[address](truncated_bits);
     }
 
-    inline parse_payload_amount(payload: u128) -> u128 {
+    // Aleo integers are little-endian encoded. The bytes in the hyperlane-message are big-endian encoded.
+    // This function converts the u128 in the message_body bytes to an u128 representing an integer.
+    inline convert_endianness(payload: u128) -> u128 {
         let res: u128 = 0;
         for i:u8 in 0u8..16u8 {
             res += (((payload >> i*8u8) % 256u128) << (120u8 - i*8u8));
