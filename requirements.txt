@@ -2,3 +2,4 @@ pycryptodome
 pytest
 requests
 pysha3
+click
