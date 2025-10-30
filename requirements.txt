@@ -1,3 +1,4 @@
 pycryptodome
 pytest
 requests
+pysha3
