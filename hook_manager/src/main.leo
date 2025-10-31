@@ -9,17 +9,22 @@ program hook_manager.aleo {
     mapping igps: address => InterchainGasPaymaster;
     // DestinationGasConfigs
     mapping destination_gas_configs: GasConfigKey => DomainGasConfig;
+    // Mapping to iterate all destination_gas_config entires
+    mapping destination_gas_config_iter: HookIndexKey => GasConfigKey;
+    // Mapping to get total amount of inserted gas configs for that IGP
+    mapping destination_gas_config_length: address => u32;
     // Mapping for MerkleTreeHook
     mapping merkle_tree_hooks: address => MerkleTreeHook;
     // Mapping from ism address to Hook Type
     mapping hooks: address => u8;
     // Mapping to find hook addresses
     mapping hook_addresses: u32 => address;
+    
     // Events
     // GasPayment Events: sequence => Event
-    mapping gas_payment_events: EventKey => GasPaymentEvent;
+    mapping gas_payment_events: HookIndexKey => GasPaymentEvent;
     // InsertedIntoTree Events: sequence => Event
-    mapping inserted_into_tree_events: EventKey => InsertedIntoTreeEvent;
+    mapping inserted_into_tree_events: HookIndexKey => InsertedIntoTreeEvent;
     // Mapping to get the last event index for a given block_height
     // We need this to be able to query events by block height
     mapping last_event_index: EventIndexKey => u32;
@@ -83,7 +88,7 @@ program hook_manager.aleo {
         index: u32,
     }
 
-    struct EventKey {
+    struct HookIndexKey {
         hook: address,
         index: u32,
     }
@@ -211,6 +216,11 @@ program hook_manager.aleo {
             igp: igp_address,
             destination: destination_domain,
         };
+        if !destination_gas_configs.contains(key) {
+            let current_length = destination_gas_config_length.get_or_use(igp_address, 0u32);
+            destination_gas_config_iter.set(HookIndexKey {hook: igp_address, index: current_length}, key);
+            destination_gas_config_length.set(igp_address, current_length + 1);
+        }
         destination_gas_configs.set(key, config);
     }
 
@@ -271,7 +281,7 @@ program hook_manager.aleo {
         transfer.await();
 
         let current_igp = igps.get(igp_address);
-        let event_key = EventKey {
+        let event_key = HookIndexKey{
             hook: igp_address,
             index: current_igp.count,
         };
@@ -425,7 +435,7 @@ program hook_manager.aleo {
             // the merkle tree hook expects no payment
             assert_eq(credits_amount, 0u64);
 
-            let event_key = EventKey {
+            let event_key = HookIndexKey {
                 hook,
                 index,
             };
@@ -459,7 +469,7 @@ program hook_manager.aleo {
             // Revert if the quoted fee does not match the transfer amount
             assert_eq(quote, credits_amount);
 
-            let event_key = EventKey {
+            let event_key = HookIndexKey {
                 hook,
                 index: igp.count,
             };
