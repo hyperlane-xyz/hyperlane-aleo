@@ -132,15 +132,18 @@ def to_aleo_like(data, numeric_suffix: str | None = None) -> str:
     # Top-level formatting
     return fmt_val(data)
 
-def get_mapping_value(program: str, mapping: str, key: str) -> dict:
+def get_mapping_value_raw(program: str, mapping: str, key: str) -> str:
     encoded_key = quote(key, safe='')
     url = f"{BASE}{program}/mapping/{mapping}/{encoded_key}"
     try:
         with request.urlopen(url, timeout=5) as resp:
             data = resp.read().decode("utf-8")
-        return _parse_mapping_response(data)
+        return data
     except Exception:
-        return {}
+        return ""
+
+def get_mapping_value(program: str, mapping: str, key: str) -> dict:
+    return _parse_mapping_response(get_mapping_value_raw(program, mapping, key))
 
 def program_exists(program: str) -> bool:
     url = f"{BASE}{program}/mappings"

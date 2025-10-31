@@ -1,0 +1,16 @@
+{
+  "program": "hyp_native_template.aleo",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT",
+  "leo": "3.2.0",
+  "dependencies": [
+    {
+      "name": "dispatch_proxy.aleo",
+      "location": "network",
+      "path": null,
+      "network": "testnet"
+    }
+  ],
+  "dev_dependencies": null
+}

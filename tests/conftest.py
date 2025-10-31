@@ -16,6 +16,11 @@ from tests import transact
 DEVNET_READY_HEIGHT = 10  # Must be strictly greater than 9
 DEVNET_TIMEOUT_SECONDS = 300  # Max wait time to reach ready height
 
+SECONDARY_ACCOUNT = {
+    "private_key": "APrivateKey1zkpBQcWng4ykyhgup4L5PchWrcCJzcyQg5tiDfhxdYxG8nw",
+    "address": "aleo1zz48uvscp5ttnhqfw3qsmzt6lkcfadmk8tn9gadn5fteqarepv8sqhnpmw"
+}
+
 def _read_latest_block_height() -> int | None:
     """Query the local devnet endpoint for the latest block height.
 
@@ -193,6 +198,10 @@ def session_setup() -> Dict[str, Any]:
         print("[session_setup] Deploying required programs...")
         result = transact("deploy", cwd="dispatch_proxy")
         assert result.get("success"), f"Deployment failed: {result}"
+
+        # Fund secondary wallet
+        result = transact("execute", "credits.aleo/transfer_public", SECONDARY_ACCOUNT['address'], "1000000000u64")
+        assert result.get("success"), f"Funding Secondary account failed: {result}"
 
         context: Dict[str, Any] = {
             "message": "initialized",

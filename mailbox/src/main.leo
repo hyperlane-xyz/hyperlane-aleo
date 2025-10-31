@@ -27,6 +27,7 @@ program mailbox.aleo {
         required_hook: address,
         dispatch_proxy: address,
         mailbox_owner: address,
+        mailbox_address: address,
     }
 
     struct Message {
@@ -73,7 +74,8 @@ program mailbox.aleo {
             default_hook: NULL_ADDRESS,
             required_hook: NULL_ADDRESS,
             dispatch_proxy: NULL_ADDRESS,
-            mailbox_owner: caller
+            mailbox_owner: caller,
+            mailbox_address: self.address,
         });
     }
 

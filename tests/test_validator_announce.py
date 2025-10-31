@@ -40,7 +40,6 @@ def test_announcement():
     assert result.get("success"), f"Validator announce failed: {result}"
     eth_address_bytes = to_aleo_like(validator, numeric_suffix=8)
     eth_address = f'{{bytes: {eth_address_bytes}}}'
-    print(eth_address)
     sequence = get_mapping_value("storage_sequences", eth_address)
     assert sequence == '1', f"Incorrect storage sequence, expected 1 but got {sequence}"
 
