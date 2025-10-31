@@ -21,19 +21,30 @@ def test_init():
     exists = get_mapping_value("token_metadata", "true")
     if exists:
         return
-    name = [ord('N'), ord('A'), ord('T'), ord('I'), ord('V'), ord('E')] + ([0] * (128-6))
     result = transact(
         "execute",
         "init",
-        to_aleo_like(name, numeric_suffix='8'),
     )
     assert result.get("success"), f"Warp Hyp Native init failed: {result}"
+    ism = get_mapping_value("ism", "true")
+    assert ism == NULL_ADDRESS
     token_metadata = get_mapping_value("token_metadata", "true")
-    assert token_metadata["custom_ism_address"] == NULL_ADDRESS
     assert token_metadata["token_owner"] == CALLER
-    assert token_metadata["name"] == name
 
-# TODO do not allow to init again
+
+def test_init_again():
+    exists = get_mapping_value("token_metadata", "true")
+    assert exists is not None
+    result = transact(
+        "execute",
+        "init",
+    )
+    assert not result.get("success"), f"Warp Hyp Native init should have failed: {result}"
+    ism = get_mapping_value("ism", "true")
+    assert ism == NULL_ADDRESS
+    token_metadata = get_mapping_value("token_metadata", "true")
+    assert token_metadata["token_owner"] == CALLER
+
 
 def test_enroll_remote_router():
     address = [1, 2] * 16
@@ -44,7 +55,7 @@ def test_enroll_remote_router():
         to_aleo_like(address, numeric_suffix='8'),
         "1000u128"
     )
-    assert result.get("success"), f"Warp Hyp Native init failed: {result}"
+    assert result.get("success"), f"Warp Hyp Native enroll remote router failed: {result}"
     enrolled_router = get_mapping_value("remote_routers", "1u32")
     assert enrolled_router["domain"] == 1
     assert enrolled_router["recipient"] == address
@@ -61,9 +72,9 @@ def test_enroll_remote_router_not_owner():
         "enroll_remote_router",
         "1u32",
         to_aleo_like(try_address, numeric_suffix='8'),
-        "2000u128"
+        "2000u128",
     )
-    assert not result.get("success"), f"Warp Hyp Native init failed: {result}"
+    assert not result.get("success"), f"Warp Hyp Native enroll remote router not owner should have failed: {result}"
     # Assert nothing changed
     enrolled_router = get_mapping_value("remote_routers", "1u32")
     assert enrolled_router["domain"] == 1
@@ -72,13 +83,15 @@ def test_enroll_remote_router_not_owner():
 
 
 def test_transfer_remote():
-    balance_before = get_program_mapping_value("credits.aleo", "account", "aleo1ysyt49787vznynprcz8vlgepdkh0ykyzf0pvcc2jt4tv89v0nurqceqcjp")
+    balance_before = get_program_mapping_value("credits.aleo", "account", "aleo1ysyt49787vznynprcz8vlgepdkh0ykyzf0pvcc2jt4tv89v0nurqceqcjp") or 0
     unverified_mailbox_state = {
         "default_ism": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
         "default_hook": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
         "required_hook": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w"
     }
     unverified_remote_router = f"{{domain: 1u32, recipient:{to_aleo_like([1, 2] * 16, numeric_suffix='8')}, gas: 1000u128 }}"
+    metadata = [0] * 256
+    hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
     result = transact(
         "execute",
         "transfer_remote",
@@ -86,7 +99,10 @@ def test_transfer_remote():
         unverified_remote_router,
         "1u32",
         '[258938393984388867711851864522651336704u128, 86407088643764425831394674034555577650u128]',
-        "1234u64"
+        "1234u64",
+        to_aleo_like(hook_allowance, numeric_suffix=64),
+        NULL_ADDRESS,
+        to_aleo_like(metadata, numeric_suffix=8),
     )
     assert result.get("success"), f"Warp Hyp Native init failed: {result}"
 
@@ -117,7 +133,7 @@ def test_transfer_remote():
 
 
 def test_process_incoming_message():
-    user_balance_before = get_program_mapping_value("credits.aleo", "account", SECONDARY_ACCOUNT["address"])
+    user_balance_before = get_program_mapping_value("credits.aleo", "account", SECONDARY_ACCOUNT["address"]) or 0
     hyp_balance_before = get_program_mapping_value("credits.aleo", "account", "aleo1ysyt49787vznynprcz8vlgepdkh0ykyzf0pvcc2jt4tv89v0nurqceqcjp")
 
     enrolled_router = bytes.fromhex("0102010201020102010201020102010201020102010201020102010201020102")
@@ -150,3 +166,4 @@ def test_process_incoming_message():
 # TODO: test custom ISM
 # TODO: test ownership transfer
 # TODO: test transfer_remote with custom hook
+# TODO: test invalid payload

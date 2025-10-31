@@ -4,7 +4,7 @@ import credits.aleo;
 
 /*
  *  The 'hyp_native_template' implements the Hyperlane Hyp Native Token which is used
- *  for bridging the native Aleo currency (credits program) to other networks. 
+ *  for bridging the native Aleo currency (credits program) to other networks.
  *  It needs to define an owner address which is allowed to change the configuration
  *  of the program. If no changes are needed anymore the owner_address can be set to the
  *  NULL_ADDRESS to prevent further modification.
@@ -14,13 +14,18 @@ program hyp_native_template.aleo {
 
     // The program needs to know with which other contracts from other blockchains it can communicate.
     // For each destination chain it is required to enroll an remote router containing the correspondents address
-    // and the expected gas limit which is required to execute the transaction on the destination chain. 
+    // and the expected gas limit which is required to execute the transaction on the destination chain.
     // This can be changed by the contract owner specified in the `token_metadata`.
     mapping remote_routers: u32 => RemoteRouter;
-    
-    // Token Metadata stores necessary information about the program. 
+
+    // Token Metadata stores necessary information about the program.
     // This can be changed by the contract owner specified in the `token_metadata`
     mapping token_metadata: bool => Metadata;
+
+    // One can either use the default ISM (Interchain Security Module) of the mailbox
+    // or one can specify a custom ISM, which is used to validate incoming messages.
+    // If the value is set to the NULL_ADDRESS, the default ISM from the mailbox is used.
+    mapping ism: bool => address;
 
     @noupgrade
     async constructor() {}
@@ -35,40 +40,33 @@ program hyp_native_template.aleo {
     }
 
     struct Metadata {
-        // "human-readable"-name
-        name: [u8; 128],
         token_owner: address,
-        // One can either use the default ISM (Interchain Security Module) of the mailbox
-        // or one can specify a custom ISM, which is used to validate incoming messages.
-        custom_ism_address: address,
     }
 
     const NULL_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
-    const EMPTY_METADATA: [u8; 256] = [0u8; 256];
-    const EMPTY_ALLOWANCE: [CreditAllowance; 4]  = [CreditAllowance {spender: NULL_ADDRESS, amount: 0u64}; 4];
 
-    // Init the contract by giving it a name.
+    // Init the contract
     // Whoever calls this function will be set as the owner
-    async transition init(name: [u8; 128]) -> Future {
+    async transition init() -> Future {
         let caller = self.caller;
         return async {
+            let initialized: bool = token_metadata.contains(true);
+            assert_eq(initialized, false);
             token_metadata.set(true, Metadata {
-                name: name,
                 token_owner: caller,
-                custom_ism_address: NULL_ADDRESS,
             });
+            ism.set(true, NULL_ADDRESS);
         };
     }
 
     // Set a custom ISM which will be used instead of the default ISM of the mailbox
-    async transition set_custom_ism(ism: address) -> Future {
+    async transition set_custom_ism(ism_address: address) -> Future {
         let caller = self.caller;
         return async {
             let state = token_metadata.get(true);
             assert_eq(state.token_owner, caller);
 
-            state.custom_ism_address = ism;
-            token_metadata.set(true, state);
+            ism.set(true, ism_address);
         };
     }
 
@@ -108,20 +106,11 @@ program hyp_native_template.aleo {
         };
     }
 
-    // TODO pass Allowance
-    async transition transfer_remote(public unverified_mailbox_state: MailboxState, unverified_remote_router: RemoteRouter, public destination: u32, recipient: [u128; 2], amount: u64) -> Future {
+    // `transfer_remote_with_hook`
+    async transition transfer_remote(public unverified_mailbox_state: MailboxState, unverified_remote_router: RemoteRouter, public destination: u32, recipient: [u128; 2], amount: u64, allowance: [CreditAllowance; 4], custom_hook: address, custom_hook_metadata: [u8; 256]) -> Future {
         let body_amount = convert_endianness(amount as u128);
         let message_body: [u128; 8] = [recipient[0], recipient[1], 0u128, body_amount, 0u128, 0u128, 0u128, 0u128];
-        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, NULL_ADDRESS, EMPTY_METADATA, EMPTY_ALLOWANCE);
-        let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
-        return finalize_transfer_remote(dispatch_future, credits_future, unverified_remote_router, destination);
-    }
-
-    // TODO pass Allowance
-    async transition transfer_remote_with_hook(public unverified_mailbox_state: MailboxState, unverified_remote_router: RemoteRouter, public destination: u32, recipient: [u128; 2], amount: u64, custom_hook: address, custom_hook_metadata: [u8; 256]) -> Future {
-        let body_amount = convert_endianness(amount as u128);
-        let message_body: [u128; 8] = [recipient[0], recipient[1], 0u128, body_amount, 0u128, 0u128, 0u128, 0u128];
-        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, custom_hook_metadata, EMPTY_ALLOWANCE);
+        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, custom_hook_metadata, allowance);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
         return finalize_transfer_remote(dispatch_future, credits_future, unverified_remote_router, destination);
     }
@@ -150,11 +139,12 @@ program hyp_native_template.aleo {
     async transition process(public unverified_ism: address, message: Message, message_length: u32, id: [u128; 2], metadata: [u8; 512]) -> Future {
         let mailbox_future: Future = mailbox.aleo/process(unverified_ism, message, message_length, id, metadata);
 
-        let amount = convert_endianness(message.body[3]) as u64;
         let address_raw = [0u128, 0u128];
         address_raw[0] = message.body[0];
         address_raw[1] = message.body[1];
         let recipient = bytes_raw_to_address(address_raw);
+        assert_eq(message.body[2], 0u128);
+        let amount = convert_endianness(message.body[3]) as u64;
 
         let credits_future: Future = credits.aleo/transfer_public(recipient, amount);
         return finalize_process(mailbox_future, credits_future, unverified_ism);
@@ -163,10 +153,10 @@ program hyp_native_template.aleo {
     // Validates the unverified inputs from the process transition and awaits its futures.
     async function finalize_process(mailbox_future: Future, credits_future: Future, unverified_ism: address) {
         let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
-        let state = token_metadata.get(true);
+        let custom_ism = ism.get(true);
 
         // Check if custom ISM is provided, otherwise use the default ISM from the mailbox
-        let verify_ism = state.custom_ism_address == NULL_ADDRESS ? mailbox.default_ism : state.custom_ism_address;
+        let verify_ism = custom_ism == NULL_ADDRESS ? mailbox.default_ism : custom_ism;
         assert_eq(verify_ism, unverified_ism);
 
         mailbox_future.await();

@@ -1,5 +1,6 @@
 import requests, json, yaml
 from sha3 import keccak_256
+from Crypto.Hash import keccak
 import click
 from typing import Literal
 
@@ -64,7 +65,9 @@ class Message:
         ])
 
     def message_id(self):
-        return bytes.fromhex(keccak_256(self.get_message_bytes()).hexdigest())
+        keccak_hash = keccak.new(digest_bits=256)
+        keccak_hash.update(self.get_message_bytes())
+        return bytes.fromhex(keccak_hash.hexdigest())
 
     def get_length(self):
         return 77 + len(self.message_body)
@@ -130,6 +133,12 @@ def fetch(event_id):
     print("raw-message (hex):\n" + dispatch.get_message_bytes().hex())
     print("message-id (aleo):\t", dispatch.get_aleo_message_id())
     print("message-id (hex):\t", dispatch.message_id().hex())
+
+
+@cli.command()
+@click.argument("u128", type=int)
+def decode_ascii(u128):
+    print(int(u128).to_bytes(16, 'big').decode('ascii'))
 
 if __name__ == "__main__":
     cli()
