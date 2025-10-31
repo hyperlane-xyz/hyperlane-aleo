@@ -39,11 +39,14 @@ program validator_announce.aleo {
 
     async function finalize_init(mailbox: [u8; 32], local_domain: u32) {
         assert(!validator_announce.contains(true));
-        // TODO: consider upgradability
         validator_announce.set(true, ValidatorAnnounce {
             mailbox,
             local_domain,
         });
+    }
+
+    transition get_address() -> address {
+        return self.address;
     }
 
     async transition announce(validator: [u8; 20], storage_location: [u8; 480], sig: [u8; 65]) -> Future {
