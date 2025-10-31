@@ -17,6 +17,9 @@ program mailbox.aleo {
     mapping process_event_index: u32 => u32;
     // Mapping to track dispatch events from block_height => event index
     mapping dispatch_event_index: u32 => u32;
+    // Mapping to lookup registered applications on the mailbox, from application address => program id
+    // program id is a C like string represented as [u8; 128] with trailing zeros
+    mapping registered_applications: address => [u8; 128];
 
     struct Mailbox {
         local_domain: u32,
@@ -137,6 +140,16 @@ program mailbox.aleo {
 
         state.required_hook = hook;
         mailbox.set(true, state);
+    }
+
+    async transition register_application(program_id: [u8; 128]) -> Future {
+        return finalize_register_application(program_id, self.caller);
+    }
+
+    async function finalize_register_application(program_id: [u8; 128], caller: address) {
+        assert(mailbox.contains(true));
+        assert(!registered_applications.contains(caller));
+        registered_applications.set(caller, program_id);
     }
 
     /// Process
