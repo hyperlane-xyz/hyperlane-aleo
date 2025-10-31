@@ -82,6 +82,7 @@ program mailbox.aleo {
     }
 
     async transition set_dispatch_proxy(dispatch_proxy: address) -> Future {
+        let caller = self.caller;
         return async {
             let state = mailbox.get(true);
             assert_eq(state.mailbox_owner, caller);
@@ -92,6 +93,7 @@ program mailbox.aleo {
     }
 
     async transition set_owner(new_owner: address) -> Future {
+        let caller = self.caller;
         return async {
             let state = mailbox.get(true);
             assert_eq(state.mailbox_owner, caller);
@@ -102,6 +104,7 @@ program mailbox.aleo {
     }
 
     async transition set_default_ism(ism: address) -> Future {
+        let caller = self.caller;
         return async {
             let state = mailbox.get(true);
             assert_eq(state.mailbox_owner, caller);
@@ -112,6 +115,7 @@ program mailbox.aleo {
     }
 
     async transition set_default_hook(hook: address) -> Future {
+        let caller = self.caller;
         return async {
             let state = mailbox.get(true);
             assert_eq(state.mailbox_owner, caller);
@@ -122,6 +126,7 @@ program mailbox.aleo {
     }
 
     async transition set_required_hook(hook: address) -> Future {
+        let caller = self.caller;
         return async {
             let state = mailbox.get(true);
             assert_eq(state.mailbox_owner, caller);
