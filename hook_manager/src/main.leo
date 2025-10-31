@@ -11,7 +11,7 @@ program hook_manager.aleo {
     mapping destination_gas_configs: GasConfigKey => DomainGasConfig;
     // Mapping for MerkleTreeHook
     mapping merkle_tree_hooks: address => MerkleTreeHook;
-    // Mapping from ism address to Hook Type
+    // Mapping from hook address to Hook Type
     mapping hooks: address => u8;
     // Mapping to find hook addresses
     mapping hook_addresses: u32 => address;

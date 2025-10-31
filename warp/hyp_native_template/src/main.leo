@@ -59,6 +59,10 @@ program hyp_native_template.aleo {
         };
     }
 
+    transition get_address() -> address {
+        return self.address;
+    }
+
     // Set a custom ISM which will be used instead of the default ISM of the mailbox
     async transition set_custom_ism(ism_address: address) -> Future {
         let caller = self.caller;

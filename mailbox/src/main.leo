@@ -27,7 +27,6 @@ program mailbox.aleo {
         required_hook: address,
         dispatch_proxy: address,
         mailbox_owner: address,
-        mailbox_address: address,
     }
 
     struct Message {
@@ -75,68 +74,66 @@ program mailbox.aleo {
             required_hook: NULL_ADDRESS,
             dispatch_proxy: NULL_ADDRESS,
             mailbox_owner: caller,
-            mailbox_address: self.address,
         });
     }
 
-    async transition set_dispatch_proxy(dispatch_proxy: address) -> Future {
-        return finalize_set_dispatch_proxy(dispatch_proxy, self.caller);
+    transition get_address() -> address {
+        return self.address;
     }
 
-    async function finalize_set_dispatch_proxy(dispatch_proxy: address, caller: address) {
-        let state = mailbox.get(true);
-        assert_eq(state.mailbox_owner, caller);
+    async transition set_dispatch_proxy(dispatch_proxy: address) -> Future {
+        let caller = self.caller;
+        return async {
+            let state = mailbox.get(true);
+            assert_eq(state.mailbox_owner, caller);
 
-        state.dispatch_proxy = dispatch_proxy;
-        mailbox.set(true, state);
+            state.dispatch_proxy = dispatch_proxy;
+            mailbox.set(true, state);
+        };
     }
 
     async transition set_owner(new_owner: address) -> Future {
-        return finalize_set_owner(new_owner, self.caller);
-    }
+        let caller = self.caller;
+        return async {
+            let state = mailbox.get(true);
+            assert_eq(state.mailbox_owner, caller);
 
-    async function finalize_set_owner(new_owner: address, caller: address) {
-        let state = mailbox.get(true);
-        assert_eq(state.mailbox_owner, caller);
-
-        state.mailbox_owner = new_owner;
-        mailbox.set(true, state);
+            state.mailbox_owner = new_owner;
+            mailbox.set(true, state);
+        };
     }
 
     async transition set_default_ism(ism: address) -> Future {
-        return finalize_set_default_ism(ism, self.caller);
-    }
+        let caller = self.caller;
+        return async {
+            let state = mailbox.get(true);
+            assert_eq(state.mailbox_owner, caller);
 
-    async function finalize_set_default_ism(ism: address, caller: address) {
-        let state = mailbox.get(true);
-        assert_eq(state.mailbox_owner, caller);
-
-        state.default_ism = ism;
-        mailbox.set(true, state);
+            state.default_ism = ism;
+            mailbox.set(true, state);
+        };
     }
 
     async transition set_default_hook(hook: address) -> Future {
-        return finalize_set_default_hook(hook, self.caller);
-    }
+        let caller = self.caller;
+        return async {
+            let state = mailbox.get(true);
+            assert_eq(state.mailbox_owner, caller);
 
-    async function finalize_set_default_hook(hook: address, caller: address) {
-        let state = mailbox.get(true);
-        assert_eq(state.mailbox_owner, caller);
-
-        state.default_hook = hook;
-        mailbox.set(true, state);
+            state.default_hook = hook;
+            mailbox.set(true, state);
+        };
     }
 
     async transition set_required_hook(hook: address) -> Future {
-        return finalize_set_required_hook(hook, self.caller);
-    }
+        let caller = self.caller;
+        return async {
+            let state = mailbox.get(true);
+            assert_eq(state.mailbox_owner, caller);
 
-    async function finalize_set_required_hook(hook: address, caller: address) {
-        let state = mailbox.get(true);
-        assert_eq(state.mailbox_owner, caller);
-
-        state.required_hook = hook;
-        mailbox.set(true, state);
+            state.required_hook = hook;
+            mailbox.set(true, state);
+        };
     }
 
     /// Process
