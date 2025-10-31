@@ -302,6 +302,18 @@ program hook_manager.aleo {
         return quote as u64;
     }
 
+    async transition transfer_igp_ownership(igp: address, new_owner: address) -> Future {
+        let caller = self.caller;
+        return async {
+            assert(igps.contains(igp));
+            let current_igp: InterchainGasPaymaster = igps.get(igp);
+
+            assert_eq(current_igp.hook_owner, caller);
+            current_igp.hook_owner = new_owner;
+            igps.set(igp, current_igp);
+        };
+    }
+
     async transition init_merkle_tree(parent: address) -> Future {
         return finalize_init_merkle_tree(parent);
     }
