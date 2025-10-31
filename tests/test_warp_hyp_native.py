@@ -1,8 +1,7 @@
 from scripts.hypertools.hypertools import Message
 from . import get_mapping_value as get_program_mapping_value,get_mapping_value_raw, program_exists, transact as cwd_transact, to_aleo_like, \
-    message, NULL_ADDRESS, CALLER
+    NULL_ADDRESS, CALLER
 from .conftest import SECONDARY_ACCOUNT
-from scripts import hypertools
 
 
 def get_mapping_value(mapping: str, key: str):

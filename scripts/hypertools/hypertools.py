@@ -1,5 +1,4 @@
 import requests, json, yaml
-from sha3 import keccak_256
 from Crypto.Hash import keccak
 import click
 from typing import Literal
