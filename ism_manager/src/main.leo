@@ -4,12 +4,17 @@ program ism_manager.aleo {
     mapping nonce: bool => u32;
     // Mapping for DomainRoutingIsm
     mapping domain_routing_isms: address => DomainRoutingIsm;
+    // Routes for RoutingIsm
+    mapping routes: IsmRouteKey => address;
+    // Mapping to iterate all route entries
+    mapping route_iter: RouteIndexKey => IsmRouteKey;
+    // Mapping to get total amount of inserted routes for the given routing ism
+    mapping route_length: address => u32;
+
     // Mapping for MsgIdMultisigIsms
     mapping message_id_multisigs: address => MessageIdMultisigIsm;
     // ISM Addresses
     mapping ism_addresses: u32 => address;
-    // Routes for RoutingIsm
-    mapping routes: IsmRouteKey => address;
     // Mapping from ism address to ISM Type
     mapping isms: address => u8;
 
@@ -46,6 +51,11 @@ program ism_manager.aleo {
     struct IsmRouteKey {
         ism: address,
         domain: u32,
+    }
+
+    struct RouteIndexKey {
+        ism: address,
+        index: u32,
     }
 
     const ORIGIN_MERKLE_TREE_OFFSET: u8 = 0;
@@ -156,6 +166,12 @@ program ism_manager.aleo {
             ism,
             domain,
         };
+
+        if !routes.contains(key) {
+            let current_length = route_length.get_or_use(ism, 0u32);
+            route_iter.set(RouteIndexKey { ism, index: current_length }, key);
+            route_length.set(ism, current_length + 1);
+        }
 
         routes.set(key, module);
     }
