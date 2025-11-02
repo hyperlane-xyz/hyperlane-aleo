@@ -60,7 +60,7 @@ program hyp_native_template.aleo {
 
     const NULL_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
 
-    // Init the contract
+    // Initialize the Native token.
     // Whoever calls this function will be set as the owner
     async transition init(scale: u8) -> Future {
         let caller = self.caller;
