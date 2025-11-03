@@ -186,13 +186,24 @@ program ism_manager.aleo {
         let routing_ism: DomainRoutingIsm = domain_routing_isms.get(ism);
 
         assert_eq(routing_ism.ism_owner, caller);
-
         let key: IsmRouteKey = IsmRouteKey {
             ism,
             domain,
         };
 
         routes.remove(key);
+    }
+
+    async transition transfer_routing_ism_ownership(ism: address, new_owner: address) -> Future {
+        let caller = self.caller;
+        return async {
+            assert(domain_routing_isms.contains(ism));
+            let routing_ism: DomainRoutingIsm = domain_routing_isms.get(ism);
+
+            assert_eq(routing_ism.ism_owner, caller);
+            routing_ism.ism_owner = new_owner;
+            domain_routing_isms.set(ism, routing_ism);
+        };
     }
 
     /// Verifies the message validity by using the given ism
