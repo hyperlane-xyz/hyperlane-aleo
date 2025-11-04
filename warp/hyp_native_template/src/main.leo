@@ -55,6 +55,35 @@ program hyp_native_template.aleo {
     // Whoever calls this function will be set as the owner
     async transition init() -> Future {
         let caller = self.caller;
+
+        let program_id: [u8; 128] = [0u8; 128];
+        program_id[0] = 104u8; // 'h'
+        program_id[1] = 121u8; // 'y'
+        program_id[2] = 112u8; // 'p'
+        program_id[3] = 95u8;  // '_'
+        program_id[4] = 110u8; // 'n'
+        program_id[5] = 97u8;  // 'a'
+        program_id[6] = 116u8; // 't'
+        program_id[7] = 105u8; // 'i'
+        program_id[8] = 118u8; // 'v'
+        program_id[9] = 101u8; // 'e'
+        program_id[10] = 95u8; // '_'
+        program_id[11] = 116u8; // 't'
+        program_id[12] = 101u8; // 'e'
+        program_id[13] = 109u8; // 'm'
+        program_id[14] = 112u8; // 'p'
+        program_id[15] = 108u8; // 'l'
+        program_id[16] = 97u8;  // 'a'
+        program_id[17] = 116u8; // 't'
+        program_id[18] = 101u8; // 'e'
+        program_id[19] = 46u8;  // '.'
+        program_id[20] = 97u8;  // 'a'
+        program_id[21] = 108u8; // 'l'
+        program_id[22] = 101u8; // 'e'
+        program_id[23] = 111u8; // 'o'
+
+        let register_future = mailbox.aleo/register_application(program_id);
+
         return async {
             let initialized: bool = token_metadata.contains(true);
             assert_eq(initialized, false);
@@ -62,6 +91,7 @@ program hyp_native_template.aleo {
                 token_owner: caller,
             });
             ism.set(true, NULL_ADDRESS);
+            register_future.await();
         };
     }
 
