@@ -110,7 +110,7 @@ def test_unenroll_remote_router_not_owner():
         "execute",
         "--private-key",
         SECONDARY_ACCOUNT["private_key"],
-        "unenroll_remote_router",
+        "unroll_remote_router",
         "1337u32",
     )
     assert not result.get("success"), f"Warp Hyp Native enroll remote router not owner should have failed: {result}"
@@ -123,10 +123,10 @@ def test_unenroll_remote_router_not_owner():
 def test_unenroll_remote_router():
     result = transact(
         "execute",
-        "unenroll_remote_router",
+        "unroll_remote_router",
         "1337u32",
     )
-    assert not result.get("success"), f"Warp Hyp Native enroll remote router not owner should have failed: {result}"
+    assert result.get("success"), f"Warp Hyp Native unenroll remote router failed: {result}"
     # Assert nothing changed
     enrolled_router = get_mapping_value("remote_routers", "1337u32")
     assert enrolled_router == None
@@ -299,15 +299,11 @@ def test_set_hook():
 
 def test_transfer_after_set_hook():
     unverified_remote_router = f"{{domain: 1u32, recipient:{to_aleo_like([1, 2] * 16, numeric_suffix='8')}, gas: 1000u128 }}"
-    metadata = [0] * 256
-    gas_limit = GAS_LIMIT + 500
-    # write a different gas limit into the metadata
-    metadata[0:16] = (gas_limit).to_bytes(16, 'big')
-    
     igp = get_program_mapping_value("hook_manager.aleo", "igps", IGP)["count"]
     # Allowance for IGP only
-    credits = (gas_limit + 10) * 5000000000 * 4 / 10000000000
+    credits = (GAS_LIMIT + 10) * 5000000000 * 4 / 10000000000
     hook_allowance = [{"spender": IGP, "amount": int(credits)}] + [{"spender": NULL_ADDRESS, "amount": 0}] * 3
+    METADATA["hook"] = IGP
     result = transact(
         "execute",
         "transfer_remote",
@@ -319,6 +315,8 @@ def test_transfer_after_set_hook():
         "1234u64",
         to_aleo_like(hook_allowance, numeric_suffix=64),
     )
+
+    assert result.get("success"), f"Warp Hyp Native transfer with custom hook failed: {result}"
 
     post_igp = get_program_mapping_value("hook_manager.aleo", "igps", IGP)["count"]
     assert post_igp - igp == 1, "IGP event count did not increment"
