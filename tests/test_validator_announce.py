@@ -1,4 +1,4 @@
-from . import get_mapping_value as get_program_mapping_value, program_exists, transact as cwd_transact, to_aleo_like, message
+from . import get_mapping_value as get_program_mapping_value, program_exists, transact as cwd_transact, to_aleo_like
 
 def get_mapping_value(mapping: str, key: str):
     return get_program_mapping_value("validator_announce.aleo", mapping, key)
@@ -16,20 +16,20 @@ def test_init_validator_announce():
     exists = get_mapping_value("validator_announce", "true")
     if exists:
         return
-    mailbox = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 243, 159, 214, 229, 26, 173, 136, 246, 244, 206, 106, 184, 130, 114, 121, 207, 255, 185, 34, 102]
+    mailbox = "aleo1zz48uvscp5ttnhqfw3qsmzt6lkcfadmk8tn9gadn5fteqarepv8sqhnpmw"
     mailbox_domain = 1337
     result = transact(
         "execute",
         "init",
-        to_aleo_like(mailbox, numeric_suffix=8),
+        mailbox,
         f"{mailbox_domain}u32",
     )
     assert result.get("success"), f"Validator announce init failed: {result}"
 
 def test_announcement():
-    validator=list(bytes.fromhex("ff9e86a205c887960599db2403882d248edfbfd8"))
+    validator=list(bytes.fromhex("22F082EeA6b04C68DAc4d2040c82be8047a4B83C"))
     storage_location=list(b's3://test-storage-location')
-    signature=[49,79,115,205,135,168,6,90,7,164,0,230,148,23,61,93,182,200,40,253,157,218,39,190,206,221,132,95,3,202,77,157,33,97,90,125,131,186,219,67,185,117,221,170,15,54,31,3,153,67,116,232,24,104,144,193,253,51,19,105,252,204,110,121,0]
+    signature=[120, 41, 103, 197, 252, 144, 43, 244, 27, 189, 202, 30, 87, 138, 87, 11, 103, 59, 37, 15, 250, 7, 90, 28, 37, 191, 94, 231, 23, 177, 152, 135, 8, 253, 62, 1, 114, 215, 98, 99, 122, 81, 206, 41, 126, 118, 222, 10, 144, 64, 55, 62, 220, 115, 62, 84, 37, 253, 115, 47, 168, 145, 80, 207, 0]
     result = transact(
         "execute",
         "announce",
@@ -49,9 +49,9 @@ def test_announcement():
     assert stored_location == storage_location + [0] * (480 - len(storage_location)), f"Incorrect storage location, expected {storage_location} but got {stored_location}"
 
 def test_announcement_replay():
-    validator=list(bytes.fromhex("ff9e86a205c887960599db2403882d248edfbfd8"))
+    validator=list(bytes.fromhex("22F082EeA6b04C68DAc4d2040c82be8047a4B83C"))
     storage_location=list(b's3://test-storage-location')
-    signature=[49,79,115,205,135,168,6,90,7,164,0,230,148,23,61,93,182,200,40,253,157,218,39,190,206,221,132,95,3,202,77,157,33,97,90,125,131,186,219,67,185,117,221,170,15,54,31,3,153,67,116,232,24,104,144,193,253,51,19,105,252,204,110,121,0]
+    signature=[120, 41, 103, 197, 252, 144, 43, 244, 27, 189, 202, 30, 87, 138, 87, 11, 103, 59, 37, 15, 250, 7, 90, 28, 37, 191, 94, 231, 23, 177, 152, 135, 8, 253, 62, 1, 114, 215, 98, 99, 122, 81, 206, 41, 126, 118, 222, 10, 144, 64, 55, 62, 220, 115, 62, 84, 37, 253, 115, 47, 168, 145, 80, 207, 0]
     result = transact(
         "execute",
         "announce",
@@ -62,9 +62,9 @@ def test_announcement_replay():
     assert not result.get("success"), f"Validator announce replay should have failed but succeeded: {result}"
 
 def test_invalid_announcement():
-    validator=list(bytes.fromhex("ff9e86a205c887960599db2403882d248edfbfd8"))
+    validator=list(bytes.fromhex("22F082EeA6b04C68DAc4d2040c82be8047a4B83C"))
     storage_location=list(b's3://test-storage-location/some_other_path')
-    signature=[49,79,115,205,135,168,6,90,7,164,0,230,148,23,61,93,182,200,40,253,157,218,39,190,206,221,132,95,3,202,77,157,33,97,90,125,131,186,219,67,185,117,221,170,15,54,31,3,153,67,116,232,24,104,144,193,253,51,19,105,252,204,110,121,0]
+    signature=[120, 41, 103, 197, 252, 144, 43, 244, 27, 189, 202, 30, 87, 138, 87, 11, 103, 59, 37, 15, 250, 7, 90, 28, 37, 191, 94, 231, 23, 177, 152, 135, 8, 253, 62, 1, 114, 215, 98, 99, 122, 81, 206, 41, 126, 118, 222, 10, 144, 64, 55, 62, 220, 115, 62, 84, 37, 253, 115, 47, 168, 145, 80, 207, 0]
     result = transact(
         "execute",
         "announce",

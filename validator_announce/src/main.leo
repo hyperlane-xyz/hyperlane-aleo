@@ -29,20 +29,18 @@ program validator_announce.aleo {
     // stores the current validator announce state
     mapping validator_announce: bool => ValidatorAnnounce;
 
-    // TODO: consider upgradability
     @noupgrade
     async constructor() {}
 
-    async transition init(mailbox: [u8; 32], local_domain: u32) -> Future {
-        return finalize_init(mailbox, local_domain);
-    }
-
-    async function finalize_init(mailbox: [u8; 32], local_domain: u32) {
-        assert(!validator_announce.contains(true));
-        validator_announce.set(true, ValidatorAnnounce {
-            mailbox,
-            local_domain,
-        });
+    async transition init(mailbox: address, local_domain: u32) -> Future {
+        let mailbox_bytes = address_to_bytes(mailbox);
+        return async {
+            assert(!validator_announce.contains(true));
+            validator_announce.set(true, ValidatorAnnounce {
+                mailbox: mailbox_bytes,
+                local_domain: local_domain,
+            });
+        };
     }
 
     transition get_address() -> address {
@@ -198,5 +196,14 @@ program validator_announce.aleo {
 
         let hash_bits = Keccak256::hash_native_raw(digest);
         return Deserialize::from_bits_raw::[[u8; 32]](hash_bits);
+    }
+
+    inline address_to_bytes(a: address) -> [u8; 32] {
+        let bits = Serialize::to_bits_raw(a);
+        let padded_bits = [false; 256];
+        for i in 0u8..253u8 {
+            padded_bits[i] = bits[i];
+        }
+        return Deserialize::from_bits_raw::[[u8; 32]](padded_bits);
     }
 }
