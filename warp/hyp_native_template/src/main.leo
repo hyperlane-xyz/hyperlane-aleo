@@ -28,10 +28,7 @@ program hyp_native_template.aleo {
     // This can be changed by the contract owner specified in the `token_metadata`
     mapping token_metadata: bool => Metadata;
 
-    // One can either use the default ISM (Interchain Security Module) of the mailbox
-    // or one can specify a custom ISM, which is used to validate incoming messages.
-    // If the value is set to the NULL_ADDRESS, the default ISM from the mailbox is used.
-    mapping ism: bool => address;
+    const TYPE_NATIVE: u8 = 0u8;
 
     @noupgrade
     async constructor() {}
@@ -46,15 +43,30 @@ program hyp_native_template.aleo {
     }
 
     struct Metadata {
+        // Type of the token, e.g. native, synthetic, colalteral, etc.
+        token_type: u8,
+        // Owner of the configuration, allowed to change ISM, Hook, and remote routers.
         token_owner: address,
+        // One can either use the default ISM (Interchain Security Module) of the mailbox
+        // or one can specify a custom ISM, which is used to validate incoming messages.
+        // If the value is set to the NULL_ADDRESS, the default ISM from the mailbox is used.
+        ism: address,
+        // Similar to the ISM, one can either use the default hook from the mailbox or define a custom hook
+        // That custom hook will be used for outgoing messages.
+        hook: address,
+        // Scales local amount to message amount by up scaling outgoing messages and down scaling incoming messages.
+        scale: u8,
     }
 
     const NULL_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
 
     // Init the contract
     // Whoever calls this function will be set as the owner
-    async transition init() -> Future {
+    async transition init(scale: u8) -> Future {
         let caller = self.caller;
+        let token_scale = scale;
+
+        assert_eq(token_scale <= 19u8, true);
 
         let program_id: [u8; 128] = [0u8; 128];
         program_id[0] = 104u8; // 'h'
@@ -88,9 +100,12 @@ program hyp_native_template.aleo {
             let initialized: bool = token_metadata.contains(true);
             assert_eq(initialized, false);
             token_metadata.set(true, Metadata {
+                token_type: TYPE_NATIVE,
                 token_owner: caller,
+                scale: token_scale,
+                ism: NULL_ADDRESS,
+                hook: NULL_ADDRESS
             });
-            ism.set(true, NULL_ADDRESS);
             register_future.await();
         };
     }
@@ -99,14 +114,25 @@ program hyp_native_template.aleo {
         return self.address;
     }
 
+    // Set a custom Hook which will be used instead of the default Hook of the mailbox
+    async transition set_custom_hook(hook_address: address) -> Future {
+        let caller = self.caller;
+        return async {
+            let state = token_metadata.get(true);
+            assert_eq(state.token_owner, caller);
+            state.hook = hook_address;
+            token_metadata.set(true, state);
+        };
+    }
+
     // Set a custom ISM which will be used instead of the default ISM of the mailbox
     async transition set_custom_ism(ism_address: address) -> Future {
         let caller = self.caller;
         return async {
             let state = token_metadata.get(true);
             assert_eq(state.token_owner, caller);
-
-            ism.set(true, ism_address);
+            state.ism = ism_address;
+            token_metadata.set(true, state);
         };
     }
 
@@ -153,19 +179,68 @@ program hyp_native_template.aleo {
     }
 
     // `transfer_remote_with_hook`
-    async transition transfer_remote(public unverified_mailbox_state: MailboxState, unverified_remote_router: RemoteRouter, public destination: u32, recipient: [u128; 2], amount: u64, allowance: [CreditAllowance; 4], custom_hook: address, custom_hook_metadata: [u8; 256]) -> Future {
-        let body_amount = convert_endianness(amount as u128);
-        let message_body: [u128; 8] = [recipient[0], recipient[1], 0u128, body_amount, 0u128, 0u128, 0u128, 0u128];
-        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, custom_hook_metadata, allowance);
+    async transition transfer_remote(
+        public unverified_token_metadata: Metadata,
+        public unverified_mailbox_state: MailboxState,
+        public unverified_remote_router: RemoteRouter,
+        public destination: u32,
+        public recipient: [u128; 2],
+        public amount: u64,
+        public allowance: [CreditAllowance; 4],
+    ) -> Future {
+        let custom_hook: address = unverified_token_metadata.hook;
+        let hook_metadata: [u8; 256] = [0u8; 256];
+        // encode gas limit into metadata
+        let gas_bytes: [u8; 16] = u128_to_bytes(unverified_remote_router.gas);
+        // gas limit is stored in first 16 bytes of the metadata
+        for i: u8 in 0u8..16u8 {
+            hook_metadata[i] = gas_bytes[i];
+        }
+
+        let body_amount = upscale(amount, 10u64**unverified_token_metadata.scale);
+        let message_body: [u128; 8] = [recipient[0], recipient[1], body_amount[0], body_amount[1], 0u128, 0u128, 0u128, 0u128];
+        
+        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
-        return finalize_transfer_remote(dispatch_future, credits_future, unverified_remote_router, destination);
+        return finalize_transfer_remote(dispatch_future, credits_future, unverified_token_metadata, unverified_remote_router, destination);
     }
 
-    async function finalize_transfer_remote(dispatch_future: Future, credits_future: Future, unverified_remote_router: RemoteRouter, destination: u32) {
+
+    // `transfer_remote_with_hook`
+    async transition transfer_remote_with_hook(
+        public unverified_token_metadata: Metadata,
+        public unverified_mailbox_state: MailboxState,
+        public unverified_remote_router: RemoteRouter,
+        public destination: u32,
+        public recipient: [u128; 2],
+        public amount: u64,
+        public allowance: [CreditAllowance; 4],
+        public custom_hook: address,
+        public hook_metadata: [u8; 256]
+    ) -> Future {
+        if metadata_gas_limit(hook_metadata) == 0u128 {
+            // encode gas limit into metadata
+            let gas_bytes: [u8; 16] = u128_to_bytes(unverified_remote_router.gas);
+            // gas limit is stored in first 16 bytes of the metadata
+            for i: u8 in 0u8..16u8 {
+                hook_metadata[i] = gas_bytes[i];
+            }
+        }
+
+
+        let body_amount = upscale(amount, 10u64**unverified_token_metadata.scale);
+        let message_body: [u128; 8] = [recipient[0], recipient[1], body_amount[0], body_amount[1], 0u128, 0u128, 0u128, 0u128];
+        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
+        let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
+        return finalize_transfer_remote(dispatch_future, credits_future, unverified_token_metadata, unverified_remote_router, destination);
+    }
+
+    async function finalize_transfer_remote(dispatch_future: Future, credits_future: Future, unverified_token_metadata: Metadata, unverified_remote_router: RemoteRouter, destination: u32) {
         let actual_remote_router = remote_routers.get(destination);
-        assert_eq(actual_remote_router.domain, unverified_remote_router.domain);
-        assert_eq(actual_remote_router.recipient, unverified_remote_router.recipient);
-        assert_eq(actual_remote_router.gas, unverified_remote_router.gas);
+        assert_eq(actual_remote_router, unverified_remote_router);
+
+        let actual_token_metadata = token_metadata.get(true);
+        assert_eq(actual_token_metadata, unverified_token_metadata);
         dispatch_future.await();
         credits_future.await();
     }
@@ -177,33 +252,47 @@ program hyp_native_template.aleo {
     // ISM verification happens inside the mailbox
     // Parameters:
     // `unverified_ism`: needs to either be the default ism from the mailbox or the custom ism stored in `token_metadata`
+    // `token_metadata`: Metadata for scaling
     // `message`: The Hyperlane message
     // `message_length`: Due to static array sizes in Aleo, the hyperlane message is always right-padded with zeros.
     //                   Therefore, the length must be provided for correct hash calculation and signature verification
     // `id`: Keccak256 hash of the Hyperlane message
     // `metadata`: Metadata for ISM verification
-    async transition process(public unverified_ism: address, message: Message, message_length: u32, id: [u128; 2], metadata: [u8; 512]) -> Future {
+    async transition process(
+        public unverified_ism: address,
+        public unverified_token_metadata: Metadata,
+        public message: Message,
+        public message_length: u32,
+        public id: [u128; 2],
+        public metadata: [u8; 512]
+    ) -> Future {
+        // Aleo warp transfers allow at most u64::MAX credits to be transferred
+        let amount = downscale([message.body[2], message.body[3]], 10u64**unverified_token_metadata.scale);
+
         let mailbox_future: Future = mailbox.aleo/process(unverified_ism, message, message_length, id, metadata);
 
-        let address_raw = [0u128, 0u128];
-        address_raw[0] = message.body[0];
-        address_raw[1] = message.body[1];
+        let address_raw = [message.body[0], message.body[1]];
         let recipient = bytes_raw_to_address(address_raw);
-        assert_eq(message.body[2], 0u128);
-        let amount = convert_endianness(message.body[3]) as u64;
 
-        let credits_future: Future = credits.aleo/transfer_public(recipient, amount);
-        return finalize_process(mailbox_future, credits_future, unverified_ism);
+        let credits_future: Future = credits.aleo/transfer_public(recipient, amount as u64);
+        return finalize_process(mailbox_future, unverified_token_metadata, message, credits_future, unverified_ism);
     }
 
     // Validates the unverified inputs from the process transition and awaits its futures.
-    async function finalize_process(mailbox_future: Future, credits_future: Future, unverified_ism: address) {
+    async function finalize_process(mailbox_future: Future, unverified_token_metadata: Metadata, message: Message, credits_future: Future, unverified_ism: address) {
         let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
-        let custom_ism = ism.get(true);
+        let metadata = token_metadata.get(true);
+        assert_eq(metadata, unverified_token_metadata);
 
         // Check if custom ISM is provided, otherwise use the default ISM from the mailbox
-        let verify_ism = custom_ism == NULL_ADDRESS ? mailbox.default_ism : custom_ism;
+        let verify_ism = metadata.ism == NULL_ADDRESS ? mailbox.default_ism : metadata.ism;
         assert_eq(verify_ism, unverified_ism);
+
+        // Assert that a router for the origin domain exists
+        let router = remote_routers.get(message.origin_domain);
+
+        // Assert that the router recipient matches the message sender
+        assert_eq(router.recipient, message.sender);
 
         mailbox_future.await();
         credits_future.await();
@@ -230,4 +319,65 @@ program hyp_native_template.aleo {
         return res;
     }
 
+    inline downscale(payload: [u128; 2], scale: u64) -> u64 {
+        let bits = Serialize::to_bits_raw(payload);
+        let bytes = Deserialize::from_bits_raw::[[u8; 32]](bits);
+        let words: [u64; 4] = [0u64; 4];
+
+        // Convert bytes to be u64 words
+        for i: u32 in 0u32..4u32 {
+            let word: u64 = 0u64;
+            for j: u32 in 0u32..8u32 {
+                let b = bytes[i*8u32 + j];
+                word += (b as u64) << (56u32 - j*8u32);
+            }
+            words[i] = word;
+        }
+
+        let quotient: [u64; 4] = [0u64; 4];
+        let remainder: u128 = 0u128;
+
+        for i in 0u32..4u32 {
+            let dividend: u128 = (remainder << 64u32) | words[i] as u128;
+            quotient[i] = (dividend / scale as u128) as u64;
+            remainder = dividend % scale as u128;
+        }
+
+        // Assert that the result fits in u64
+        assert_eq(quotient[0], 0u64);
+        assert_eq(quotient[1], 0u64);
+        assert_eq(quotient[2], 0u64);
+        // Assert that there is no remainder
+        assert_eq(remainder, 0u128); // TODO: discuss whether or not we want to allow rounding here
+
+        return quotient[3];
+    }
+
+    inline upscale(amount: u64, scale: u64) -> [u128; 2] {
+        // Since amount and scale are u64, their product fits in u128.
+        let product: u128 = (amount as u128) * (scale as u128);
+        let result = convert_endianness(product);
+        return [0u128, result];
+    }
+
+    /// The gas limit is stored in the first 16 bytes of the metadata as a big-endian u128
+    /// Converts the gas limit to big endian u128 representation.
+    inline u128_to_bytes(gas_limit: u128) -> [u8; 16] {
+        let bytes: [u8; 16] = [0u8; 16];
+        for i: u8 in 0u8..16u8 {
+            // Big-endian: most significant byte at index 0
+            bytes[i] = ((gas_limit >> ((15u8 - i) * 8u8)) % 256u128) as u8;
+        }
+        return bytes;
+    }
+
+    /// Extracts the gas limit from the metadata bytes
+    /// The gas limit is stored in the first 16 bytes of the metadata as a big-endian u128
+    inline metadata_gas_limit(bytes: [u8; 256]) -> u128 {
+        let value = 0u128;
+        for i in 0u32..16u32 {
+            value = value << 8u32 | bytes[i] as u128;
+        }
+        return value;
+    }
 }
