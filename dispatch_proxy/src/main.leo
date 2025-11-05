@@ -32,7 +32,7 @@ program dispatch_proxy.aleo {
         public recipient_address: [u8; 32],
         public message_body: [u128; 8],
         public hook_address: address,
-        public metadata: [u8; 256],
+        public hook_metadata: [u8; 256],
         public hook_allowance: [CreditAllowance; 4]
     ) -> Future {
         assert_neq(passed_state.default_hook, NULL_ADDRESS);
@@ -41,8 +41,8 @@ program dispatch_proxy.aleo {
         let default_hook = hook_address == NULL_ADDRESS ? passed_state.default_hook : hook_address;
         let mailbox_dispatch_future = mailbox.aleo/dispatch(destination_domain, recipient_address, message_body, self.caller);
         // initialize futures for the post_dispatch hook assuming all of the passed arguments are correct.
-        let default_hook_future = hook_manager.aleo/post_dispatch(default_hook, metadata, hook_allowance);
-        let required_hook_future = hook_manager.aleo/post_dispatch(passed_state.required_hook, metadata, hook_allowance);
+        let default_hook_future = hook_manager.aleo/post_dispatch(default_hook, hook_metadata, hook_allowance);
+        let required_hook_future = hook_manager.aleo/post_dispatch(passed_state.required_hook, hook_metadata, hook_allowance);
 
         return finalize_dispatch(
             passed_state,
