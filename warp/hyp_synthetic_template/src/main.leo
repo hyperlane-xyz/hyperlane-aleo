@@ -16,6 +16,13 @@ program hyp_synthetic_template.aleo {
     // This can be changed by the contract owner specified in the `token_metadata`.
     mapping remote_routers: u32 => RemoteRouter;
 
+    // Mapping to iterate all remote router entries
+    // From an index to the destination domain
+    mapping remote_router_iter: u32 => u32;
+
+    // Mapping to get total amount of inserted routes
+    mapping remote_router_length: bool => u32;
+
     // Metadata stores necessary information about the program.
     // This can be changed by the contract owner specified in the `token_metadata`
     // The metadata is queried by the relayer and passed to the process function.
@@ -106,6 +113,12 @@ program hyp_synthetic_template.aleo {
         return async {
             let state = metadata.get(true);
             assert_eq(state.token_owner, caller);
+
+            if !remote_routers.contains(destination) {
+                let current_length = remote_router_length.get_or_use(true, 0u32);
+                remote_router_iter.set(current_length, destination);
+                remote_router_length.set(true, current_length + 1);
+            }
 
             remote_routers.set(destination, RemoteRouter {
                 domain: destination,
