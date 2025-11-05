@@ -26,7 +26,7 @@ program hyp_synthetic_template.aleo {
     // Metadata stores necessary information about the program.
     // This can be changed by the contract owner specified in the `token_metadata`
     // The metadata is queried by the relayer and passed to the process function.
-    mapping metadata: bool => Metadata;
+    mapping token_metadata: bool => Metadata;
 
     // One can either use the default ISM (Interchain Security Module) of the mailbox
     // or one can specify a custom ISM, which is used to validate incoming messages.
@@ -72,10 +72,10 @@ program hyp_synthetic_template.aleo {
 
         return async {
             // Token can only be initialized once
-            let initialized: bool = metadata.contains(true);
+            let initialized: bool = token_metadata.contains(true);
             assert_eq(initialized, false);
 
-            metadata.set(true, Metadata {
+            token_metadata.set(true, Metadata {
                 token_owner: caller,
                 token_id: token_id,
             });
@@ -89,7 +89,7 @@ program hyp_synthetic_template.aleo {
     async transition set_custom_ism(ism_address: address) -> Future {
         let caller = self.caller;
         return async {
-            let state = metadata.get(true);
+            let state = token_metadata.get(true);
             assert_eq(state.token_owner, caller);
 
             ism.set(true, ism_address);
@@ -100,18 +100,18 @@ program hyp_synthetic_template.aleo {
     async transition set_owner(new_owner: address) -> Future {
         let caller = self.caller;
         return async {
-            let state = metadata.get(true);
+            let state = token_metadata.get(true);
             assert_eq(state.token_owner, caller);
 
             state.token_owner = new_owner;
-            metadata.set(true, state);
+            token_metadata.set(true, state);
         };
     }
 
     async transition enroll_remote_router(destination: u32, recipient: [u8; 32], gas: u128) -> Future {
         let caller = self.caller;
         return async {
-            let state = metadata.get(true);
+            let state = token_metadata.get(true);
             assert_eq(state.token_owner, caller);
 
             if !remote_routers.contains(destination) {
@@ -131,7 +131,7 @@ program hyp_synthetic_template.aleo {
     async transition unroll_remote_router(destination: u32) -> Future {
         let caller = self.caller;
         return async {
-            let state = metadata.get(true);
+            let state = token_metadata.get(true);
             assert_eq(state.token_owner, caller);
 
             remote_routers.remove(destination);
@@ -153,7 +153,7 @@ program hyp_synthetic_template.aleo {
         assert_eq(actual_remote_router.recipient, unverified_remote_router.recipient);
         assert_eq(actual_remote_router.gas, unverified_remote_router.gas);
 
-        let actual_metadata = metadata.get(true);
+        let actual_metadata = token_metadata.get(true);
         assert_eq(unverified_metadata, actual_metadata);
 
         dispatch_future.await();
@@ -176,7 +176,7 @@ program hyp_synthetic_template.aleo {
 
     // Validates the unverified inputs from the process transition and awaits its futures.
     async function finalize_process(mailbox_future: Future, token_future: Future, unverified_ism: address, unverified_message: Message, unverified_metadata: Metadata) {
-        let actual_metadata = metadata.get(true);
+        let actual_metadata = token_metadata.get(true);
         assert_eq(actual_metadata, unverified_metadata);
 
         let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
