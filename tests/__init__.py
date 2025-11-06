@@ -188,7 +188,8 @@ def transact(*cmd, cwd=os.getcwd(), timeout: float = 600.0) -> dict:
 
     base_cmd = [str(c) for c in cmd]
     full_cmd = ["leo"] + base_cmd + ["--broadcast", "-y", "--max-wait", "180", "--blocks-to-check", "500"]
-
+    if "execute" in base_cmd:
+        full_cmd += ["--skip-proving"]
     try:
         proc = subprocess.run(
             full_cmd,
