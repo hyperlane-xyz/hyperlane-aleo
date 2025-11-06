@@ -34,7 +34,7 @@ Install the latest version of the leo compiler.
 
 ```bash
 # Download the source code.
-> git clone https://github.com/ProvableHQ/leo.git
+> git clone https://github.com/ProvableHQ/leo.git && cd leo
 
 # Install the compiler.
 > cargo install --path .
@@ -62,18 +62,23 @@ python3 -m pytest -s -vv --log-cli-level=INFO
 
 **Running a local devnet:**
 
+This is required when running tests locally.
+
 ```bash
-# Download the snarkOS repo
-> git clone https://github.com/ProvableHQ/snarkOS.git
+# Download the source code
+> git clone https://github.com/ProvableHQ/leo.git && cd leo
 
 # Checkout the feature branch
-> git checkout feat/bytes
+> git checkout feat/leo-devnode
 
-# Install snarkOs
-> cargo install --path . --features=test_network
+# Install leo with features
+> cargo install --path .
 
 # Run the devnet
-> leo devnet --storage tmp --snarkos "$(which snarkos)" --snarkos-features test_network --clear-storage --num-clients 1 -y
+> leo devnode start
+
+# Advancing blocks
+> leo devnode advance 10
 ```
 
 ## Architecture

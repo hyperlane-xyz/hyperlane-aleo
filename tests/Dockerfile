@@ -12,14 +12,10 @@ RUN apt-get install -y git
 
 RUN git clone https://github.com/ProvableHQ/leo.git /opt/leo \
     && cd /opt/leo \
+    && git checkout feat/leo-devnode \
     && cargo build --release \
     && cp /opt/leo/target/release/leo /usr/local/cargo/bin/
 
-RUN git clone https://github.com/ProvableHQ/snarkOS.git /opt/snarkOS \
-    && cd /opt/snarkOS \
-    && git checkout feat/bytes \
-    && cargo build --features=test_network --release \
-    && cp /opt/snarkOS/target/release/snarkos /usr/local/cargo/bin/
 
 RUN apt-get install -y python3 python3-pip
 

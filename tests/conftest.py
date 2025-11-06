@@ -21,52 +21,15 @@ SECONDARY_ACCOUNT = {
     "address": "aleo1zz48uvscp5ttnhqfw3qsmzt6lkcfadmk8tn9gadn5fteqarepv8sqhnpmw"
 }
 
-def _read_latest_block_height() -> int | None:
-    """Query the local devnet endpoint for the latest block height.
-
-    Returns None if unavailable or unparsable.
-    """
-    url = "http://localhost:3030/testnet/block/latest"
-    try:
-        with urllib.request.urlopen(url, timeout=2) as resp:  # nosec B310 (local devnet)
-            data = resp.read().decode("utf-8")
-            # Attempt JSON parse first
-            try:
-                obj = json.loads(data)
-                # Expect obj like {"block": {..., "height": <int>, ...}} or {"height": <int>} depending on version
-                if isinstance(obj, dict):
-                    if "height" in obj and isinstance(obj["height"], int):
-                        return obj["height"]
-                    # Fallback: search nested
-                    for v in obj.values():
-                        if isinstance(v, dict) and "height" in v and isinstance(v["height"], int):
-                            return v["height"]
-            except json.JSONDecodeError:
-                pass
-            # Fallback regex-like parse for '"height": <number>'
-            import re
-            m = re.search(r'"height"\s*:\s*(\d+)', data)
-            if m:
-                return int(m.group(1))
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError):
-        return None
-    return None
-
 
 @pytest.fixture(scope="session", autouse=True)
 def session_setup() -> Dict[str, Any]:
-    """Start a leo devnet for the test session and wait until it is ready.
-
-    Mirrors logic from run_tests.sh: ensure 'snarkos' exists, create tests/devnet dir,
-    start devnet, wait for block height > 9, then yield context dict. On teardown, kill process.
+    """Start a leo devnode for the test session and wait until it is ready.
     """
-    print("[session_setup] Initializing test session & starting devnet...")
+    print("[session_setup] Initializing test session & starting devnode...")
 
     # Dependency checks (fail fast similar to shell script behavior)
-    snarkos_path = shutil.which("snarkos")
     leo_path = shutil.which("leo")
-    if not snarkos_path:
-        pytest.exit("snarkos is not installed or not in PATH. Refer to README for installation.")
     if not leo_path:
         pytest.exit("leo is not installed or not in PATH. Please install Leo CLI.")
 
@@ -79,13 +42,8 @@ def session_setup() -> Dict[str, Any]:
     # Start devnet (suppress output similar to redirect in bash script)
     cmd = [
         leo_path,
-        "devnet",
-        "--storage", "tmp",
-        "--snarkos", snarkos_path,
-        "--snarkos-features", "test_network",
-        "--clear-storage",
-        "--num-clients", "1",
-        "-y",
+        "devnode",
+        "start",
     ]
 
     # Environment (pass through existing env; could add flags if needed)
@@ -172,28 +130,20 @@ def session_setup() -> Dict[str, Any]:
 
         time.sleep(2)  # initial grace period
 
-        print(f"[session_setup] Waiting for devnet block height >= {DEVNET_READY_HEIGHT} (timeout {DEVNET_TIMEOUT_SECONDS}s)...")
-        start_time = time.time()
-        last_height = None
-        while True:
-            if interrupted:
-                pytest.exit("Interrupted before devnet readiness.")
-            retcode = proc.poll()
-            if retcode is not None:
-                pytest.exit(f"Devnet process terminated unexpectedly (exit code {retcode}) before readiness.")
-            height = _read_latest_block_height()
-            if height is not None:
-                last_height = height
-                if height >= DEVNET_READY_HEIGHT:
-                    print(f"[session_setup] Devnet ready (height={height}).")
-                    break
-            elapsed = time.time() - start_time
-            if elapsed > DEVNET_TIMEOUT_SECONDS:
-                _kill_devnet(force=False)
-                pytest.exit(f"Timeout waiting for devnet readiness. Last height={last_height}.")
-            if int(elapsed) % 5 == 0:
-                print(f"[session_setup] Waiting... height={last_height}")
-            time.sleep(1)
+        # Advancing 10 blocks to reach ready state
+        try:
+            subprocess.run(
+                [leo_path, "devnode", "advance", "10"],
+                cwd=str(devnet_dir),
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+        except Exception as e:
+            pytest.exit(f"Failed to invoke devnode advance: {e}")
+
+
         # Deploy required programs
         print("[session_setup] Deploying required programs...")
         result = transact("deploy", cwd="dispatch_proxy")
@@ -210,7 +160,6 @@ def session_setup() -> Dict[str, Any]:
             "devnet_process": proc,
             "devnet_dir": str(devnet_dir),
             "storage_dir": str(storage_dir),
-            "snarkos_path": snarkos_path,
             "leo_path": leo_path,
         }
     finally:
