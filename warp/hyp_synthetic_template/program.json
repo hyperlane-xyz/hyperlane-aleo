@@ -7,14 +7,14 @@
   "dependencies": [
     {
       "name": "dispatch_proxy.aleo",
-      "location": "network",
-      "path": null,
-      "network": "testnet"
+      "location": "local",
+      "path": "../../dispatch_proxy",
+      "edition": null
     },
     {
       "name": "token_registry.aleo",
-      "location": "network",
-      "path": null,
+      "location": "local",
+      "path": "./src/imports/token_registry.aleo",
       "network": "mainnet"
     }
   ],

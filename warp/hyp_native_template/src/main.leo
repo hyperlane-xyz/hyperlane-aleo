@@ -178,7 +178,7 @@ program hyp_native_template.aleo {
         };
     }
 
-    // `transfer_remote_with_hook`
+    // `transfer_remote`
     async transition transfer_remote(
         public unverified_token_metadata: Metadata,
         public unverified_mailbox_state: MailboxState,
@@ -280,11 +280,11 @@ program hyp_native_template.aleo {
 
     // Validates the unverified inputs from the process transition and awaits its futures.
     async function finalize_process(mailbox_future: Future, unverified_token_metadata: Metadata, message: Message, credits_future: Future, unverified_ism: address) {
-        let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
         let metadata = token_metadata.get(true);
         assert_eq(metadata, unverified_token_metadata);
 
         // Check if custom ISM is provided, otherwise use the default ISM from the mailbox
+        let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
         let verify_ism = metadata.ism == NULL_ADDRESS ? mailbox.default_ism : metadata.ism;
         assert_eq(verify_ism, unverified_ism);
 
