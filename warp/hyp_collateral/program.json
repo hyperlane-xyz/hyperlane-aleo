@@ -1,0 +1,22 @@
+{
+  "program": "hyp_collateral.aleo",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT",
+  "leo": "3.2.0",
+  "dependencies": [
+    {
+      "name": "dispatch_proxy.aleo",
+      "location": "local",
+      "path": "../../dispatch_proxy",
+      "edition": null
+    },
+    {
+      "name": "token_registry.aleo",
+      "location": "local",
+      "path": "../token_registry/token_registry.aleo",
+      "network": "mainnet"
+    }
+  ],
+  "dev_dependencies": null
+}

@@ -3,7 +3,7 @@ from . import get_mapping_value as get_program_mapping_value,get_mapping_value_r
     NULL_ADDRESS, CALLER
 from .conftest import SECONDARY_ACCOUNT
 
-PROGRAM = "hyp_native_template.aleo"
+PROGRAM = "hyp_native.aleo"
 SCALE = 12
 MAILBOX = {
     "default_ism": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
@@ -24,21 +24,24 @@ def get_mapping_value(mapping: str, key: str):
     return get_program_mapping_value(PROGRAM, mapping, key)
 
 def transact(*args, **kwargs):
-    return cwd_transact(*args, cwd="warp/hyp_native_template", **kwargs)
+    return cwd_transact(*args, cwd="warp/hyp_native", **kwargs)
 
 def test_deploy():
     if program_exists(PROGRAM):
         return
-    result = transact("deploy")
+    result = transact("deploy", "--skip", "manager", "dispatch", "mailbox", "token")
     assert result.get("success"), f"Deployment failed: {result}"
 
 def test_init():
     exists = get_mapping_value("token_metadata", "true")
     if exists:
         return
+    program_id = list(b"hyp_native.aleo")
+    program_id = program_id + [0] * (128 - len(program_id))
     result = transact(
         "execute",
         "init",
+        to_aleo_like(program_id, numeric_suffix='8'),
         f"{SCALE}u8"
     )
     assert result.get("success"), f"Warp Hyp Native init failed: {result}"
@@ -50,9 +53,12 @@ def test_init():
 def test_init_again():
     exists = get_mapping_value("token_metadata", "true")
     assert exists is not None
+    program_id = list(b"hyp_native.aleo")
+    program_id = program_id + [0] * (128 - len(program_id))
     result = transact(
         "execute",
         "init",
+        to_aleo_like(program_id, numeric_suffix='8'),
         f"{SCALE}u8"
     )
     assert not result.get("success"), f"Warp Hyp Native init should have failed: {result}"
@@ -132,7 +138,7 @@ def test_unenroll_remote_router():
     assert enrolled_router == None
 
 def test_transfer_remote():
-    balance_before = get_program_mapping_value("credits.aleo", "account", "aleo1ysyt49787vznynprcz8vlgepdkh0ykyzf0pvcc2jt4tv89v0nurqceqcjp") or 0
+    balance_before = get_program_mapping_value("credits.aleo", "account", "aleo10t2uecxm36lww6jakrfc3jcfelc42duq3km3g8aa3pn4vwyj2sgsrvql6f") or 0
     unverified_remote_router = f"{{domain: 1u32, recipient:{to_aleo_like([1, 2] * 16, numeric_suffix='8')}, gas: {GAS_LIMIT}u128 }}"
     hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
     result = transact(
@@ -167,17 +173,17 @@ def test_transfer_remote():
     assert m.origin_domain == 1
     assert m.nonce == nonce
     assert m.recipient.hex() == "0102010201020102010201020102010201020102010201020102010201020102"
-    # hex encoded: aleo1ysyt49787vznynprcz8vlgepdkh0ykyzf0pvcc2jt4tv89v0nurqceqcjp
-    assert m.sender.hex() == "2408ba97c7f305324c23c08ecfa3216daef258824bc2cc61525d56c3958f9f06"
+    # hex encoded: aleo10t2uecxm36lww6jakrfc3jcfelc42duq3km3g8aa3pn4vwyj2sgsrvql6f
+    assert m.sender.hex() == "7ad5cce0db8ebee76a5db0d388cb09cff15537808db7141fbd88675638925411"
 
-    balance_after = get_program_mapping_value("credits.aleo", "account", "aleo1ysyt49787vznynprcz8vlgepdkh0ykyzf0pvcc2jt4tv89v0nurqceqcjp")
+    balance_after = get_program_mapping_value("credits.aleo", "account", "aleo10t2uecxm36lww6jakrfc3jcfelc42duq3km3g8aa3pn4vwyj2sgsrvql6f")
     assert int(balance_after) - int(balance_before) == 1234
 
 def test_invalid_transfer_remote_wrong_mailbox():
     unverified_mailbox_state = {
         "default_ism": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
         "default_hook": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
-        "required_hook": "aleo1ysyt49787vznynprcz8vlgepdkh0ykyzf0pvcc2jt4tv89v0nurqceqcjp"
+        "required_hook": "aleo10t2uecxm36lww6jakrfc3jcfelc42duq3km3g8aa3pn4vwyj2sgsrvql6f"
     }
     unverified_remote_router = f"{{domain: 1u32, recipient:{to_aleo_like([1, 2] * 16, numeric_suffix='8')}, gas: 1000u128 }}"
     hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
@@ -324,10 +330,10 @@ def test_transfer_after_set_hook():
 
 def test_process_incoming_message():
     user_balance_before = get_program_mapping_value("credits.aleo", "account", SECONDARY_ACCOUNT["address"]) or 0
-    hyp_balance_before = get_program_mapping_value("credits.aleo", "account", "aleo1ysyt49787vznynprcz8vlgepdkh0ykyzf0pvcc2jt4tv89v0nurqceqcjp")
+    hyp_balance_before = get_program_mapping_value("credits.aleo", "account", "aleo10t2uecxm36lww6jakrfc3jcfelc42duq3km3g8aa3pn4vwyj2sgsrvql6f")
 
     enrolled_router = bytes.fromhex("0102010201020102010201020102010201020102010201020102010201020102")
-    hyp_program_hex = bytes.fromhex("2408ba97c7f305324c23c08ecfa3216daef258824bc2cc61525d56c3958f9f06")
+    hyp_program_hex = bytes.fromhex("7ad5cce0db8ebee76a5db0d388cb09cff15537808db7141fbd88675638925411")
 
     body = (
         "10aa7e32180d16b9dc0974410d897afdb09eb7763ae65475b3a2579074790b0f" # Aleo user hex encoded
@@ -348,7 +354,7 @@ def test_process_incoming_message():
     )
 
     user_balance_after = get_program_mapping_value("credits.aleo", "account", SECONDARY_ACCOUNT["address"])
-    hyp_balance_after = get_program_mapping_value("credits.aleo", "account", "aleo1ysyt49787vznynprcz8vlgepdkh0ykyzf0pvcc2jt4tv89v0nurqceqcjp")
+    hyp_balance_after = get_program_mapping_value("credits.aleo", "account", "aleo10t2uecxm36lww6jakrfc3jcfelc42duq3km3g8aa3pn4vwyj2sgsrvql6f")
 
     assert result.get("success"), "Process transaction failed"
     assert int(hyp_balance_after) - int(hyp_balance_before) == -999
@@ -356,7 +362,7 @@ def test_process_incoming_message():
 
 def test_invalid_process_incoming_message_invalid_payload():
     enrolled_router = bytes.fromhex("0102010201020102010201020102010201020102010201020102010201020102")
-    hyp_program_hex = bytes.fromhex("2408ba97c7f305324c23c08ecfa3216daef258824bc2cc61525d56c3958f9f06")
+    hyp_program_hex = bytes.fromhex("7ad5cce0db8ebee76a5db0d388cb09cff15537808db7141fbd88675638925411")
 
     body = (
         "10aa7e32180d16b9dc0974410d897afdb09eb7763ae65475b3a2579074790b0f" # Aleo user hex encoded
@@ -380,7 +386,7 @@ def test_invalid_process_incoming_message_invalid_payload():
 
 def test_invalid_process_incoming_message_unknown_router():
     unknown_router = bytes.fromhex("0102010201020102010201020102010201020102010201020102010201020101")
-    hyp_program_hex = bytes.fromhex("2408ba97c7f305324c23c08ecfa3216daef258824bc2cc61525d56c3958f9f06")
+    hyp_program_hex = bytes.fromhex("7ad5cce0db8ebee76a5db0d388cb09cff15537808db7141fbd88675638925411")
 
     body = (
         "10aa7e32180d16b9dc0974410d897afdb09eb7763ae65475b3a2579074790b0f" # Aleo user hex encoded
@@ -433,10 +439,10 @@ def test_custom_ism():
     METADATA["ism"] = routing_ism
 
     user_balance_before = get_program_mapping_value("credits.aleo", "account", SECONDARY_ACCOUNT["address"]) or 0
-    hyp_balance_before = get_program_mapping_value("credits.aleo", "account", "aleo1ysyt49787vznynprcz8vlgepdkh0ykyzf0pvcc2jt4tv89v0nurqceqcjp")
+    hyp_balance_before = get_program_mapping_value("credits.aleo", "account", "aleo10t2uecxm36lww6jakrfc3jcfelc42duq3km3g8aa3pn4vwyj2sgsrvql6f")
 
     enrolled_router = bytes.fromhex("0102010201020102010201020102010201020102010201020102010201020102")
-    hyp_program_hex = bytes.fromhex("2408ba97c7f305324c23c08ecfa3216daef258824bc2cc61525d56c3958f9f06")
+    hyp_program_hex = bytes.fromhex("7ad5cce0db8ebee76a5db0d388cb09cff15537808db7141fbd88675638925411")
 
     body = (
         "10aa7e32180d16b9dc0974410d897afdb09eb7763ae65475b3a2579074790b0f" # Aleo user hex encoded
@@ -457,7 +463,7 @@ def test_custom_ism():
     )
 
     user_balance_after = get_program_mapping_value("credits.aleo", "account", SECONDARY_ACCOUNT["address"])
-    hyp_balance_after = get_program_mapping_value("credits.aleo", "account", "aleo1ysyt49787vznynprcz8vlgepdkh0ykyzf0pvcc2jt4tv89v0nurqceqcjp")
+    hyp_balance_after = get_program_mapping_value("credits.aleo", "account", "aleo10t2uecxm36lww6jakrfc3jcfelc42duq3km3g8aa3pn4vwyj2sgsrvql6f")
 
     assert result.get("success"), "Process transaction failed"
     assert int(hyp_balance_after) - int(hyp_balance_before) == -999

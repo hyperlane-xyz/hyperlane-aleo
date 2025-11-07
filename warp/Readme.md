@@ -5,7 +5,7 @@ There might be multiple instances of this contract. Due to Aleo's architecture
 regarding namespaces and contracts, one needs to adjust the name of the program
 for new deployments. This is automatically done when the deployment is made
 via the Hyperlane CLI. In case of manual deployment one would need to change
-`program hyp_native_template.aleo;` in the compiled `main.aleo` file.
+`program hyp_native.aleo;` in the compiled `main.aleo` file.
 
 ## Hyp Native Template
 

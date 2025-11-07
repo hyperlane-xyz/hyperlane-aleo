@@ -3,7 +3,7 @@ from . import get_mapping_value as get_program_mapping_value,get_mapping_value_r
     NULL_ADDRESS, CALLER
 from .conftest import SECONDARY_ACCOUNT
 
-PROGRAM = "hyp_synthetic_template.aleo"
+PROGRAM = "hyp_synthetic.aleo"
 LOCAL_DECIMALS = 6
 REMOTE_DECIMALS = 18
 MAILBOX = {
@@ -16,34 +16,38 @@ METADATA = {
     "token_owner": CALLER,
     "ism": NULL_ADDRESS,
     "hook": NULL_ADDRESS,
-    "token_id": "859180485860989890446187617452875679449610441870089930639999180379247258157field",
+    "token_id": "4803596024022425103905091165013835927796871447618589227690496369972642094926field",
     "local_decimals": LOCAL_DECIMALS,
     "remote_decimals": REMOTE_DECIMALS,
 }
 IGP = "aleo1mvqh6w2739a7mzxusx3cvr264fdtpfpp94jz3dzrkugjn6p8vv8qzxrnpv"
 GAS_LIMIT = 1000
 
-HYP_PROGRAM_HEX = bytes.fromhex("2daa6e100a29fd415d018c5aa3bda26aedbe42ef6f7655aadfed536d6747e601")
+HYP_PROGRAM_HEX = bytes.fromhex("4e9fe80899d4b820694150205efff1a866d7c25d45d6beb1ba0a5e2d2fbd9e0a")
 
 def get_mapping_value(mapping: str, key: str):
     return get_program_mapping_value(PROGRAM, mapping, key)
 
 def transact(*args, **kwargs):
-    return cwd_transact(*args, cwd="warp/hyp_synthetic_template", **kwargs)
+    return cwd_transact(*args, cwd="warp/hyp_synthetic", **kwargs)
 
 def test_deploy():
     if program_exists(PROGRAM):
         return
-    result = transact("deploy")
+    result = transact("deploy", "--skip", "manager", "dispatch", "mailbox", "token")
     assert result.get("success"), f"Deployment failed: {result}"
 
 def test_init():
     exists = get_mapping_value("token_metadata", "true")
     if exists:
         return
+    program_id = list(b"hyp_synthetic.aleo")
+    program_id = program_id + [0] * (128 - len(program_id))
+
     result = transact(
         "execute",
         "init",
+        to_aleo_like(program_id, numeric_suffix='8'),
         "0u128",
         "0u128",
         f"{LOCAL_DECIMALS}u8",
@@ -62,9 +66,13 @@ def test_init():
 def test_init_again():
     exists = get_mapping_value("token_metadata", "true")
     assert exists is not None
+
+    program_id = list(b"hyp_synthetic.aleo")
+    program_id = program_id + [0] * (128 - len(program_id))
     result = transact(
         "execute",
         "init",
+        to_aleo_like(program_id, numeric_suffix='8'),
         "0u128",
         "0u128",
         f"{LOCAL_DECIMALS}u8",
@@ -143,7 +151,7 @@ def test_unenroll_remote_router():
 
 def test_process_incoming_message():
     # recipient balance key 
-    balance_key = "6470625924215862843296130557426396566942102683916026543643889630916612727467field"
+    balance_key = "7005830677335521085298186382744713548543841850960484417976336499133443203779field"
 
     user_balance_before = get_program_mapping_value("token_registry.aleo", "authorized_balances", balance_key)
     user_balance_before = user_balance_before["balance"] if user_balance_before else 0
@@ -274,7 +282,7 @@ def test_custom_ism():
     METADATA["ism"] = routing_ism
 
     # recipient balance key 
-    balance_key = "6470625924215862843296130557426396566942102683916026543643889630916612727467field"
+    balance_key = "7005830677335521085298186382744713548543841850960484417976336499133443203779field"
 
     user_balance_before = get_program_mapping_value("token_registry.aleo", "authorized_balances", balance_key)
     user_balance_before = user_balance_before["balance"] if user_balance_before else 0
@@ -308,7 +316,7 @@ def test_custom_ism():
 
 def test_transfer_remote():
     # token id key
-    token_id = "859180485860989890446187617452875679449610441870089930639999180379247258157field"
+    token_id = "4803596024022425103905091165013835927796871447618589227690496369972642094926field"
 
     balance_before = get_program_mapping_value("token_registry.aleo", "registered_tokens", token_id)
     balance_before = balance_before["supply"] if balance_before else 0
