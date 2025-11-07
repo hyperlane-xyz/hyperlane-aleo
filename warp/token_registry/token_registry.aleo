@@ -391,9 +391,6 @@ finalize remove_role:
     assert.eq r1 r3.admin;
     remove roles[r2];
 
-
-
-
 function mint_public:
     input r0 as field.public;
     input r1 as address.public;
