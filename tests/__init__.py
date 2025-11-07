@@ -64,6 +64,7 @@ def _parse_mapping_response(raw: str) -> dict:
     raw = re.sub(r'(\b[a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'"\1":', raw)
     raw = re.sub(r'(\d+)u(128|64|32|16|8)', r'\1', raw)
     raw = re.sub(r'(:\s*)(aleo[0-9a-zA-Z]+)', r'\1"\2"', raw)
+    raw = re.sub(r'(:\s*)([0-9a-zA-Z]+field)', r'\1"\2"', raw)
     raw = re.sub(r'"(\[\s*(?:\d+\s*(?:,\s*\d+\s*)*)\])"', r'\1', raw)
     try:
         return json.loads(raw)
@@ -114,7 +115,7 @@ def to_aleo_like(data, numeric_suffix: str | None = None) -> str:
                 s = v.hex()
             return json.dumps(s)
         if isinstance(v, str):
-            if re.fullmatch(r'aleo[0-9A-Za-z]+', v):
+            if re.fullmatch(r'(aleo[0-9A-Za-z]+)|([0-9]+field)', v):
                 return v
             return json.dumps(v)
         # Fallback: JSON stringified representation
@@ -187,6 +188,7 @@ def transact(*cmd, cwd=os.getcwd(), timeout: float = 600.0) -> dict:
         raise ValueError("transact: at least one command element required")
 
     base_cmd = [str(c) for c in cmd]
+
     full_cmd = ["leo"] + base_cmd + ["--broadcast", "-y", "--max-wait", "180", "--blocks-to-check", "500"]
     if "execute" in base_cmd:
         full_cmd += ["--skip-proving"]
