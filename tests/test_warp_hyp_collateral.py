@@ -3,7 +3,7 @@ from . import get_mapping_value as get_program_mapping_value,get_mapping_value_r
     NULL_ADDRESS, CALLER
 from .conftest import SECONDARY_ACCOUNT
 
-PROGRAM = "hyp_collateral_template.aleo"
+PROGRAM = "hyp_collateral.aleo"
 LOCAL_DECIMALS = 6
 REMOTE_DECIMALS = 18
 MAILBOX = {
@@ -24,13 +24,13 @@ METADATA = {
 IGP = "aleo1mvqh6w2739a7mzxusx3cvr264fdtpfpp94jz3dzrkugjn6p8vv8qzxrnpv"
 GAS_LIMIT = 1000
 
-HYP_PROGRAM_HEX = bytes.fromhex("0fad19a65793bc9e33e56e7fde635708f89018a323b26921929d74714b9e2b0e")
+HYP_PROGRAM_HEX = bytes.fromhex("0d8b7893b9cc5c84735cd1d353cd155e2a00e96960a60184d84f6a0bc84a4e08")
 
 def get_mapping_value(mapping: str, key: str):
     return get_program_mapping_value(PROGRAM, mapping, key)
 
 def transact(*args, **kwargs):
-    return cwd_transact(*args, cwd="warp/hyp_collateral_template", **kwargs)
+    return cwd_transact(*args, cwd="warp/hyp_collateral", **kwargs)
 
 def test_deploy():
     if program_exists(PROGRAM):
@@ -67,9 +67,12 @@ def test_init():
         "100000000u32"
     )
 
+    program_id = list(b"hyp_collateral.aleo")
+    program_id = program_id + [0] * (128 - len(program_id))
     result = transact(
         "execute",
         "init",
+        to_aleo_like(program_id, numeric_suffix='8'),
         TOKEN_ID,
         f"{REMOTE_DECIMALS}u8",
     )
@@ -86,9 +89,12 @@ def test_init():
 def test_init_again():
     exists = get_mapping_value("token_metadata", "true")
     assert exists is not None
+    program_id = list(b"hyp_collateral.aleo")
+    program_id = program_id + [0] * (128 - len(program_id))
     result = transact(
         "execute",
         "init",
+        to_aleo_like(program_id, numeric_suffix='8'),
         TOKEN_ID,
         f"{REMOTE_DECIMALS}u8",
     )
@@ -164,7 +170,7 @@ def test_unenroll_remote_router():
     assert enrolled_router == None
 
 def test_transfer_remote():
-    balance_key = "1871434564150593537737401624024331656336035245450974559253591879801466110669field"
+    balance_key = "7213415891747529145288949579066784132924874185950300252806153069107681527219field"
     balance_before = get_program_mapping_value("token_registry.aleo", "authorized_balances", balance_key)
     balance_before = balance_before["balance"] if balance_before else 0
 

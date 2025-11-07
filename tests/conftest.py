@@ -146,7 +146,7 @@ def session_setup() -> Dict[str, Any]:
 
         # Deploy required programs
         print("[session_setup] Deploying required programs...")
-        result = transact("deploy", cwd="warp/hyp_collateral_template")
+        result = transact("deploy", cwd="warp/hyp_collateral")
         assert result.get("success"), f"Deployment failed: {result}"
 
         # Fund secondary wallet

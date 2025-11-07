@@ -1,5 +1,5 @@
 {
-  "program": "hyp_synthetic_template.aleo",
+  "program": "hyp_synthetic.aleo",
   "version": "0.1.0",
   "description": "",
   "license": "MIT",
@@ -7,14 +7,14 @@
   "dependencies": [
     {
       "name": "dispatch_proxy.aleo",
-      "location": "network",
-      "path": null,
-      "network": "mainnet"
+      "location": "local",
+      "path": "../../dispatch_proxy",
+      "edition": null
     },
     {
       "name": "token_registry.aleo",
-      "location": "network",
-      "path": null,
+      "location": "local",
+      "path": "../token_registry/token_registry.aleo",
       "network": "mainnet"
     }
   ],
