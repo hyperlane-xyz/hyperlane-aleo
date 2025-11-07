@@ -30,10 +30,8 @@ program hyp_synthetic_template.aleo {
 
     const TYPE_SYNTHETIC: u8 = 1u8;
 
-    @custom
-    async constructor() {
-        assert(true);
-    }
+    @noupgrade
+    async constructor() {}
 
     struct RemoteRouter {
         // Domain according to the Hyperlane Spec. Can be found here: https://github.com/hyperlane-xyz/hyperlane-registry
