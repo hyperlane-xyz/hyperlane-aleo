@@ -64,10 +64,10 @@ program ism_manager.aleo {
     const SIGNATURES_OFFSET: u8 = 68;
     const SIGNATURE_LENGTH: u8 = 65;
 
-    const ISM_UNUSED: u8 = 0;
     const ISM_ROUTING: u8 = 1;
     const ISM_MERKLE_ROOT_MULTISIG: u8 = 4;
     const ISM_MESSAGE_ID_MULTISIG: u8 = 5;
+    const ISM_UNUSED: u8 = 6;
 
     const MAX_VALIDATORS: u8 = 6;
     const METADATA_LENGTH: u32 = 512;
