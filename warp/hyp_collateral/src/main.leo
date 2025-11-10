@@ -43,7 +43,7 @@ program hyp_collateral.aleo {
     }
 
     struct Metadata {
-        // Type of the token, e.g. native, synthetic, colalteral, etc.
+        // Type of the token, e.g. native, synthetic, collateral, etc.
         token_type: u8,
         // Owner of the configuration, allowed to change ISM, Hook, and remote routers.
         token_owner: address,
