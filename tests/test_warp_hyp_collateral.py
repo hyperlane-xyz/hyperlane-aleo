@@ -257,7 +257,7 @@ def test_invalid_transfer_remote_wrong_metadata():
 
 def test_transfer_custom_hook():
     unverified_remote_router = f"{{domain: 1u32, recipient:{to_aleo_like([1, 2] * 16, numeric_suffix='8')}, gas: 1000u128 }}"
-    metadata = [0] * 256
+    metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
     igp = get_program_mapping_value("hook_manager.aleo", "igps", IGP)["count"]
     # Allowance for IGP only
     credits = (GAS_LIMIT + 10) * 5000000000 * 4 / 10000000000
@@ -284,10 +284,8 @@ def test_transfer_custom_hook():
 
 def test_transfer_custom_hook_metadata():
     unverified_remote_router = f"{{domain: 1u32, recipient:{to_aleo_like([1, 2] * 16, numeric_suffix='8')}, gas: 1000u128 }}"
-    metadata = [0] * 256
     gas_limit = GAS_LIMIT + 500
-    # write a different gas limit into the metadata
-    metadata[0:16] = (gas_limit).to_bytes(16, 'big')
+    metadata = {"gas_limit": f"{gas_limit}u128", "extra_data": [0] * 64}
     
     igp = get_program_mapping_value("hook_manager.aleo", "igps", IGP)["count"]
     # Allowance for IGP only
@@ -313,7 +311,7 @@ def test_transfer_custom_hook_metadata():
 
 def test_invalid_transfer_wrong_custom_hook():
     unverified_remote_router = f"{{domain: 1u32, recipient:{to_aleo_like([1, 2] * 16, numeric_suffix='8')}, gas: 1000u128 }}"
-    metadata = [0] * 256
+    metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
     hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
     result = transact(
         "execute",

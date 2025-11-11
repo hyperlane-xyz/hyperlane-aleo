@@ -175,13 +175,10 @@ program hyp_synthetic.aleo {
         public allowance: [CreditAllowance; 4],
     ) -> Future {
         let custom_hook: address = unverified_token_metadata.hook;
-        let hook_metadata: [u8; 256] = [0u8; 256];
-        // encode gas limit into metadata
-        let gas_bytes: [u8; 16] = u128_to_bytes(unverified_remote_router.gas);
-        // gas limit is stored in first 16 bytes of the metadata
-        for i: u8 in 0u8..16u8 {
-            hook_metadata[i] = gas_bytes[i];
-        }
+        let hook_metadata = HookMetadata {
+            gas_limit: unverified_remote_router.gas,
+            extra_data: [0u8; 64],
+        };
 
         let body_amount = convert_outgoing_amount(amount, unverified_token_metadata.local_decimals, unverified_token_metadata.remote_decimals);
         let message_body: [u128; 8] = [recipient[0], recipient[1], body_amount[0], body_amount[1], 0u128, 0u128, 0u128, 0u128];
@@ -200,15 +197,10 @@ program hyp_synthetic.aleo {
         public amount: u128,
         public allowance: [CreditAllowance; 4],
         public custom_hook: address,
-        public hook_metadata: [u8; 256]
+        public hook_metadata: HookMetadata
     ) -> Future {
-        if metadata_gas_limit(hook_metadata) == 0u128 {
-            // encode gas limit into metadata
-            let gas_bytes: [u8; 16] = u128_to_bytes(unverified_remote_router.gas);
-            // gas limit is stored in first 16 bytes of the metadata
-            for i: u8 in 0u8..16u8 {
-                hook_metadata[i] = gas_bytes[i];
-            }
+        if hook_metadata.gas_limit == 0u128 {
+            hook_metadata.gas_limit = unverified_remote_router.gas;
         }
 
         let body_amount = convert_outgoing_amount(amount, unverified_token_metadata.local_decimals, unverified_token_metadata.remote_decimals);

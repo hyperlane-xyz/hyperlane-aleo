@@ -171,13 +171,10 @@ program hyp_collateral.aleo {
         public allowance: [CreditAllowance; 4],
     ) -> Future {
         let custom_hook: address = unverified_token_metadata.hook;
-        let hook_metadata: [u8; 256] = [0u8; 256];
-        // encode gas limit into metadata
-        let gas_bytes: [u8; 16] = u128_to_bytes(unverified_remote_router.gas);
-        // gas limit is stored in first 16 bytes of the metadata
-        for i: u8 in 0u8..16u8 {
-            hook_metadata[i] = gas_bytes[i];
-        }
+        let hook_metadata = HookMetadata {
+            gas_limit: unverified_remote_router.gas,
+            extra_data: [0u8; 64],
+        };
 
         let body_amount = convert_outgoing_amount(amount, unverified_token_metadata.local_decimals, unverified_token_metadata.remote_decimals);
         let message_body: [u128; 8] = [recipient[0], recipient[1], body_amount[0], body_amount[1], 0u128, 0u128, 0u128, 0u128];
@@ -196,15 +193,10 @@ program hyp_collateral.aleo {
         public amount: u128,
         public allowance: [CreditAllowance; 4],
         public custom_hook: address,
-        public hook_metadata: [u8; 256]
+        public hook_metadata: HookMetadata
     ) -> Future {
-        if metadata_gas_limit(hook_metadata) == 0u128 {
-            // encode gas limit into metadata
-            let gas_bytes: [u8; 16] = u128_to_bytes(unverified_remote_router.gas);
-            // gas limit is stored in first 16 bytes of the metadata
-            for i: u8 in 0u8..16u8 {
-                hook_metadata[i] = gas_bytes[i];
-            }
+        if hook_metadata.gas_limit == 0u128 {
+            hook_metadata.gas_limit = unverified_remote_router.gas;
         }
 
         let body_amount = convert_outgoing_amount(amount, unverified_token_metadata.local_decimals, unverified_token_metadata.remote_decimals);
@@ -404,26 +396,5 @@ program hyp_collateral.aleo {
 
         let amount = ((quotient[2] as u128) << 64u32) | (quotient[3] as u128);
         return amount;
-    }
-
-    /// The gas limit is stored in the first 16 bytes of the metadata as a big-endian u128
-    /// Converts the gas limit to big endian u128 representation.
-    inline u128_to_bytes(gas_limit: u128) -> [u8; 16] {
-        let bytes: [u8; 16] = [0u8; 16];
-        for i: u8 in 0u8..16u8 {
-            // Big-endian: most significant byte at index 0
-            bytes[i] = ((gas_limit >> ((15u8 - i) * 8u8)) % 256u128) as u8;
-        }
-        return bytes;
-    }
-
-    /// Extracts the gas limit from the metadata bytes
-    /// The gas limit is stored in the first 16 bytes of the metadata as a big-endian u128
-    inline metadata_gas_limit(bytes: [u8; 256]) -> u128 {
-        let value = 0u128;
-        for i in 0u32..16u32 {
-            value = value << 8u32 | bytes[i] as u128;
-        }
-        return value;
     }
 }
