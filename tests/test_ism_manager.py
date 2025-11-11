@@ -167,8 +167,6 @@ def test_4_out_6_message_id_ism():
     # Setup multisig
     address = _setup_4_out6_message_id_ism()
 
-    # m = "{version: 3u8, nonce: 316406u32, origin_domain: 59144u32, sender: [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 197u8, 147u8, 54u8, 216u8, 237u8, 218u8, 151u8, 34u8, 180u8, 241u8, 236u8, 16u8, 64u8, 7u8, 25u8, 30u8, 193u8, 111u8, 112u8, 135u8], destination_domain: 1u32, recipient: [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 197u8, 147u8, 54u8, 216u8, 237u8, 218u8, 151u8, 34u8, 180u8, 241u8, 236u8, 16u8, 64u8, 7u8, 25u8, 30u8, 193u8, 111u8, 112u8, 135u8], body: [35933345076922409445638239391693406208u128, 202516809294677387871426478479058305318u128, 0u128, 998510941675210562852804523469045760u128, 0u128, 0u128, 0u128, 0u128] }"
-
     # Build metadata
     metadata = list(bytes.fromhex("000000000000000000000000c077a0cc408173349b1c9870c667b40fe3c01dd7")) # merkle tree hook
     metadata += list(bytes.fromhex("56e6d288d70ceeea5a477057033551b5f059f7df1fff144ed63d1e6a1afc7cdc")) # merkle checkpoint root
