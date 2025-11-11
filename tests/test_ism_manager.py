@@ -128,3 +128,86 @@ def test_invalid_verify_domain_routing_unknown_route():
 def test_invalid_verify_unknown_ism():
     unknown_addr = "aleo166ttgseesn87kzhj365g9a636ged78t3s2ed0j7razh6ucwkrsqs5ptnv5"
     _verify(unknown_addr, message(), MESSAGE_ID, METADATA, expect_success=False)
+
+
+def _setup_4_out6_message_id_ism():
+    # Setup multisig
+    current_nonce = _current_nonce()
+    validators = [
+        {"bytes": list(bytes.fromhex(x))} for x in [
+            "f2d5409a59e0f5ae7635aff73685624904a77d94",
+            "cf0211fafbb91fd9d06d7e306b30032dc3a1934f",
+            "4f977a59fdc2d9e39f6d780a84d5b4add1495a36",
+            "5450447aee7b544c462c9352bef7cad049b0c2dc",
+            "0c760f4bcb508db9144b0579e26f5ff8d94daf4d",
+            "6fbceb2680c8181acf3d1b5f0189e3beaa985338"
+        ]
+    ]
+    result = transact(
+        "execute",
+        "init_message_id_multisig",
+        to_aleo_like(validators, numeric_suffix="8"),
+        "6u8",
+        "4u8",
+    )
+    assert result.get("success"), f"Message ID multisig init failed: {result}"
+    address = get_mapping_value("ism_addresses", to_aleo_like(current_nonce, numeric_suffix="32"))
+    assert isinstance(address, str) and address.startswith("aleo"), "No message_id ISM address returned"
+    STATE["message_id_ism_4_6"] = address
+
+    message_id_multisig = get_mapping_value("message_id_multisigs", address)
+    assert message_id_multisig, "No Message ID Multisig returned"
+    assert message_id_multisig.get("threshold") == 4, "Incorrect threshold"
+    assert message_id_multisig.get("validators") == validators, "Incorrect validators"
+    assert message_id_multisig.get("validator_count") == 6, "Incorrect validator count"
+
+    return address
+
+def test_4_out_6_message_id_ism():
+    # Setup multisig
+    address = _setup_4_out6_message_id_ism()
+
+    # m = "{version: 3u8, nonce: 316406u32, origin_domain: 59144u32, sender: [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 197u8, 147u8, 54u8, 216u8, 237u8, 218u8, 151u8, 34u8, 180u8, 241u8, 236u8, 16u8, 64u8, 7u8, 25u8, 30u8, 193u8, 111u8, 112u8, 135u8], destination_domain: 1u32, recipient: [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 197u8, 147u8, 54u8, 216u8, 237u8, 218u8, 151u8, 34u8, 180u8, 241u8, 236u8, 16u8, 64u8, 7u8, 25u8, 30u8, 193u8, 111u8, 112u8, 135u8], body: [35933345076922409445638239391693406208u128, 202516809294677387871426478479058305318u128, 0u128, 998510941675210562852804523469045760u128, 0u128, 0u128, 0u128, 0u128] }"
+
+    # Build metadata
+    metadata = list(bytes.fromhex("000000000000000000000000c077a0cc408173349b1c9870c667b40fe3c01dd7")) # merkle tree hook
+    metadata += list(bytes.fromhex("56e6d288d70ceeea5a477057033551b5f059f7df1fff144ed63d1e6a1afc7cdc")) # merkle checkpoint root
+    metadata += list(int(316406).to_bytes(4, 'big')) # nonce (index)
+    # Signatures:
+    metadata += list(bytes.fromhex("f18f8d754c78e30638c0d6285d2619b35c00e47dec8abeffc86c5229154044593e091b1bd5ceba0af668270a1394f9a7e1b1aaf76c25af6c3acc708aa3da7e911c"))
+    metadata += list(bytes.fromhex("0101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"))
+    metadata += list(bytes.fromhex("5ef4e1311e12b350900875f58d7b963da89331d8faaa56105172fc2613ec65f52ede79196ac2ea079e200d5325a5c6aa2a2b46c1c2a80dccd6ab278893e3f2b81c"))
+    metadata += list(bytes.fromhex("03ec1ac38aa82ff193909b57b8a382c93c2288ef5fc259f24dd1295da223a33862df0719935018b730823898cd19862a388f608fb62e0d70a51863cf11ffc0491b"))
+    metadata += list(bytes.fromhex("0101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"))
+    metadata += list(bytes.fromhex("47098729432b13581458b3a13c0bbd26207ac2636a10c2bae0e7c9314b658e0c54a537bf89e9ec77b77f7cf073dc6f7278c5a1dc9217d724a83b38725443de3d1b"))
+    # remaining padding
+    metadata += [0 for _ in range(54)]
+
+    # Test verify
+    _verify(address, message(origin=59144), "[89157875622073663631103390911947320224u128, 144899749579185014219779877032329147534u128]", metadata, expect_success=True)
+
+
+def test_4_out_6_message_id_ism_with_3_valid_signatures():
+    # Reuse ISM from above
+    address = _setup_4_out6_message_id_ism()
+
+    message_id_multisig = get_mapping_value("message_id_multisigs", address)
+    assert message_id_multisig, "No Message ID Multisig returned"
+
+    # Build metadata
+    metadata = list(bytes.fromhex("000000000000000000000000c077a0cc408173349b1c9870c667b40fe3c01dd7")) # merkle tree hook
+    metadata += list(bytes.fromhex("56e6d288d70ceeea5a477057033551b5f059f7df1fff144ed63d1e6a1afc7cdc")) # merkle checkpoint root
+    metadata += list(int(316406).to_bytes(4, 'big')) # nonce (index)
+    # Signatures: (last signature modified to be invalid)
+    metadata += list(bytes.fromhex("f18f8d754c78e30638c0d6285d2619b35c00e47dec8abeffc86c5229154044593e091b1bd5ceba0af668270a1394f9a7e1b1aaf76c25af6c3acc708aa3da7e911c"))
+    metadata += list(bytes.fromhex("0101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"))
+    metadata += list(bytes.fromhex("5ef4e1311e12b350900875f58d7b963da89331d8faaa56105172fc2613ec65f52ede79196ac2ea079e200d5325a5c6aa2a2b46c1c2a80dccd6ab278893e3f2b81c"))
+    metadata += list(bytes.fromhex("03ec1ac38aa82ff193909b57b8a382c93c2288ef5fc259f24dd1295da223a33862df0719935018b730823898cd19862a388f608fb62e0d70a51863cf11ffc0491b"))
+    metadata += list(bytes.fromhex("0101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"))
+    metadata += list(bytes.fromhex("03ec1ac38aa82ff193909b57b8a382c93c2288ef5fc259f24dd1295da223a33862df0719935018b730823898cd19862a388f608fb62e0d70a51863cf11ffc0491b"))
+    # remaining padding
+    metadata += [0 for _ in range(54)]
+
+    # Test verify
+    _verify(address, message(origin=59144), "[89157875622073663631103390911947320224u128, 144899749579185014219779877032329147534u128]", metadata, expect_success=False)
+
