@@ -103,6 +103,11 @@ program hook_manager.aleo {
         amount: u64,
     }
 
+    struct HookMetadata {
+        gas_limit: u128,
+        extra_data: [u8; 64],
+    }
+
     const HOOK_UNUSED: u8 = 0;
     const HOOK_MERKLE_TREE: u8 = 3;
     const HOOK_INTERCHAIN_GAS_PAYMASTER: u8 = 4;
@@ -399,7 +404,7 @@ program hook_manager.aleo {
     /// Post Dispatch
     /// Fetches the latest message from the mailbox and perfroms the post_dispatch function on that.
     /// - hook_allowance: mapping from hook_address -> allowed credits to spend. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
-    async transition post_dispatch(public hook: address, public metadata: [u8; 256], public hook_allowance: [CreditAllowance; 4]) -> Future {
+    async transition post_dispatch(public hook: address, public metadata: HookMetadata, public hook_allowance: [CreditAllowance; 4]) -> Future {
         // find the allowance for the given hook, default to 0
         let credits_amount = 0u64;
         for i in 0u8..4u8 {
@@ -413,7 +418,7 @@ program hook_manager.aleo {
         return finalize_post_dispatch(hook, metadata, self.caller, credits_amount, transfer);
     }
 
-    async function finalize_post_dispatch(hook: address, metadata: [u8; 256], caller: address, credits_amount: u64, transfer: Future) {
+    async function finalize_post_dispatch(hook: address, metadata: HookMetadata, caller: address, credits_amount: u64, transfer: Future) {
         assert(hooks.contains(hook));
         let type: u8 = hooks.get(hook);
         transfer.await();
@@ -473,8 +478,7 @@ program hook_manager.aleo {
                 gas_price: 0u128,
             });
 
-            let gas_limit = metadata_gas_limit(metadata);
-            gas_limit = gas_limit == 0 ? DEFAULT_GAS_LIMIT : gas_limit;
+            let gas_limit = metadata.gas_limit == 0 ? DEFAULT_GAS_LIMIT : metadata.gas_limit;
             let destination_gas_limit = gas_limit + config.gas_overhead;
 
             let quote = quote_gas_payment(config, destination_gas_limit);
@@ -506,15 +510,5 @@ program hook_manager.aleo {
             // Unknown hook type
             assert(false);
         }
-    }
-
-    /// Extracts the gas limit from the metadata bytes
-    /// The gas limit is stored in the first 16 bytes of the metadata as a big-endian u128
-    inline metadata_gas_limit(bytes: [u8; 256]) -> u128 {
-        let value = 0u128;
-        for i in 0u32..16u32 {
-            value = value << 8u32 | bytes[i] as u128;
-        }
-        return value;
     }
 }

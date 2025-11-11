@@ -125,7 +125,7 @@ def test_dispatch_message():
     body = [random.randint(0, 2**128-1) for _ in range(8)]
     destination = "1u32"
     hook_address = NULL_ADDRESS
-    metadata = [0] * 256
+    metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
     hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
     nonce = int(get_mapping_value("mailbox", "true").get("nonce", 0))
     result = cwd_transact(
@@ -154,7 +154,7 @@ def test_invalid_dispatch_wrong_state():
     body = [random.randint(0, 2**128-1) for _ in range(8)]
     destination = "1u32"
     hook_address = NULL_ADDRESS
-    metadata = [0] * 256
+    metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
     hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
     state_copy = STATE.copy()
     state_copy["default_hook"] = NULL_ADDRESS  # Invalid state
@@ -182,7 +182,7 @@ def test_post_dispatch_custom_hook():
     recipient = [random.randint(0, 255) for _ in range(32)]
     body = [random.randint(0, 2**128-1) for _ in range(8)]
     destination = "1u32"
-    metadata = [0] * 256
+    metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
     hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
     nonce = int(get_mapping_value("mailbox", "true").get("nonce", 0))
     result = cwd_transact(

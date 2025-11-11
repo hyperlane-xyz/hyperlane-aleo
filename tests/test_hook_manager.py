@@ -304,7 +304,7 @@ def test_post_dispatch_igp():
     config = get_mapping_value("destination_gas_configs", f"{{igp:{igp_address},destination:1u32}}")
     credits_amount = ((DEFAULT_GAS_LIMIT + config["gas_overhead"]) * config["exchange_rate"] * config["gas_price"]) // TOKEN_EXCHANGE_RATE
     hook_allowance = [{"spender":igp_address,"amount":credits_amount}] + [{"spender":NULL_ADDRESS,"amount":0}] * 3
-    metadata = [0] * 256
+    metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
     
     result = transact("execute", "post_dispatch", igp_address, to_aleo_like(metadata, numeric_suffix=8), to_aleo_like(hook_allowance, numeric_suffix=64))
     assert result.get("success"), f"Post dispatch failed: {result}"
@@ -323,7 +323,7 @@ def test_post_dispatch_merkle_tree():
 
         # parameters for the hook call
         hook_allowance = [{"spender":NULL_ADDRESS,"amount":0}] * 4
-        metadata = [random.randint(0, 255) for _ in range(256)]
+        metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
 
         result = transact("execute", "post_dispatch", merkle_tree_address, to_aleo_like(metadata, numeric_suffix="8"), to_aleo_like(hook_allowance, numeric_suffix=64))
         assert result.get("success"), f"Post dispatch failed: {result}"
@@ -342,7 +342,7 @@ def test_post_dispatch_noop_hook():
 
     # parameters for the hook call
     hook_allowance = [{"spender":NULL_ADDRESS,"amount":0}] * 4
-    metadata = [random.randint(0, 255) for _ in range(256)]
+    metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
     address = STATE["noop_hook"]
     result = transact("execute", "post_dispatch", address, to_aleo_like(metadata, numeric_suffix="8"), to_aleo_like(hook_allowance, numeric_suffix=64))
     assert result.get("success"), "Post dispatch should have failed due to unknown hook"
@@ -354,7 +354,7 @@ def test_post_dispatch_merkle_tree_wrong_caller():
 
     # parameters for the hook call
     hook_allowance = [{"spender":NULL_ADDRESS,"amount":0}] * 4
-    metadata = [random.randint(0, 255) for _ in range(256)]
+    metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
 
     result = transact("execute", "post_dispatch", merkle_tree_address, to_aleo_like(metadata, numeric_suffix="8"), to_aleo_like(hook_allowance, numeric_suffix=64), "--private-key", "APrivateKey1zkp2RWGDcde3efb89rjhME1VYA8QMxcxep5DShNBR6n8Yjh")
     assert not result.get("success"), "Post dispatch should have failed due to wrong caller"
@@ -362,7 +362,7 @@ def test_post_dispatch_merkle_tree_wrong_caller():
 def test_post_dispatch_unknown_hook():
     # parameters for the hook call
     hook_allowance = [{"spender":NULL_ADDRESS,"amount":0}] * 4
-    metadata = [random.randint(0, 255) for _ in range(256)]
+    metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
 
     result = transact("execute", "post_dispatch", CALLER, to_aleo_like(metadata, numeric_suffix="8"), to_aleo_like(hook_allowance, numeric_suffix=64), "--private-key", "APrivateKey1zkp2RWGDcde3efb89rjhME1VYA8QMxcxep5DShNBR6n8Yjh")
     assert not result.get("success"), "Post dispatch should have failed due to unknown hook"

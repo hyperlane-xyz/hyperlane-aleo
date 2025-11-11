@@ -117,7 +117,7 @@ def to_aleo_like(data, numeric_suffix: str | None = None) -> str:
         if isinstance(v, str):
             if re.fullmatch(r'(aleo[0-9A-Za-z]+)|([0-9]+field)', v):
                 return v
-            return json.dumps(v)
+            return v
         # Fallback: JSON stringified representation
         try:
             return json.dumps(v)
