@@ -64,10 +64,10 @@ program ism_manager.aleo {
     const SIGNATURES_OFFSET: u8 = 68;
     const SIGNATURE_LENGTH: u8 = 65;
 
-    const ISM_UNUSED: u8 = 0;
     const ISM_ROUTING: u8 = 1;
     const ISM_MERKLE_ROOT_MULTISIG: u8 = 4;
     const ISM_MESSAGE_ID_MULTISIG: u8 = 5;
+    const ISM_NULL: u8 = 6;
 
     const MAX_VALIDATORS: u8 = 6;
     const METADATA_LENGTH: u32 = 512;
@@ -93,7 +93,7 @@ program ism_manager.aleo {
         assert(!contains);
 
         nonce.set(true, current_nonce + 1);
-        isms.set(ism_address, ISM_UNUSED);
+        isms.set(ism_address, ISM_NULL);
         ism_addresses.set(current_nonce, ism_address);
     }
 
@@ -243,7 +243,7 @@ program ism_manager.aleo {
                     valid_signatures += valid ? 1 : 0;
                 }
                 assert(valid_signatures >= multisig.threshold);
-            } else if ism_type == ISM_UNUSED || ism_type == ISM_ROUTING {
+            } else if ism_type == ISM_NULL || ism_type == ISM_ROUTING {
                 // NoopIsm and RoutingISM continue and do nothing
             } else {
                 // unknown ism
