@@ -237,9 +237,9 @@ program ism_manager.aleo {
                 // We assume that the signatures are passed in the same order as the validators.
                 for index in 0u8..MAX_VALIDATORS {
                     let valid = ECDSA::verify_digest_eth(signatures[index], validators[index].bytes, digest);
-                    // TODO: we should check following: signature_index < multisig.validator_count && validator_index < multisig.validator_count
-                    // However, it is equally likely to generate a malicious signature for the null-address as it is for every other address
-                    // We therefore don't test for this cases, as aleo will have to go through every statement anyways and this would add extra complexity
+                    // It is equally likely to generate a malicious signature for the null-address as it is for every other address
+                    // We therefore don't test for any bound checks on the threshold or validator count
+                    // as aleo will have to go through every statement anyways and this would add extra complexity
                     valid_signatures += valid ? 1 : 0;
                 }
                 assert(valid_signatures >= multisig.threshold);
