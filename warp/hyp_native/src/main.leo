@@ -169,7 +169,7 @@ program hyp_native.aleo {
         };
 
         let body_amount = upscale(amount, 10u64**unverified_token_metadata.scale);
-        let message_body: [u128; 8] = [recipient[0], recipient[1], body_amount[0], body_amount[1], 0u128, 0u128, 0u128, 0u128];
+        let message_body = get_message_body(recipient, body_amount);
         
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
@@ -194,7 +194,7 @@ program hyp_native.aleo {
         }
 
         let body_amount = upscale(amount, 10u64**unverified_token_metadata.scale);
-        let message_body: [u128; 8] = [recipient[0], recipient[1], body_amount[0], body_amount[1], 0u128, 0u128, 0u128, 0u128];
+        let message_body = get_message_body(recipient, body_amount);
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
         return finalize_transfer_remote(dispatch_future, credits_future, unverified_token_metadata, unverified_remote_router, destination);
@@ -323,5 +323,14 @@ program hyp_native.aleo {
         let product: u128 = (amount as u128) * (scale as u128);
         let result = convert_endianness(product);
         return [0u128, result];
+    }
+
+    inline get_message_body(recipient: [u128; 2], amount: [u128; 2]) -> [u128; 16] {
+        let message_body: [u128; 16] = [0u128; 16];
+        message_body[0] = recipient[0];
+        message_body[1] = recipient[1];
+        message_body[2] = amount[0];
+        message_body[3] = amount[1];
+        return message_body;
     }
 }

@@ -122,7 +122,7 @@ def construct_local_message(nonce: int, recipient: list[int], body: list[int]) -
 
 def test_dispatch_message():
     recipient = [random.randint(0, 255) for _ in range(32)]
-    body = [random.randint(0, 2**128-1) for _ in range(8)]
+    body = [random.randint(0, 2**128-1) for _ in range(16)]
     destination = "1u32"
     hook_address = NULL_ADDRESS
     metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
@@ -151,7 +151,7 @@ def test_dispatch_message():
 
 def test_invalid_dispatch_wrong_state():
     recipient = [random.randint(0, 255) for _ in range(32)]
-    body = [random.randint(0, 2**128-1) for _ in range(8)]
+    body = [random.randint(0, 2**128-1) for _ in range(16)]
     destination = "1u32"
     hook_address = NULL_ADDRESS
     metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
@@ -180,7 +180,7 @@ def test_post_dispatch_custom_hook():
     transact("execute", "set_required_hook", STATE["default_hook"])
     STATE["required_hook"] = STATE["default_hook"]
     recipient = [random.randint(0, 255) for _ in range(32)]
-    body = [random.randint(0, 2**128-1) for _ in range(8)]
+    body = [random.randint(0, 2**128-1) for _ in range(16)]
     destination = "1u32"
     metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
     hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
@@ -218,7 +218,7 @@ def get_test_message(recipient: list[int] = None):
         "sender": [0]*32,
         "destination_domain": LOCAL_DOMAIN,
         "recipient": recipient or [0]*32,
-        "body": [0]*8,
+        "body": [0]*16,
     }
     aleo_message = (
         "{"

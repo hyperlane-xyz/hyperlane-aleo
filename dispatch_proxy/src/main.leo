@@ -30,7 +30,7 @@ program dispatch_proxy.aleo {
         public passed_state: MailboxState,
         public destination_domain: u32,
         public recipient_address: [u8; 32],
-        public message_body: [u128; 8],
+        public message_body: [u128; 16],
         public hook_address: address,
         public hook_metadata: HookMetadata,
         public hook_allowance: [CreditAllowance; 4]

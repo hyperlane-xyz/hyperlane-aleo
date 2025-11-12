@@ -25,7 +25,7 @@ program ism_manager.aleo {
         sender: [u8; 32],
         destination_domain: u32,
         recipient: [u8; 32],
-        body: [u128; 8],
+        body: [u128; 16],
     }
 
     struct EthAddress {
