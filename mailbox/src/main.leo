@@ -252,13 +252,12 @@ program mailbox.aleo {
     /// Other Hyperlane implementations might have dynamic message lengths, something that we can't depitc in the AVM.
     /// We resolve this by having the caller provide the message length and copy the bytes into a fixed length array before hashing.
     /// Note: This approach comes with following limitations:
-    /// - The maximum message length is 205 bytes (the full message size)
+    /// - The maximum message length is 333 bytes (the full message size)
     /// - The minimum message length is 77 bytes (the static part of the message without body)
-    /// - The message length has to be of the form 77 + n*8 bytes, where n is a natural number (0,1,2,...16)
-    /// - This results in only 17 possible message lengths
+    /// - The message length has to be of the form 77 + n*16 bytes, where n is a natural number (0,1,2,...16)
     inline dynamic_message_id(static_message: Message, message_length: u32) -> [u128; 2] {
         assert(message_length >= 77);
-        assert((message_length - 77) % 16 == 0 || message_length == 333 || message_length == 206 || message_length == 149 || message_length == 167);
+        assert((message_length - 77) % 16 == 0 || message_length == 206 || message_length == 149 || message_length == 167);
         let id = [0u128; 2];
         let message_raw = message_to_raw(static_message);
         // Note: This is the best solution possible, other solutions result in more op-codes generated for the same logic.
@@ -380,7 +379,7 @@ program mailbox.aleo {
         // [9-40]      - sender address (32 bytes)
         // [41-44]     - destination domain (4 bytes)
         // [45-76]     - recipient address (32 bytes)
-        // [77-205]    - message body (128 bytes)
+        // [77-333]    - message body (256 bytes)
         let raw = [0u8; 333];
         raw[0] = message.version;
 
