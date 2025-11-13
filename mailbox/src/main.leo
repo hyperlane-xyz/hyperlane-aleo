@@ -185,7 +185,7 @@ program mailbox.aleo {
         });
 
         process_events.set(current_mailbox.process_count, id);
-        dispatch_event_index.set(block.height, current_mailbox.process_count);
+        process_event_index.set(block.height, current_mailbox.process_count);
         current_mailbox.process_count += 1;
         mailbox.set(true, current_mailbox);
     }
@@ -257,7 +257,7 @@ program mailbox.aleo {
     /// - The message length has to be of the form 77 + n*8 bytes, where n is a natural number (0,1,2,...16)
     /// - This results in only 17 possible message lengths
     inline dynamic_message_id(static_message: Message, message_length: u32) -> [u128; 2] {
-        assert(message_length >= 77);
+        assert(message_length >= 77 && message_length <= 205);
         assert((message_length - 77) % 8 == 0);
         let id = [0u128; 2];
         let message_raw = message_to_raw(static_message);

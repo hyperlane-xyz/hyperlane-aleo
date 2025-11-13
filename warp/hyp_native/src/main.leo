@@ -168,6 +168,8 @@ program hyp_native.aleo {
             extra_data: [0u8; 64],
         };
 
+        // We assure in the finalize step of this function
+        // that scale is <= 19, so 10**scale fits in u64
         let body_amount = upscale(amount, 10u64**unverified_token_metadata.scale);
         let message_body: [u128; 8] = [recipient[0], recipient[1], body_amount[0], body_amount[1], 0u128, 0u128, 0u128, 0u128];
         
@@ -312,8 +314,9 @@ program hyp_native.aleo {
         assert_eq(quotient[0], 0u64);
         assert_eq(quotient[1], 0u64);
         assert_eq(quotient[2], 0u64);
-        // Assert that there is no remainder
-        assert_eq(remainder, 0u128); // TODO: discuss whether or not we want to allow rounding here
+        
+        // We allow for lossy downscaling here
+        // and don't check remainder == 0
 
         return quotient[3];
     }

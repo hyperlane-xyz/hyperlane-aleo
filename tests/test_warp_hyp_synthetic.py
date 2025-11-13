@@ -205,12 +205,17 @@ def test_invalid_process_incoming_message_invalid_payload():
 
     assert not result.get("success"), "Process transaction with invalid payload should have failed"
 
-def test_invalid_process_incoming_message_invalid_payload_fraction():
+def test_process_incoming_message_payload_fraction():
+    # recipient balance key 
+    balance_key = "7005830677335521085298186382744713548543841850960484417976336499133443203779field"
+
+    user_balance_before = get_program_mapping_value("token_registry.aleo", "authorized_balances", balance_key)
+    user_balance_before = user_balance_before["balance"] if user_balance_before else 0
     enrolled_router = bytes.fromhex("0102010201020102010201020102010201020102010201020102010201020102")
 
     body = (
         "10aa7e32180d16b9dc0974410d897afdb09eb7763ae65475b3a2579074790b0f" # Aleo user hex encoded
-        "00000000000000000000000000000000000000000000000000038c95d0217001" # This amount will scale down to a fraction, which is invalid
+        "00000000000000000000000000000000000000000000000000038c95d0217001" # This amount has a fraction when downscaled, it should be truncated
     )
 
     m = Message(3, 2, 1, enrolled_router, 1, HYP_PROGRAM_HEX, bytes.fromhex(body))
@@ -226,7 +231,11 @@ def test_invalid_process_incoming_message_invalid_payload_fraction():
         to_aleo_like([0]*512, numeric_suffix=8)
     )
 
-    assert not result.get("success"), "Process transaction with invalid payload should have failed"
+    user_balance_after = get_program_mapping_value("token_registry.aleo", "authorized_balances", balance_key)
+    user_balance_after = user_balance_after["balance"] if user_balance_after else 0
+
+    assert result.get("success"), "Process transaction with fractional payload failed"
+    assert int(user_balance_after) - int(user_balance_before) == 999
 
 def test_invalid_process_incoming_message_unknown_router():
     unknown_router = bytes.fromhex("0102010201020102010201020102010201020102010201020102010201020101")
