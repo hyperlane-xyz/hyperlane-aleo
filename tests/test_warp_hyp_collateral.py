@@ -7,7 +7,7 @@ PROGRAM = "hyp_collateral.aleo"
 LOCAL_DECIMALS = 6
 REMOTE_DECIMALS = 18
 MAILBOX = {
-    "default_ism": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
+    "default_ism": "aleo12x2p8lhu2xk9fxuj56c5d8salwks4zv02x7nh72xvkhlc0594qrstkms35",
     "default_hook": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
     "required_hook": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w"
 }
@@ -386,7 +386,7 @@ def test_process_incoming_message():
     result = transact(
         "execute",
         "process",
-        "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
+        MAILBOX["default_ism"],
         to_aleo_like(METADATA, numeric_suffix='8'),
         str(m.get_aleo_struct()),
         "141u32",
@@ -413,7 +413,7 @@ def test_invalid_process_incoming_message_invalid_payload():
     result = transact(
         "execute",
         "process",
-        "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
+        MAILBOX["default_ism"],
         to_aleo_like(METADATA, numeric_suffix='8'),
         str(m.get_aleo_struct()),
         "141u32",
@@ -436,7 +436,7 @@ def test_invalid_process_incoming_message_invalid_payload_fraction():
     result = transact(
         "execute",
         "process",
-        "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
+        MAILBOX["default_ism"],
         to_aleo_like(METADATA, numeric_suffix='8'),
         str(m.get_aleo_struct()),
         "141u32",
