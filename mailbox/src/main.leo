@@ -185,7 +185,7 @@ program mailbox.aleo {
         });
 
         process_events.set(current_mailbox.process_count, id);
-        dispatch_event_index.set(block.height, current_mailbox.process_count);
+        process_event_index.set(block.height, current_mailbox.process_count);
         current_mailbox.process_count += 1;
         mailbox.set(true, current_mailbox);
     }
