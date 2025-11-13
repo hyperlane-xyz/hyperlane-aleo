@@ -79,10 +79,10 @@ class Message:
             raise ValueError("Message body too large for Aleo.")
 
         aleo_body = self.message_body
-        if len(self.message_body) < 128:
-            aleo_body = aleo_body + b'\x00' * (128 - len(self.message_body))
+        if len(self.message_body) < 256:
+            aleo_body = aleo_body + b'\x00' * (256 - len(self.message_body))
 
-        aleo_body_u128 = [int.from_bytes(aleo_body[i:i + 16], byteorder='little') for i in range(0, 128, 16)]
+        aleo_body_u128 = [int.from_bytes(aleo_body[i:i + 16], byteorder='little') for i in range(0, 256, 16)]
         aleo_body_u128 = "[" + ", ".join([str(x) + "u128" for x in aleo_body_u128]) + "]"
 
         return f"{{version: {self.version}u8, nonce: {self.nonce}u32, origin_domain: {self.origin_domain}u32, sender: {sender}, destination_domain: {self.destination_domain}u32, recipient: {recipient}, body: {aleo_body_u128} }}"

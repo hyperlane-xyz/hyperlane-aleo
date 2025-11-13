@@ -101,6 +101,10 @@ program hyp_synthetic.aleo {
         };
     }
 
+    transition get_address() -> address {
+        return self.address;
+    }
+
     // Set a custom Hook which will be used instead of the default Hook of the mailbox
     async transition set_custom_hook(hook_address: address) -> Future {
         let caller = self.caller;
@@ -181,7 +185,7 @@ program hyp_synthetic.aleo {
         };
 
         let body_amount = convert_outgoing_amount(amount, unverified_token_metadata.local_decimals, unverified_token_metadata.remote_decimals);
-        let message_body: [u128; 8] = [recipient[0], recipient[1], body_amount[0], body_amount[1], 0u128, 0u128, 0u128, 0u128];
+        let message_body = get_message_body(recipient, body_amount);
         
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let token_future: Future = token_registry.aleo/burn_public(unverified_token_metadata.token_id, self.caller, amount);
@@ -204,7 +208,7 @@ program hyp_synthetic.aleo {
         }
 
         let body_amount = convert_outgoing_amount(amount, unverified_token_metadata.local_decimals, unverified_token_metadata.remote_decimals);
-        let message_body: [u128; 8] = [recipient[0], recipient[1], body_amount[0], body_amount[1], 0u128, 0u128, 0u128, 0u128];
+        let message_body = get_message_body(recipient, body_amount);
         
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let token_future: Future = token_registry.aleo/burn_public(unverified_token_metadata.token_id, self.caller, amount);
@@ -292,10 +296,6 @@ program hyp_synthetic.aleo {
               token_id: token_id
             };
         return BHP256::hash_to_field(role_owner);
-    }
-
-    transition get_address() -> address {
-        return self.address;
     }
 
     inline convert_outgoing_amount(amount: u128, local_decimals: u8, remote_decimals: u8) -> [u128; 2] {
@@ -422,5 +422,14 @@ program hyp_synthetic.aleo {
             value = value << 8u32 | bytes[i] as u128;
         }
         return value;
+    }
+
+    inline get_message_body(recipient: [u128; 2], amount: [u128; 2]) -> [u128; 16] {
+        let message_body: [u128; 16] = [0u128; 16];
+        message_body[0] = recipient[0];
+        message_body[1] = recipient[1];
+        message_body[2] = amount[0];
+        message_body[3] = amount[1];
+        return message_body;
     }
 }

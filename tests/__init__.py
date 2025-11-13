@@ -36,7 +36,7 @@ def message(
     """
     sender = sender or [0] * 32
     recipient = recipient or [0] * 32
-    body = body or [0] * 8
+    body = body or [0] * 16
 
     def fmt(lst: list[int], suffix: str) -> str:
         return ", ".join(f"{b}u{suffix}" for b in lst)

@@ -278,7 +278,7 @@ def test_invalid_claim_igp():
 def _dispatch_random_message():
     recipient = [random.randint(0, 255) for _ in range(32)]
     # message body is 8 u128 values (1024 bits)
-    message_body = [random.randint(0, 2**128 - 1) for _ in range(8)]
+    message_body = [random.randint(0, 2**128 - 1) for _ in range(16)]
     # now we manually craft a message and dispatch it
     # because we don't use the dispatch proxy here, we have to call the hooks manually
     result = cwd_transact("execute", "dispatch", "1u32", to_aleo_like(recipient, numeric_suffix=8), to_aleo_like(message_body, numeric_suffix=128), CALLER, cwd="mailbox")
