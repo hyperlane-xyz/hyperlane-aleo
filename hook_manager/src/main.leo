@@ -312,6 +312,7 @@ program hook_manager.aleo {
     }
 
     inline quote_gas_payment(config: DomainGasConfig, gas_limit: u128) -> u64 {
+        // If the quote overflows the AVM will revert
         let quote = (gas_limit * config.gas_price * config.exchange_rate) / TOKEN_EXCHANGE_RATE_SCALE;
         assert(quote <= 2u128 ** 64u32 - 1);
         return quote as u64;

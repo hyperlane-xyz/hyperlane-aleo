@@ -256,7 +256,7 @@ program mailbox.aleo {
     /// - The minimum message length is 77 bytes (the static part of the message without body)
     /// - The message length has to be of the form 77 + n*16 bytes, where n is a natural number (0,1,2,...16)
     inline dynamic_message_id(static_message: Message, message_length: u32) -> [u128; 2] {
-        assert(message_length >= 77);
+        assert(message_length >= 77 && message_length <= 333);
         assert((message_length - 77) % 16 == 0 || message_length == 206 || message_length == 149 || message_length == 167);
         let id = [0u128; 2];
         let message_raw = message_to_raw(static_message);

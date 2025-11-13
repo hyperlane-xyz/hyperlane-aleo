@@ -72,6 +72,7 @@ program validator_announce.aleo {
             index: sequence,
         };
 
+        // We assume that a validator will not announce more than 256 storage locations
         sequence += 1;
         replay_protection.set(replay_id, true);
         storage_locations.set(location_key, storage_location);
@@ -79,11 +80,11 @@ program validator_announce.aleo {
     }
 
     inline replay_hash(validator: [u8; 20], storage_location: [u8; 480]) -> HashKey {
-        let packed = [0u8; 200];
+        let packed = [0u8; 500];
         for i in 0u8..20u8 {
             packed[i] = validator[i];
         }
-        for i in 0u32..180u32 {
+        for i in 0u32..480u32 {
             packed[i + 20] = storage_location[i];
         }
         let hash_bits = Keccak256::hash_native_raw(packed);

@@ -213,9 +213,7 @@ program hyp_collateral.aleo {
 
     async function finalize_transfer_remote(dispatch_future: Future, token_future: Future, unverified_remote_router: RemoteRouter, destination: u32, unverified_metadata: Metadata) {
         let actual_remote_router = remote_routers.get(destination);
-        assert_eq(actual_remote_router.domain, unverified_remote_router.domain);
-        assert_eq(actual_remote_router.recipient, unverified_remote_router.recipient);
-        assert_eq(actual_remote_router.gas, unverified_remote_router.gas);
+        assert_eq(actual_remote_router, unverified_remote_router);
 
         let actual_metadata = token_metadata.get(true);
         assert_eq(unverified_metadata, actual_metadata);
@@ -325,6 +323,7 @@ program hyp_collateral.aleo {
                 carry = current >> 64u32;
             }
 
+            // Assert that there is no overflow
             assert_eq(carry, 0u128);
 
             let upper_le: u128 = ((product[0] as u128) << 64u32) + (product[1] as u128);
@@ -391,8 +390,9 @@ program hyp_collateral.aleo {
         // Assert that the result fits in u64
         assert_eq(quotient[0], 0u64);
         assert_eq(quotient[1], 0u64);
-        // Assert that there is no remainder
-        assert_eq(remainder, 0u128); // TODO: discuss whether or not we want to allow rounding here
+        
+        // We allow for lossy downscaling here
+        // and don't check remainder == 0
 
         let amount = ((quotient[2] as u128) << 64u32) | (quotient[3] as u128);
         return amount;

@@ -395,9 +395,10 @@ program hyp_synthetic.aleo {
         // Assert that the result fits in u64
         assert_eq(quotient[0], 0u64);
         assert_eq(quotient[1], 0u64);
-        // Assert that there is no remainder
-        assert_eq(remainder, 0u128); // TODO: discuss whether or not we want to allow rounding here
 
+        // We allow for lossy downscaling here
+        // and don't check remainder == 0
+        
         let amount = ((quotient[2] as u128) << 64u32) | (quotient[3] as u128);
         return amount;
     }
