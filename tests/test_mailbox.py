@@ -291,3 +291,49 @@ def test_invalid_set_owner_not_owner():
         NULL_ADDRESS
     )
     assert not result.get("success"), "Setting owner should have failed due to not being the owner"
+
+
+def test_process_all_message_lengths():
+    def _test_message_with_body_length(body_length):
+        from scripts.hypertools.hypertools import Message
+
+        m = Message(3, 1, 1000000, bytes([1] * 32), 1,
+                       bytes([29,208,222,123,215,65,0,216,154,82,63,49,200,202,69,26,172,55,11,91,152,136,211,189,19,192,232,147,97,223,189,7]),
+                       bytes([3] * body_length))
+
+        metadata = [1] * 512
+        result = transact(
+            "execute",
+            "process",
+            "aleo1qtgn2vsxqxxvet4lzgkehlrctdhxuaeu2dvk6ndh2hkza38mfgrqjpkxss",
+            m.get_aleo_struct(),
+            to_aleo_like(77 + body_length, numeric_suffix=32),
+            m.get_aleo_message_id(),
+            to_aleo_like(metadata, numeric_suffix=8),
+        )
+
+        assert result.get("success"), f"Processing message failed: {result}"
+
+    # all length in steps of 16
+    _test_message_with_body_length(0)
+    _test_message_with_body_length(16)
+    _test_message_with_body_length(32)
+    _test_message_with_body_length(48)
+    _test_message_with_body_length(64)
+    _test_message_with_body_length(80)
+    _test_message_with_body_length(96)
+    _test_message_with_body_length(112)
+    _test_message_with_body_length(128)
+    _test_message_with_body_length(144)
+    _test_message_with_body_length(160)
+    _test_message_with_body_length(176)
+    _test_message_with_body_length(192)
+    _test_message_with_body_length(208)
+    _test_message_with_body_length(224)
+    _test_message_with_body_length(240)
+    _test_message_with_body_length(256)
+
+    # special lengths
+    _test_message_with_body_length(129)
+    _test_message_with_body_length(72)
+    _test_message_with_body_length(90)

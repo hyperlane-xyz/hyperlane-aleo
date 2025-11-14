@@ -269,6 +269,32 @@ def test_claim_igp():
         "count": igp.get("count"),
     }, "Incorrect IGP state after claim"
 
+def test_igp_claim_cannot_exceed_amount_even_if_hook_manager_has_enough_balance():
+    assert "igp_hook" in STATE, "IGP Hook not initialized"
+    igp_address = STATE["igp_hook"]
+    igp = get_mapping_value("igps", igp_address)
+
+    empty_igp = {
+        "hook_owner": igp.get("hook_owner"),
+        "nonce": igp.get("nonce"),
+        "balance": 0,
+        "count": igp.get("count"),
+    }
+    igp_before = get_mapping_value("igps", igp_address)
+    assert empty_igp == igp_before, "Incorrect IGP state after claim"
+
+    result = transact("execute", "credits.aleo/transfer_public", igp_address, "2000u64")
+    assert result.get("success"), "Couldnt transfer aleo credits to hook manager"
+
+    result = transact("execute", "claim", igp_address, "1000u64")
+    assert not result.get("success"), f"Claim should have failed: {result}"
+
+    igp_after = get_mapping_value("igps", igp_address)
+    assert igp_after == empty_igp, "Incorrect IGP state after claim"
+
+    balance_after = get_program_mapping_value("credits.aleo", "account", igp_address)
+    assert balance_after == "2000"
+
 def test_invalid_claim_igp():
     assert "igp_hook" in STATE, "IGP Hook not initialized"
     igp_address = STATE["igp_hook"]
