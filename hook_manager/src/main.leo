@@ -3,8 +3,14 @@ import credits.aleo;
 
 // The 'hook_manager' program.
 program hook_manager.aleo {
-    
+
+    // Every hook gets enumerated by the nonce
     mapping nonce: bool => u32;
+    // Mapping from hook address to Hook Type
+    mapping hooks: address => u8;
+    // Mapping to find hook addresses
+    mapping hook_addresses: u32 => address;
+
     // Mapping for IGPs
     mapping igps: address => InterchainGasPaymaster;
     // DestinationGasConfigs
@@ -13,12 +19,9 @@ program hook_manager.aleo {
     mapping destination_gas_config_iter: HookIndexKey => GasConfigKey;
     // Mapping to get total amount of inserted gas configs for that IGP
     mapping destination_gas_config_length: address => u32;
+
     // Mapping for MerkleTreeHook
     mapping merkle_tree_hooks: address => MerkleTreeHook;
-    // Mapping from hook address to Hook Type
-    mapping hooks: address => u8;
-    // Mapping to find hook addresses
-    mapping hook_addresses: u32 => address;
     
     // Events
     // GasPayment Events: sequence => Event
@@ -39,20 +42,30 @@ program hook_manager.aleo {
         body: [u128; 16],
     }
 
-    struct InterchainGasPaymaster {
-        hook_owner: address,
-        nonce: u32,
-        // We need to track each IGPs balance, because only the `hook_manager` program has a balance in the credits program
-        balance: u64,
-        // Used for sequencing events
-        count: u32,
+    // The user passes a CreditAllowance during a message dispatch.
+    // This is to ensure, that the hook does not consume more credits than the user allowed.
+    struct CreditAllowance {
+        spender: address,
+        amount: u64,
     }
+
+    // Every application can pass additional metadata during a message dispatch for the hooks.
+    // Currently the most common use-case is the gas_limit for the IGP. If in future more metadata is needed
+    // it can be encoded in the extra_data.
+    struct HookMetadata {
+        gas_limit: u128,
+        extra_data: [u8; 64],
+    }
+
+    // MerkleTreeHook
 
     struct Tree {
         branch: [[u128; 2]; TREE_DEPTH],
         count: u32,
     }
 
+    // The Merkle Tree Hook constructs a merkle tree for outgoing messages. This is needed if the destination
+    // chain uses a MerkleRoot Multisig ISM for message verification.
     struct MerkleTreeHook {
         parent: address,
         root: [u128; 2],
@@ -60,13 +73,30 @@ program hook_manager.aleo {
         nonce: u32,
     }
 
+    struct InsertedIntoTreeEvent {
+        id: [u128; 2],
+        index: u32,
+    }
+
+    // Noop Hook
+
+    // A hook with no function, mostly used for testing.
     struct NoopHook {
         nonce: u32,
     }
 
-    struct InsertedIntoTreeEvent {
-        id: [u128; 2],
-        index: u32,
+    // InterchainGasPaymaster (IGP)
+
+    // The interchain gas paymaster calculates how much a inter-chain message transfer costs and charges the user
+    // the calculated amount. This amount can not exceed the Credit Allowance.
+    // The IGP is owned by a third party (relayer) which checks if sufficient funds were paid for a message.
+    struct InterchainGasPaymaster {
+        hook_owner: address,
+        nonce: u32,
+        // We need to track each IGPs balance, because only the `hook_manager` program has a balance in the credits program
+        balance: u64,
+        // Used for sequencing events
+        count: u32,
     }
 
     struct GasConfigKey {
@@ -98,28 +128,19 @@ program hook_manager.aleo {
         block_height: u32,
     }
 
-    struct CreditAllowance {
-        spender: address,
-        amount: u64,
-    }
-
-    struct HookMetadata {
-        gas_limit: u128,
-        extra_data: [u8; 64],
-    }
-
+    // Enums for the Hook types according to the Hyperlane spec
     const HOOK_UNUSED: u8 = 0;
     const HOOK_MERKLE_TREE: u8 = 3;
     const HOOK_INTERCHAIN_GAS_PAYMASTER: u8 = 4;
-    const HOOK_PAUSABLE: u8 = 7;
+
+    // MerkleTreeHook constants
 
     const TREE_DEPTH: u32 = 32;
     const MAX_LEAVES: u32 = 4294967295u32; // 2**32-1
-    const DEFAULT_GAS_LIMIT: u128 = 50000;
 
     // Merkle root with empty leafs
     const ZERO_ROOT: [u128; 2] = [96697620089336775378094670865426525735u128, 116761479129358376777137895554163725990u128];
-    // keccak256 zero hashes
+    // keccak256 zero hashes for the merkle tree hook
     const ZERO_HASHES: [[u128; 2]; TREE_DEPTH] = [
         [0u128,0u128],
         [200636014418684474793900124069647889069u128,241087320001230136080519585693436229163u128],
@@ -155,7 +176,9 @@ program hook_manager.aleo {
         [297864792032486788802704391190316402820u128,225086078672275754295496924647458870974u128]
     ];
 
+    // IGP Constants
     const TOKEN_EXCHANGE_RATE_SCALE: u128 = 10000000000u128; // 1e10
+    const DEFAULT_GAS_LIMIT: u128 = 50000;
 
     @noupgrade
     async constructor() {}
@@ -246,6 +269,7 @@ program hook_manager.aleo {
         destination_gas_configs.remove(key);
     }
 
+    /// Claim is used by the IGP owner to claim the available balance.
     async transition claim(igp: address, amount: u64) -> Future {
         // transfer credits to the caller
         let transfer = credits.aleo/transfer_public(self.caller, amount);
@@ -266,6 +290,7 @@ program hook_manager.aleo {
         igps.set(igp_address, igp);
     }
 
+    /// Pay for gas is used by an user to manually pay for an message.
     async transition pay_for_gas(igp: address, message_id: [u128; 2], destination_domain: u32, gas_limit: u128, credits_amount: u64) -> Future {
         let transfer: Future = credits.aleo/transfer_public_as_signer(self.address, credits_amount);
         return finalize_pay_for_gas(igp, message_id, destination_domain, gas_limit, credits_amount, transfer);
@@ -329,6 +354,10 @@ program hook_manager.aleo {
             igps.set(igp, current_igp);
         };
     }
+
+    //
+    // MerkleTreeHook
+    //
 
     async transition init_merkle_tree(parent: address) -> Future {
         return finalize_init_merkle_tree(parent);
@@ -401,9 +430,13 @@ program hook_manager.aleo {
         return current;
     }
 
+
+    //
+    // General dispatch logic for all hooks
+    //
     
     /// Post Dispatch
-    /// Fetches the latest message from the mailbox and perfroms the post_dispatch function on that.
+    /// Fetches the latest message from the mailbox and performs the post_dispatch function on that.
     /// - hook_allowance: mapping from hook_address -> allowed credits to spend. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
     async transition post_dispatch(public hook: address, public metadata: HookMetadata, public hook_allowance: [CreditAllowance; 4]) -> Future {
         // find the allowance for the given hook, default to 0
@@ -441,7 +474,7 @@ program hook_manager.aleo {
             // Only the parent is allowed to call the merkle_tree_hook
             // We assume that the parent calls the merkle tree hook & dispatch function of the mailbox in the correct order
             // This means the parent has to make sure, that the merkle tree hook won't get invoked twice for the same message
-            // In pratice the parent is usually the dispatch_proxy
+            // In practice the parent is usually the dispatch_proxy
             assert_eq(merkle_tree_hook.parent, caller);
             
             let index: u32 = merkle_tree_hook.tree.count;
