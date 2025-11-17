@@ -75,7 +75,7 @@ class Message:
         sender = "[" + ", ".join([str(int(x)) + "u8" for x in self.sender]) + "]"
         recipient = "[" + ", ".join([str(int(x)) + "u8" for x in self.recipient]) + "]"
 
-        if len(self.message_body) > 128:
+        if len(self.message_body) > 256:
             raise ValueError("Message body too large for Aleo.")
 
         aleo_body = self.message_body

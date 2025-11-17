@@ -47,6 +47,9 @@ program validator_announce.aleo {
         return self.address;
     }
 
+    /// Announce is called by a third party wallet to push a storage location for a validator on chain
+    /// `sig` must be a valid signature from `validator` for the digest generated using `storage_location`
+    /// Every storage location can only be announced once and there is a maximum of 256 storage locations per validator.
     async transition announce(validator: [u8; 20], storage_location: [u8; 480], sig: [u8; 65]) -> Future {
         return finalize_announce(validator, storage_location, sig);
     }
@@ -124,7 +127,7 @@ program validator_announce.aleo {
         msg[2] = b1;
         msg[3] = b0;
         
-        // merkle tree hook (mailbox 32 bytes)
+        // mailbox (32 bytes)
         for i in 0u8..32u8 {
             msg[4 + i] = mailbox[i];
         }
