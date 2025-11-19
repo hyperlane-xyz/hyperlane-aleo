@@ -11,7 +11,7 @@ program hyp_multisig.aleo {
 
     const OP_ISM_MANAGER_SET_DOMAIN: u8 = 10;
     const OP_ISM_MANAGER_REMOVE_DOMAIN: u8 = 11;
-
+    const OP_ISM_MANAGER_SET_OWNER: u8 = 12;
 
     const ALEO_ZERO_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
 
@@ -25,9 +25,11 @@ program hyp_multisig.aleo {
         // OP_MAILBOX_SET_REQUIRED_HOOK: The new required hook address
         // OP_ISM_MANAGER_SET_DOMAIN: The ISM address
         // OP_ISM_MANAGER_REMOVE_DOMAIN: The ISM address
+        // OP_ISM_MANAGER_SET_OWNER: The ISM address
         arg_addr_0: address,
 
         // OP_ISM_MANAGER_SET_DOMAIN: The module address
+        // OP_ISM_MANAGER_SET_OWNER: The new owner address
         arg_addr_1: address,
 
         // OP_ISM_MANAGER_SET_DOMAIN: The domain
@@ -88,6 +90,10 @@ program hyp_multisig.aleo {
         } else if (op.op == OP_ISM_MANAGER_REMOVE_DOMAIN) {
             assert_neq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
             assert_eq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
+        } else if (op.op == OP_ISM_MANAGER_SET_OWNER) {
+            assert_neq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
+            assert_neq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
+            assert_eq(op.arg_u32_0, 0u32);
         } else {
             assert(false);
         }
@@ -337,4 +343,39 @@ program hyp_multisig.aleo {
         // Removing is crucial, otherwise the operation can be executed twice.
         hashed_pending_ops.remove(signing_op_id);
     }
+
+    //////////////////////////////////////////////////////////////////////////
+    // ISM Manager: set_owner
+    //////////////////////////////////////////////////////////////////////////
+
+    async transition exec_ism_manager_set_owner(public signing_op_id: field, public ism: address, public new_owner: address) -> Future {
+        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let ism_manager_set_owner_fut = ism_manager.aleo/transfer_routing_ism_ownership(ism, new_owner);
+
+        let hashed_op = BHP256::hash_to_field(Op {
+            op: OP_ISM_MANAGER_SET_OWNER,
+            arg_addr_0: ism,
+            arg_addr_1: new_owner,
+            arg_u32_0: 0u32,
+        });
+
+        return f_ism_manager_set_owner(signing_op_id, hashed_op, signing_complete_fut, ism_manager_set_owner_fut);
+    }
+
+    async function f_ism_manager_set_owner(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, ism_manager_set_owner_fut: Future) {
+        // Signing must be completed.
+        signing_complete_fut.await();
+
+        // The signing op must match the stored one.
+        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+        assert_eq(hashed_pending_op, hashed_op);
+
+        // Execute the pending op.
+        ism_manager_set_owner_fut.await();
+
+        // Removing is crucial, otherwise the operation can be executed twice.
+        hashed_pending_ops.remove(signing_op_id);
+    }
+
+
 }
