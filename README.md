@@ -30,17 +30,24 @@ a seamless interchain communication following the Hyperlane spec.
 
 Getting started:
 
-Install the latest version of the leo compiler.
+It is required to have `leo` installed. You can install it with the following command:
 
 ```bash
-# Download the source code.
-> git clone https://github.com/ProvableHQ/leo.git && cd leo
+cargo install leo-lang
+```
 
-# Install the compiler.
-> cargo install --path .
+> [!NOTE]
+> If you want to run test locally, you need to install a specific version of `leo` from source:
 
-# Run the compiler.
-> leo ...
+```bash
+# Download the source code
+git clone https://github.com/ProvableHQ/leo.git && cd leo
+
+# Checkout the feature commit
+git checkout 4a4e28c5ddf947eaa7b71e1ecdca4308f9234bec
+
+# Install leo with features
+cargo install --path .
 ```
 
 **Building the project:**
@@ -52,6 +59,10 @@ leo build
 
 **Running tests:**
 
+Running the test in the `hyperlane-aleo` repo:
+
+This will automatically start a `devnode` in the background and run the tests against it.
+
 ```bash
 # Install python requirements
 pip3 install -r requirements.txt
@@ -60,25 +71,11 @@ pip3 install -r requirements.txt
 python3 -m pytest -s -vv --log-cli-level=INFO
 ```
 
-**Running a local devnet:**
-
-This is required when running tests locally.
+You can also choose to start a `devnode` manually and run tests against it, this is helpful for debugging:
 
 ```bash
-# Download the source code
-> git clone https://github.com/ProvableHQ/leo.git && cd leo
-
-# Checkout the feature branch
-> git checkout feat/leo-devnode
-
-# Install leo with features
-> cargo install --path .
-
-# Run the devnet
-> leo devnode start
-
-# Advancing blocks
-> leo devnode advance 10
+# Start devnode
+leo devnode start
 ```
 
 ## Architecture
@@ -98,18 +95,6 @@ There are some key differences between the Aleo implementation and other Hyperla
 ### Process flow
 
 ![Process Flow](./.github/images/process.png)
-
-## Open Issues
-
-- [x] `merkle_tree_hook` use `keccak`
-- [x] Use `u128` for byte arrays
-- [x] Hook usage: Figure out a way for dynamic `credit_amounts` when calling hooks
-- [x] Verify Signatures dynamically in `ism_manager`
-- [x] Finish Process & Dispatch logic
-- [x] Validator Announce
-- [x] Correct Events for agents
-- [ ] `hyp_token_manager`
-- [x] Add CI/CD pipeline
 
 ## License
 
