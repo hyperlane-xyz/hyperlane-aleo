@@ -12,7 +12,7 @@ NEW_ADDR=aleo14ls9u9c9mcyvc7zre0255ut4he7kankqpckqnvtvn96jm8pcxugssucen8
 #NEW_ADDR=aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc
 echo "New address: $NEW_ADDR"
 
-$LEO execute --skip-proving --yes --broadcast hyp_multisig.aleo/init_mailbox_set_dispatch_proxy $SIGNING_OP_ID $NEW_ADDR
+$LEO execute --skip-proving --yes --broadcast hyp_multisig.aleo/init_multisig_op $SIGNING_OP_ID "{op: 1u8, arg_addr: $NEW_ADDR}"
 
 PRIVATE_KEY=APrivateKey1zkp2RWGDcde3efb89rjhME1VYA8QMxcxep5DShNBR6n8Yjh $LEO execute --skip-proving --yes --broadcast multisig.aleo/sign hyp_multisig.aleo $SIGNING_OP_ID
 

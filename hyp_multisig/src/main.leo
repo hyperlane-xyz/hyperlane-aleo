@@ -3,10 +3,19 @@ import mailbox.aleo;
 
 program hyp_multisig.aleo {
     const OP_MAILBOX_SET_DISPATCH_PROXY: u8 = 1;
+    const OP_MAILBOX_SET_OWNER: u8 = 2;
+    const OP_MAILBOX_SET_DEFAULT_ISM: u8 = 3;
+    const OP_MAILBOX_SET_DEFAULT_HOOK: u8 = 4;
+    const OP_MAILBOX_SET_REQUIRED_HOOK: u8 = 5;
+
+
+    const ALEO_ZERO_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
 
     struct Op {
         op: u8,
 
+        // OP_MAILBOX_SET_DISPATCH_PROXY: The new dispatch proxy address
+        // OP_MAILBOX_SET_DEFAULT_ISM: The new default ISM address
         arg_addr: address,
     }
 
@@ -44,35 +53,45 @@ program hyp_multisig.aleo {
     }
 
     //////////////////////////////////////////////////////////////////////////
-    // Mailbox: set_dispatch_proxy
+    // Initialize a multisigning operation. This is shared between
+    // all exec_ calls.
     //////////////////////////////////////////////////////////////////////////
 
-    inline mb_set_dispatch_proxy_op_hash(dispatch_proxy: address) -> field {
-        let op = Op {
-            op: OP_MAILBOX_SET_DISPATCH_PROXY,
-            arg_addr: dispatch_proxy,
-        };
-        return BHP256::hash_to_field(op);
+    async transition init_multisig_op(public signing_op_id: field, public op: Op) -> Future {
+        if (op.op == OP_MAILBOX_SET_DISPATCH_PROXY ||
+            op.op == OP_MAILBOX_SET_DEFAULT_ISM) {
+            assert_neq(op.arg_addr, ALEO_ZERO_ADDRESS);
+        } else {
+            assert(false);
+        }
+
+        let op_hash = BHP256::hash_to_field(op);
+
+        let (wallet_signing_op_id_hash, init_signing_op_fut) = multisig.aleo/initiate_signing_op(self.address, signing_op_id);
+        return fin_init_multisig_op(signing_op_id, op_hash, init_signing_op_fut);
     }
 
-    async transition init_mailbox_set_dispatch_proxy(public signing_op_id: field, public dispatch_proxy: address) -> Future {
-            let (wallet_signing_op_id_hash, init_signing_op_fut) = multisig.aleo/initiate_signing_op(self.address, signing_op_id);
-            let op_hash = mb_set_dispatch_proxy_op_hash(dispatch_proxy);
-            return fin_init_op(signing_op_id, op_hash, init_signing_op_fut);
-    }
-
-    async function fin_init_op(signing_op_id: field, op_hash: field, init_signing_op_fut: Future) {
+    async function fin_init_multisig_op(signing_op_id: field, op_hash: field, init_signing_op_fut: Future) {
         assert(!hashed_pending_ops.contains(signing_op_id));
+
         hashed_pending_ops.set(signing_op_id, op_hash);
 
         init_signing_op_fut.await();
     }
 
-   async transition exec_mailbox_set_dispatch_proxy(public signing_op_id: field, public dispatch_proxy: address) -> Future {
+
+    //////////////////////////////////////////////////////////////////////////
+    // Mailbox: set_dispatch_proxy
+    //////////////////////////////////////////////////////////////////////////
+
+    async transition exec_mailbox_set_dispatch_proxy(public signing_op_id: field, public dispatch_proxy: address) -> Future {
         let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
         let mailbox_set_dispatch_proxy_fut = mailbox.aleo/set_dispatch_proxy(dispatch_proxy);
 
-        let hashed_op = mb_set_dispatch_proxy_op_hash(dispatch_proxy);
+        let hashed_op = BHP256::hash_to_field(Op {
+            op: OP_MAILBOX_SET_DISPATCH_PROXY,
+            arg_addr: dispatch_proxy,
+        });
 
         return f_mailbox_set_dispatch_proxy(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_dispatch_proxy_fut);
     }
@@ -87,6 +106,37 @@ program hyp_multisig.aleo {
 
         // Execute the pending op.
         mailbox_set_dispatch_proxy_fut.await();
+
+        // Removing is crucial, otherwise the operation can be executed twice.
+        hashed_pending_ops.remove(signing_op_id);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Mailbox: set_default_ism
+    //////////////////////////////////////////////////////////////////////////
+
+    async transition exec_mailbox_set_default_ism(public signing_op_id: field, public ism: address) -> Future {
+        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let mailbox_set_default_ism_fut = mailbox.aleo/set_default_ism(ism);
+
+        let hashed_op = BHP256::hash_to_field(Op {
+            op: OP_MAILBOX_SET_DEFAULT_ISM,
+            arg_addr: ism,
+        });
+
+        return f_mailbox_set_default_ism(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_default_ism_fut);
+    }
+
+    async function f_mailbox_set_default_ism(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, mailbox_set_default_ism_fut: Future) {
+        // Signing must be completed.
+        signing_complete_fut.await();
+
+        // The signing op must match the stored one.
+        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+        assert_eq(hashed_pending_op, hashed_op);
+
+        // Execute the pending op.
+        mailbox_set_default_ism_fut.await();
 
         // Removing is crucial, otherwise the operation can be executed twice.
         hashed_pending_ops.remove(signing_op_id);
