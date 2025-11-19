@@ -15,7 +15,10 @@ program hyp_multisig.aleo {
         op: u8,
 
         // OP_MAILBOX_SET_DISPATCH_PROXY: The new dispatch proxy address
+        // OP_MAILBOX_SET_OWNER: The new owner address
         // OP_MAILBOX_SET_DEFAULT_ISM: The new default ISM address
+        // OP_MAILBOX_SET_DEFAULT_HOOK: The new default hook address
+        // OP_MAILBOX_SET_REQUIRED_HOOK: The new required hook address
         arg_addr: address,
     }
 
@@ -59,7 +62,10 @@ program hyp_multisig.aleo {
 
     async transition init_multisig_op(public signing_op_id: field, public op: Op) -> Future {
         if (op.op == OP_MAILBOX_SET_DISPATCH_PROXY ||
-            op.op == OP_MAILBOX_SET_DEFAULT_ISM) {
+            op.op == OP_MAILBOX_SET_OWNER ||
+            op.op == OP_MAILBOX_SET_DEFAULT_ISM ||
+            op.op == OP_MAILBOX_SET_DEFAULT_HOOK ||
+            op.op == OP_MAILBOX_SET_REQUIRED_HOOK) {
             assert_neq(op.arg_addr, ALEO_ZERO_ADDRESS);
         } else {
             assert(false);
@@ -112,6 +118,37 @@ program hyp_multisig.aleo {
     }
 
     //////////////////////////////////////////////////////////////////////////
+    // Mailbox: set_owner
+    //////////////////////////////////////////////////////////////////////////
+
+    async transition exec_mailbox_set_owner(public signing_op_id: field, public owner: address) -> Future {
+        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let mailbox_set_owner_fut = mailbox.aleo/set_owner(owner);
+
+        let hashed_op = BHP256::hash_to_field(Op {
+            op: OP_MAILBOX_SET_OWNER,
+            arg_addr: owner,
+        });
+
+        return f_mailbox_set_owner(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_owner_fut);
+    }
+
+    async function f_mailbox_set_owner(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, mailbox_set_owner_fut: Future) {
+        // Signing must be completed.
+        signing_complete_fut.await();
+
+        // The signing op must match the stored one.
+        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+        assert_eq(hashed_pending_op, hashed_op);
+
+        // Execute the pending op.
+        mailbox_set_owner_fut.await();
+
+        // Removing is crucial, otherwise the operation can be executed twice.
+        hashed_pending_ops.remove(signing_op_id);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
     // Mailbox: set_default_ism
     //////////////////////////////////////////////////////////////////////////
 
@@ -137,6 +174,68 @@ program hyp_multisig.aleo {
 
         // Execute the pending op.
         mailbox_set_default_ism_fut.await();
+
+        // Removing is crucial, otherwise the operation can be executed twice.
+        hashed_pending_ops.remove(signing_op_id);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Mailbox: set_default_hook
+    //////////////////////////////////////////////////////////////////////////
+
+    async transition exec_mailbox_set_default_hook(public signing_op_id: field, public default_hook: address) -> Future {
+        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let mailbox_set_default_hook_fut = mailbox.aleo/set_default_hook(default_hook);
+
+        let hashed_op = BHP256::hash_to_field(Op {
+            op: OP_MAILBOX_SET_DEFAULT_HOOK,
+            arg_addr: default_hook,
+        });
+
+        return f_mailbox_set_default_hook(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_default_hook_fut);
+    }
+
+    async function f_mailbox_set_default_hook(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, mailbox_set_default_hook_fut: Future) {
+        // Signing must be completed.
+        signing_complete_fut.await();
+
+        // The signing op must match the stored one.
+        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+        assert_eq(hashed_pending_op, hashed_op);
+
+        // Execute the pending op.
+        mailbox_set_default_hook_fut.await();
+
+        // Removing is crucial, otherwise the operation can be executed twice.
+        hashed_pending_ops.remove(signing_op_id);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Mailbox: set_required_hook
+    //////////////////////////////////////////////////////////////////////////
+
+    async transition exec_mailbox_set_required_hook(public signing_op_id: field, public required_hook: address) -> Future {
+        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let mailbox_set_required_hook_fut = mailbox.aleo/set_required_hook(required_hook);
+
+        let hashed_op = BHP256::hash_to_field(Op {
+            op: OP_MAILBOX_SET_REQUIRED_HOOK,
+            arg_addr: required_hook,
+        });
+
+        return f_mailbox_set_required_hook(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_required_hook_fut);
+    }
+
+    async function f_mailbox_set_required_hook(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, mailbox_set_required_hook_fut: Future) {
+        // Signing must be completed.
+        signing_complete_fut.await();
+
+        // The signing op must match the stored one.
+        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+        assert_eq(hashed_pending_op, hashed_op);
+
+        // Execute the pending op.
+        mailbox_set_required_hook_fut.await();
 
         // Removing is crucial, otherwise the operation can be executed twice.
         hashed_pending_ops.remove(signing_op_id);
