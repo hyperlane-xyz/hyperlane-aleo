@@ -1,5 +1,6 @@
 import multisig.aleo;
 import mailbox.aleo;
+import ism_manager.aleo;
 
 program hyp_multisig.aleo {
     const OP_MAILBOX_SET_DISPATCH_PROXY: u8 = 1;
@@ -7,6 +8,9 @@ program hyp_multisig.aleo {
     const OP_MAILBOX_SET_DEFAULT_ISM: u8 = 3;
     const OP_MAILBOX_SET_DEFAULT_HOOK: u8 = 4;
     const OP_MAILBOX_SET_REQUIRED_HOOK: u8 = 5;
+
+    const OP_ISM_MANAGER_SET_DOMAIN: u8 = 10;
+    const OP_ISM_MANAGER_REMOVE_DOMAIN: u8 = 11;
 
 
     const ALEO_ZERO_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
@@ -19,7 +23,16 @@ program hyp_multisig.aleo {
         // OP_MAILBOX_SET_DEFAULT_ISM: The new default ISM address
         // OP_MAILBOX_SET_DEFAULT_HOOK: The new default hook address
         // OP_MAILBOX_SET_REQUIRED_HOOK: The new required hook address
-        arg_addr: address,
+        // OP_ISM_MANAGER_SET_DOMAIN: The ISM address
+        // OP_ISM_MANAGER_REMOVE_DOMAIN: The ISM address
+        arg_addr_0: address,
+
+        // OP_ISM_MANAGER_SET_DOMAIN: The module address
+        arg_addr_1: address,
+
+        // OP_ISM_MANAGER_SET_DOMAIN: The domain
+        // OP_ISM_MANAGER_REMOVE_DOMAIN: The domain
+        arg_u32_0: u32,
     }
 
 
@@ -66,7 +79,15 @@ program hyp_multisig.aleo {
             op.op == OP_MAILBOX_SET_DEFAULT_ISM ||
             op.op == OP_MAILBOX_SET_DEFAULT_HOOK ||
             op.op == OP_MAILBOX_SET_REQUIRED_HOOK) {
-            assert_neq(op.arg_addr, ALEO_ZERO_ADDRESS);
+            assert_neq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
+            assert_eq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
+            assert_eq(op.arg_u32_0, 0u32);
+        } else if (op.op == OP_ISM_MANAGER_SET_DOMAIN) {
+            assert_neq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
+            assert_neq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
+        } else if (op.op == OP_ISM_MANAGER_REMOVE_DOMAIN) {
+            assert_neq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
+            assert_eq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
         } else {
             assert(false);
         }
@@ -96,7 +117,9 @@ program hyp_multisig.aleo {
 
         let hashed_op = BHP256::hash_to_field(Op {
             op: OP_MAILBOX_SET_DISPATCH_PROXY,
-            arg_addr: dispatch_proxy,
+            arg_addr_0: dispatch_proxy,
+            arg_addr_1: ALEO_ZERO_ADDRESS,
+            arg_u32_0: 0u32,
         });
 
         return f_mailbox_set_dispatch_proxy(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_dispatch_proxy_fut);
@@ -127,7 +150,9 @@ program hyp_multisig.aleo {
 
         let hashed_op = BHP256::hash_to_field(Op {
             op: OP_MAILBOX_SET_OWNER,
-            arg_addr: owner,
+            arg_addr_0: owner,
+            arg_addr_1: ALEO_ZERO_ADDRESS,
+            arg_u32_0: 0u32,
         });
 
         return f_mailbox_set_owner(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_owner_fut);
@@ -158,7 +183,9 @@ program hyp_multisig.aleo {
 
         let hashed_op = BHP256::hash_to_field(Op {
             op: OP_MAILBOX_SET_DEFAULT_ISM,
-            arg_addr: ism,
+            arg_addr_0: ism,
+            arg_addr_1: ALEO_ZERO_ADDRESS,
+            arg_u32_0: 0u32,
         });
 
         return f_mailbox_set_default_ism(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_default_ism_fut);
@@ -189,7 +216,9 @@ program hyp_multisig.aleo {
 
         let hashed_op = BHP256::hash_to_field(Op {
             op: OP_MAILBOX_SET_DEFAULT_HOOK,
-            arg_addr: default_hook,
+            arg_addr_0: default_hook,
+            arg_addr_1: ALEO_ZERO_ADDRESS,
+            arg_u32_0: 0u32,
         });
 
         return f_mailbox_set_default_hook(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_default_hook_fut);
@@ -220,7 +249,9 @@ program hyp_multisig.aleo {
 
         let hashed_op = BHP256::hash_to_field(Op {
             op: OP_MAILBOX_SET_REQUIRED_HOOK,
-            arg_addr: required_hook,
+            arg_addr_0: required_hook,
+            arg_addr_1: ALEO_ZERO_ADDRESS,
+            arg_u32_0: 0u32,
         });
 
         return f_mailbox_set_required_hook(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_required_hook_fut);
@@ -236,6 +267,72 @@ program hyp_multisig.aleo {
 
         // Execute the pending op.
         mailbox_set_required_hook_fut.await();
+
+        // Removing is crucial, otherwise the operation can be executed twice.
+        hashed_pending_ops.remove(signing_op_id);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // ISM Manager: set_domain
+    //////////////////////////////////////////////////////////////////////////
+
+    async transition exec_ism_manager_set_domain(public signing_op_id: field, public ism: address, public domain: u32, public module: address) -> Future {
+        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let ism_manager_set_domain_fut = ism_manager.aleo/set_domain(ism, domain, module);
+
+        let hashed_op = BHP256::hash_to_field(Op {
+            op: OP_ISM_MANAGER_SET_DOMAIN,
+            arg_addr_0: ism,
+            arg_addr_1: module,
+            arg_u32_0: domain,
+        });
+
+        return f_ism_manager_set_domain(signing_op_id, hashed_op, signing_complete_fut, ism_manager_set_domain_fut);
+    }
+
+    async function f_ism_manager_set_domain(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, ism_manager_set_domain_fut: Future) {
+        // Signing must be completed.
+        signing_complete_fut.await();
+
+        // The signing op must match the stored one.
+        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+        assert_eq(hashed_pending_op, hashed_op);
+
+        // Execute the pending op.
+        ism_manager_set_domain_fut.await();
+
+        // Removing is crucial, otherwise the operation can be executed twice.
+        hashed_pending_ops.remove(signing_op_id);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // ISM Manager: remove_domain
+    //////////////////////////////////////////////////////////////////////////
+
+    async transition exec_ism_manager_remove_domain(public signing_op_id: field, public ism: address, public domain: u32) -> Future {
+        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let ism_manager_remove_domain_fut = ism_manager.aleo/remove_domain(ism, domain);
+
+        let hashed_op = BHP256::hash_to_field(Op {
+            op: OP_ISM_MANAGER_REMOVE_DOMAIN,
+            arg_addr_0: ism,
+            arg_addr_1: ALEO_ZERO_ADDRESS,
+            arg_u32_0: domain,
+        });
+
+        return f_ism_manager_remove_domain(signing_op_id, hashed_op, signing_complete_fut, ism_manager_remove_domain_fut);
+    }
+
+    async function f_ism_manager_remove_domain(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, ism_manager_remove_domain_fut: Future) {
+        // Signing must be completed.
+        signing_complete_fut.await();
+
+        // The signing op must match the stored one.
+        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+        assert_eq(hashed_pending_op, hashed_op);
+
+        // Execute the pending op.
+        ism_manager_remove_domain_fut.await();
 
         // Removing is crucial, otherwise the operation can be executed twice.
         hashed_pending_ops.remove(signing_op_id);
