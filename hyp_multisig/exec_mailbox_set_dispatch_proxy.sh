@@ -12,7 +12,7 @@ NEW_ADDR=aleo14ls9u9c9mcyvc7zre0255ut4he7kankqpckqnvtvn96jm8pcxugssucen8
 #NEW_ADDR=aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc
 echo "New address: $NEW_ADDR"
 
-$LEO execute --skip-proving --yes --broadcast hyp_multisig.aleo/init_multisig_op $SIGNING_OP_ID "{op: 1u8, arg_addr_0: $NEW_ADDR, arg_addr_1: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_u32_0: 0u32}"
+$LEO execute --skip-proving --yes --broadcast hyp_multisig.aleo/init_multisig_op $SIGNING_OP_ID "{op: 1u8, arg_addr_0: $NEW_ADDR, arg_addr_1: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_addr_2: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_addr_3: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_u128_0: 0u128, arg_u128_1: 0u128, arg_u128_2: 0u128, arg_u128_3: 0u128}"
 
 PRIVATE_KEY=APrivateKey1zkp2RWGDcde3efb89rjhME1VYA8QMxcxep5DShNBR6n8Yjh $LEO execute --skip-proving --yes --broadcast multisig.aleo/sign hyp_multisig.aleo $SIGNING_OP_ID
 

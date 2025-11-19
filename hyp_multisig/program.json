@@ -22,6 +22,12 @@
       "location": "network",
       "path": null,
       "edition": null
+    },
+    {
+      "name": "hook_manager.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
     }
   ],
   "dev_dependencies": null
