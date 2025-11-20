@@ -2,8 +2,7 @@ import multisig.aleo;
 import mailbox.aleo;
 import ism_manager.aleo;
 import hook_manager.aleo;
-
-// TODO method to transfer credits out to caller
+import credits.aleo;
 
 program hyp_multisig.aleo {
     const OP_MAILBOX_SET_DISPATCH_PROXY: u8 = 1;
@@ -20,6 +19,8 @@ program hyp_multisig.aleo {
     const OP_HOOK_MANAGER_SET_IGP_OWNER: u8 = 21;
     const OP_HOOK_MANAGER_REM_GAS_CONFIG: u8 = 22;
     const OP_HOOK_MANAGER_CLAIM: u8 = 23;
+
+    const OP_CREDITS_TRANSFER_TO_CALLER: u8 = 30;
 
 
     const ALEO_ZERO_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
@@ -55,6 +56,7 @@ program hyp_multisig.aleo {
         // OP_HOOK_MANAGER_SET_GAS_CONFIG: The destination domain
         // OP_HOOK_MANAGER_REM_GAS_CONFIG: The destination domain
         // OP_HOOK_MANAGER_CLAIM: Amount to claim
+        // OP_CREDITS_TRANSFER_TO_CALLER: Amount to transfer
         arg_u128_0: u128,
 
         // OP_HOOK_MANAGER_SET_GAS_CONFIG: gas_overhead
@@ -156,6 +158,11 @@ program hyp_multisig.aleo {
             assert_eq(op.arg_u128_1, 0u128);
             assert_eq(op.arg_u128_2, 0u128);
             assert_eq(op.arg_u128_3, 0u128);
+        } else if (op.op == OP_CREDITS_TRANSFER_TO_CALLER) {
+            assert_eq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
+            assert_eq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
+
+            assert_neq(op.arg_u128_0, 0u128);
         } else {
             assert(false);
         }
@@ -630,6 +637,44 @@ program hyp_multisig.aleo {
 
         // Execute the pending op.
         hook_manager_claim_fut.await();
+
+        // Removing is crucial, otherwise the operation can be executed twice.
+        hashed_pending_ops.remove(signing_op_id);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Credits: Transfer to caller
+    //////////////////////////////////////////////////////////////////////////
+
+    async transition exec_credits_transfer_to_caller(public signing_op_id: field, public amount: u64) -> Future {
+        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let transfer_fut = credits.aleo/transfer_public(self.caller, amount);
+
+        let hashed_op = BHP256::hash_to_field(Op {
+            op: OP_CREDITS_TRANSFER_TO_CALLER,
+            arg_addr_0: ALEO_ZERO_ADDRESS,
+            arg_addr_1: ALEO_ZERO_ADDRESS,
+            arg_addr_2: ALEO_ZERO_ADDRESS,
+            arg_addr_3: ALEO_ZERO_ADDRESS,
+            arg_u128_0: amount as u128,
+            arg_u128_1: 0u128,
+            arg_u128_2: 0u128,
+            arg_u128_3: 0u128,
+        });
+
+        return f_credits_transfer_to_caller(signing_op_id, hashed_op, signing_complete_fut, transfer_fut);
+    }
+
+    async function f_credits_transfer_to_caller(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, transfer_fut: Future) {
+        // Signing must be completed.
+        signing_complete_fut.await();
+
+        // The signing op must match the stored one.
+        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+        assert_eq(hashed_pending_op, hashed_op);
+
+        // Execute the pending op.
+        transfer_fut.await();
 
         // Removing is crucial, otherwise the operation can be executed twice.
         hashed_pending_ops.remove(signing_op_id);
