@@ -1,0 +1,22 @@
+{
+  "program": "hyp_collateral_multisig.aleo",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT",
+  "leo": "3.3.1",
+  "dependencies": [
+    {
+      "name": "multisig.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "hyp_collateral.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    }
+  ],
+  "dev_dependencies": null
+}
