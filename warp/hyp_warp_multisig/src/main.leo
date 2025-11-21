@@ -82,6 +82,9 @@ program hyp_warp_multisig.aleo {
     // all exec_ calls.
     //////////////////////////////////////////////////////////////////////////
 
+    // Note: the contents of op are not being checked here aside from ensuring fields reserved for future use are not set.
+    // This is acceptable since op will get reconstructed in the various exec_ calls, which receive the specific parameters
+    // necessary for each call and an assert statement ensures the op used to initialize the signing operation is the same
     async transition init_multisig_op(public signing_op_id: field, public op: Op) -> Future {
         assert_eq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
         assert_eq(op.arg_addr_3, ALEO_ZERO_ADDRESS);
