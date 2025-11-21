@@ -1,7 +1,11 @@
+// This is the interface program between multisig.aleo and any one of the warp token programs.
+// You will need to deploy a version of this for each warp token you are deploying.
+// Note that you will need to search and replace hyp_collateral.aleo with whatever name you use for your
+// token.
 import multisig.aleo;
 import hyp_collateral.aleo;
 
-program hyp_collateral_multisig.aleo {
+program hyp_warp_multisig.aleo {
     // TODO
     @admin(address="aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px")
     async constructor() {}
