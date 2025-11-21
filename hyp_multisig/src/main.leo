@@ -114,62 +114,6 @@ program hyp_multisig.aleo {
         assert_eq(op.arg_addr_2, ALEO_ZERO_ADDRESS);
         assert_eq(op.arg_addr_3, ALEO_ZERO_ADDRESS);
 
-        if (op.op == OP_MAILBOX_SET_DISPATCH_PROXY ||
-            op.op == OP_MAILBOX_SET_OWNER ||
-            op.op == OP_MAILBOX_SET_DEFAULT_ISM ||
-            op.op == OP_MAILBOX_SET_DEFAULT_HOOK ||
-            op.op == OP_MAILBOX_SET_REQUIRED_HOOK) {
-            assert_neq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
-            assert_eq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
-
-            assert_eq(op.arg_u128_0, 0u128);
-            assert_eq(op.arg_u128_1, 0u128);
-            assert_eq(op.arg_u128_2, 0u128);
-            assert_eq(op.arg_u128_3, 0u128);
-        } else if (op.op == OP_ISM_MANAGER_SET_DOMAIN) {
-            assert_neq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
-            assert_neq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
-
-            assert_eq(op.arg_u128_1, 0u128);
-            assert_eq(op.arg_u128_2, 0u128);
-            assert_eq(op.arg_u128_3, 0u128);
-        } else if (op.op == OP_ISM_MANAGER_REMOVE_DOMAIN ||
-                   op.op == OP_HOOK_MANAGER_REM_GAS_CONFIG) {
-            assert_neq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
-            assert_eq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
-
-            assert_eq(op.arg_u128_1, 0u128);
-            assert_eq(op.arg_u128_2, 0u128);
-            assert_eq(op.arg_u128_3, 0u128);
-        } else if (op.op == OP_ISM_MANAGER_SET_OWNER ||
-                   op.op == OP_HOOK_MANAGER_SET_IGP_OWNER) {
-            assert_neq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
-            assert_neq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
-
-            assert_eq(op.arg_u128_0, 0u128);
-            assert_eq(op.arg_u128_1, 0u128);
-            assert_eq(op.arg_u128_2, 0u128);
-            assert_eq(op.arg_u128_3, 0u128);
-        } else if (op.op == OP_HOOK_MANAGER_SET_GAS_CONFIG) {
-            assert_neq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
-            assert_eq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
-        } else if (op.op == OP_HOOK_MANAGER_CLAIM) {
-            assert_neq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
-            assert_eq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
-
-            assert_neq(op.arg_u128_0, 0u128);
-            assert_eq(op.arg_u128_1, 0u128);
-            assert_eq(op.arg_u128_2, 0u128);
-            assert_eq(op.arg_u128_3, 0u128);
-        } else if (op.op == OP_CREDITS_TRANSFER_TO_CALLER) {
-            assert_eq(op.arg_addr_0, ALEO_ZERO_ADDRESS);
-            assert_eq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
-
-            assert_neq(op.arg_u128_0, 0u128);
-        } else {
-            assert(false);
-        }
-
         let op_hash = BHP256::hash_to_field(op);
 
         let (wallet_signing_op_id_hash, init_signing_op_fut) = multisig.aleo/initiate_signing_op(self.address, signing_op_id);
