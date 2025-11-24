@@ -8,69 +8,8 @@ import hook_manager.aleo;
 import credits.aleo;
 
 program hyp_multisig.aleo {
-    const OP_MAILBOX_SET_DISPATCH_PROXY: u8 = 1;
-    const OP_MAILBOX_SET_OWNER: u8 = 2;
-    const OP_MAILBOX_SET_DEFAULT_ISM: u8 = 3;
-    const OP_MAILBOX_SET_DEFAULT_HOOK: u8 = 4;
-    const OP_MAILBOX_SET_REQUIRED_HOOK: u8 = 5;
-
-    const OP_ISM_MANAGER_SET_DOMAIN: u8 = 10;
-    const OP_ISM_MANAGER_REMOVE_DOMAIN: u8 = 11;
-    const OP_ISM_MANAGER_SET_OWNER: u8 = 12;
-
-    const OP_HOOK_MANAGER_SET_GAS_CONFIG: u8 = 20;
-    const OP_HOOK_MANAGER_SET_IGP_OWNER: u8 = 21;
-    const OP_HOOK_MANAGER_REM_GAS_CONFIG: u8 = 22;
-    const OP_HOOK_MANAGER_CLAIM: u8 = 23;
-
-    const OP_CREDITS_TRANSFER_TO_CALLER: u8 = 30;
-
 
     const ALEO_ZERO_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
-
-    struct Op {
-        op: u8,
-
-        // OP_MAILBOX_SET_DISPATCH_PROXY: The new dispatch proxy address
-        // OP_MAILBOX_SET_OWNER: The new owner address
-        // OP_MAILBOX_SET_DEFAULT_ISM: The new default ISM address
-        // OP_MAILBOX_SET_DEFAULT_HOOK: The new default hook address
-        // OP_MAILBOX_SET_REQUIRED_HOOK: The new required hook address
-        // OP_ISM_MANAGER_SET_DOMAIN: The ISM address
-        // OP_ISM_MANAGER_REMOVE_DOMAIN: The ISM address
-        // OP_ISM_MANAGER_SET_OWNER: The ISM address
-        // OP_HOOK_MANAGER_SET_GAS_CONFIG: IGP address
-        // OP_HOOK_MANAGER_SET_IGP_OWNER: IGP address
-        // OP_HOOK_MANAGER_REM_GAS_CONFIG: IGP address
-        // OP_HOOK_MANAGER_CLAIM: IGP address
-        arg_addr_0: address,
-
-        // OP_ISM_MANAGER_SET_DOMAIN: The module address
-        // OP_ISM_MANAGER_SET_OWNER: The new owner address
-        // OP_HOOK_MANAGER_SET_IGP_OWNER: The new owner address
-        arg_addr_1: address,
-
-        // Reserved for future use
-        arg_addr_2: address,
-        arg_addr_3: address,
-
-        // OP_ISM_MANAGER_SET_DOMAIN: The domain
-        // OP_ISM_MANAGER_REMOVE_DOMAIN: The domain
-        // OP_HOOK_MANAGER_SET_GAS_CONFIG: The destination domain
-        // OP_HOOK_MANAGER_REM_GAS_CONFIG: The destination domain
-        // OP_HOOK_MANAGER_CLAIM: Amount to claim
-        // OP_CREDITS_TRANSFER_TO_CALLER: Amount to transfer
-        arg_u128_0: u128,
-
-        // OP_HOOK_MANAGER_SET_GAS_CONFIG: gas_overhead
-        arg_u128_1: u128,
-
-        // OP_HOOK_MANAGER_SET_GAS_CONFIG: exchange_rate
-        arg_u128_2: u128,
-
-        // OP_HOOK_MANAGER_SET_GAS_CONFIG: gas_price
-        arg_u128_3: u128,
-    }
 
 
     mapping hashed_pending_ops: field => field; // signing_op_id => hash(Op)
@@ -112,7 +51,7 @@ program hyp_multisig.aleo {
     // This is acceptable since op will get reconstructed in the various exec_ calls, which receive the specific parameters
     // necessary for each call and an assert statement ensures the op used to initialize the signing operation is the same
     // one used for executing the operation by comparing the hash of the two structs.
-    async transition init_multisig_op(public signing_op_id: field, public block_expiration: u32, public op: Op) -> Future {
+    async transition init_multisig_op(public signing_op_id: field, public block_expiration: u32, public op: op::Op) -> Future {
         assert_eq(op.arg_addr_2, ALEO_ZERO_ADDRESS);
         assert_eq(op.arg_addr_3, ALEO_ZERO_ADDRESS);
 
@@ -137,8 +76,8 @@ program hyp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let mailbox_set_dispatch_proxy_fut = mailbox.aleo/set_dispatch_proxy(dispatch_proxy);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_MAILBOX_SET_DISPATCH_PROXY,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::MAILBOX_SET_DISPATCH_PROXY,
             arg_addr_0: dispatch_proxy,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -173,8 +112,8 @@ program hyp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let mailbox_set_owner_fut = mailbox.aleo/set_owner(owner);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_MAILBOX_SET_OWNER,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::MAILBOX_SET_OWNER,
             arg_addr_0: owner,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -209,8 +148,8 @@ program hyp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let mailbox_set_default_ism_fut = mailbox.aleo/set_default_ism(ism);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_MAILBOX_SET_DEFAULT_ISM,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::MAILBOX_SET_DEFAULT_ISM,
             arg_addr_0: ism,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -245,8 +184,8 @@ program hyp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let mailbox_set_default_hook_fut = mailbox.aleo/set_default_hook(default_hook);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_MAILBOX_SET_DEFAULT_HOOK,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::MAILBOX_SET_DEFAULT_HOOK,
             arg_addr_0: default_hook,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -281,8 +220,8 @@ program hyp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let mailbox_set_required_hook_fut = mailbox.aleo/set_required_hook(required_hook);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_MAILBOX_SET_REQUIRED_HOOK,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::MAILBOX_SET_REQUIRED_HOOK,
             arg_addr_0: required_hook,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -317,8 +256,8 @@ program hyp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let ism_manager_set_domain_fut = ism_manager.aleo/set_domain(ism, domain, module);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_ISM_MANAGER_SET_DOMAIN,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::ISM_MANAGER_SET_DOMAIN,
             arg_addr_0: ism,
             arg_addr_1: module,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -353,8 +292,8 @@ program hyp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let ism_manager_remove_domain_fut = ism_manager.aleo/remove_domain(ism, domain);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_ISM_MANAGER_REMOVE_DOMAIN,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::ISM_MANAGER_REMOVE_DOMAIN,
             arg_addr_0: ism,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -389,8 +328,8 @@ program hyp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let ism_manager_set_owner_fut = ism_manager.aleo/transfer_routing_ism_ownership(ism, new_owner);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_ISM_MANAGER_SET_OWNER,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::ISM_MANAGER_SET_OWNER,
             arg_addr_0: ism,
             arg_addr_1: new_owner,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -427,8 +366,8 @@ program hyp_multisig.aleo {
         let hook_manager_set_gas_config_fut = hook_manager.aleo/set_destination_gas_config(igp, destination_domain, config);
 
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_HOOK_MANAGER_SET_GAS_CONFIG,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::HOOK_MANAGER_SET_GAS_CONFIG,
             arg_addr_0: igp,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -463,8 +402,8 @@ program hyp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let hook_manager_set_owner_fut = hook_manager.aleo/transfer_igp_ownership(igp, new_owner);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_HOOK_MANAGER_SET_IGP_OWNER,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::HOOK_MANAGER_SET_IGP_OWNER,
             arg_addr_0: igp,
             arg_addr_1: new_owner,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -500,8 +439,8 @@ program hyp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let hook_manager_rem_gas_config_fut = hook_manager.aleo/remove_destination_gas_config(igp, destination_domain);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_HOOK_MANAGER_REM_GAS_CONFIG,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::HOOK_MANAGER_REM_GAS_CONFIG,
             arg_addr_0: igp,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -537,8 +476,8 @@ program hyp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let hook_manager_claim_fut = hook_manager.aleo/claim(igp, amount);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_HOOK_MANAGER_CLAIM,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::HOOK_MANAGER_CLAIM,
             arg_addr_0: igp,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -573,8 +512,8 @@ program hyp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let transfer_fut = credits.aleo/transfer_public(self.caller, amount);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_CREDITS_TRANSFER_TO_CALLER,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::CREDITS_TRANSFER_TO_CALLER,
             arg_addr_0: ALEO_ZERO_ADDRESS,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,

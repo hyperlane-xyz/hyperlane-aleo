@@ -10,44 +10,9 @@ program hyp_warp_multisig.aleo {
     @admin(address="aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px")
     async constructor() {}
 
-    const OP_SET_CUSTOM_HOOK: u8 = 1;
-    const OP_SET_CUSTOM_ISM: u8 = 2;
-    const OP_SET_OWNER: u8 = 3;
-    const OP_ENROLL_REMOTE_ROUTER: u8 = 4;
-    const OP_UNROLL_REMOTE_ROUTER: u8 = 5;
-
 
     const ALEO_ZERO_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
 
-
-    struct Op {
-        op: u8,
-
-        // OP_SET_CUSTOM_HOOK: hook address
-        // OP_SET_CUSTOM_ISM: ism address
-        // OP_SET_OWNER: owner address
-        arg_addr_0: address,
-
-        // Reserved for future use
-        arg_addr_1: address,
-        arg_addr_2: address,
-        arg_addr_3: address,
-
-
-        // OP_ENROLL_REMOTE_ROUTER: destination
-        // OP_UNROLL_REMOTE_ROUTER: destination
-        arg_u128_0: u128,
-
-        // OP_ENROLL_REMOTE_ROUTER: gas
-        arg_u128_1: u128,
-
-        // Reserved for future use
-        arg_u128_2: u128,
-        arg_u128_3: u128,
-
-        // OP_ENROLL_REMOTE_ROUTER: recipient
-        arg_bytes: [u8; 32],
-    }
 
     mapping hashed_pending_ops: field => field; // signing_op_id => hash(Op)
 
@@ -83,7 +48,7 @@ program hyp_warp_multisig.aleo {
     // Note: the contents of op are not being checked here aside from ensuring fields reserved for future use are not set.
     // This is acceptable since op will get reconstructed in the various exec_ calls, which receive the specific parameters
     // necessary for each call and an assert statement ensures the op used to initialize the signing operation is the same
-    async transition init_multisig_op(public signing_op_id: field, public block_expiration: u32, public op: Op) -> Future {
+    async transition init_multisig_op(public signing_op_id: field, public block_expiration: u32, public op: op::Op) -> Future {
         assert_eq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
         assert_eq(op.arg_addr_3, ALEO_ZERO_ADDRESS);
         assert_eq(op.arg_addr_3, ALEO_ZERO_ADDRESS);
@@ -110,8 +75,8 @@ program hyp_warp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let set_custom_hook_fut = hyp_collateral.aleo/set_custom_hook(custom_hook);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_SET_CUSTOM_HOOK,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::SET_CUSTOM_HOOK,
             arg_addr_0: custom_hook,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -147,8 +112,8 @@ program hyp_warp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let set_custom_ism_fut = hyp_collateral.aleo/set_custom_ism(custom_ism);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_SET_CUSTOM_ISM,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::SET_CUSTOM_ISM,
             arg_addr_0: custom_ism,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -184,8 +149,8 @@ program hyp_warp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let set_owner_fut = hyp_collateral.aleo/set_owner(owner);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_SET_OWNER,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::SET_OWNER,
             arg_addr_0: owner,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -221,8 +186,8 @@ program hyp_warp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let enroll_remote_router_fut = hyp_collateral.aleo/enroll_remote_router(destination, recipient, gas);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_ENROLL_REMOTE_ROUTER,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::ENROLL_REMOTE_ROUTER,
             arg_addr_0: ALEO_ZERO_ADDRESS,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
@@ -258,8 +223,8 @@ program hyp_warp_multisig.aleo {
         let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let unroll_remote_router_fut = hyp_collateral.aleo/unroll_remote_router(destination);
 
-        let hashed_op = BHP256::hash_to_field(Op {
-            op: OP_UNROLL_REMOTE_ROUTER,
+        let hashed_op = BHP256::hash_to_field(op::Op {
+            op: op::UNROLL_REMOTE_ROUTER,
             arg_addr_0: ALEO_ZERO_ADDRESS,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
