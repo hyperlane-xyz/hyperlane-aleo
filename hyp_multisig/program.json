@@ -6,7 +6,7 @@
   "leo": "3.3.1",
   "dependencies": [
     {
-      "name": "multisig.aleo",
+      "name": "multisig_impl.aleo",
       "location": "network",
       "path": null,
       "edition": null

@@ -1,7 +1,7 @@
 // This program can be used to gate privilleged operations on the Hyperlane Mailbox/ISM/Hook Manager programs by a multisig.
 // The idea is that this program becomes the owner of the mailbox, ism_manager, and hook_manager programs, and it then can
 // make calls to the privileged operations and will only allow making these calls if sufficient signatures have been provided.
-import multisig.aleo;
+import multisig_impl.aleo;
 import mailbox.aleo;
 import ism_manager.aleo;
 import hook_manager.aleo;
@@ -85,12 +85,10 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition init(public threshold: u8, aleo_signers: [address; 4], ecdsa_signers: [[u8; 20]; 4]) -> Future {
-        let f = multisig.aleo/create_wallet(self.address, threshold, aleo_signers, ecdsa_signers);
-        return f_init(f);
-    }
-
-    async function f_init(f: Future) {
-        f.await();
+        let f = multisig_impl.aleo/create_wallet(self.address, threshold, aleo_signers, ecdsa_signers);
+        return async {
+            f.await();
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -114,22 +112,20 @@ program hyp_multisig.aleo {
     // This is acceptable since op will get reconstructed in the various exec_ calls, which receive the specific parameters
     // necessary for each call and an assert statement ensures the op used to initialize the signing operation is the same
     // one used for executing the operation by comparing the hash of the two structs.
-    async transition init_multisig_op(public signing_op_id: field, public op: Op) -> Future {
+    async transition init_multisig_op(public signing_op_id: field, public block_expiration: u32, public op: Op) -> Future {
         assert_eq(op.arg_addr_2, ALEO_ZERO_ADDRESS);
         assert_eq(op.arg_addr_3, ALEO_ZERO_ADDRESS);
 
         let op_hash = BHP256::hash_to_field(op);
 
-        let (wallet_signing_op_id_hash, init_signing_op_fut) = multisig.aleo/initiate_signing_op(self.address, signing_op_id);
-        return fin_init_multisig_op(signing_op_id, op_hash, init_signing_op_fut);
-    }
+        let (wallet_signing_op_id_hash, init_signing_op_fut) = multisig_impl.aleo/initiate_signing_op(self.address, signing_op_id, block_expiration);
 
-    async function fin_init_multisig_op(signing_op_id: field, op_hash: field, init_signing_op_fut: Future) {
-        assert(!hashed_pending_ops.contains(signing_op_id));
+        return async {
+            // This guarantees signing_op_id is either one that hasn't been used before, or one that has expired.
+            init_signing_op_fut.await();
 
-        hashed_pending_ops.set(signing_op_id, op_hash);
-
-        init_signing_op_fut.await();
+            hashed_pending_ops.set(signing_op_id, op_hash);
+        };
     }
 
 
@@ -138,7 +134,7 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_mailbox_set_dispatch_proxy(public signing_op_id: field, public dispatch_proxy: address) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let mailbox_set_dispatch_proxy_fut = mailbox.aleo/set_dispatch_proxy(dispatch_proxy);
 
         let hashed_op = BHP256::hash_to_field(Op {
@@ -153,22 +149,20 @@ program hyp_multisig.aleo {
             arg_u128_3: 0u128,
         });
 
-        return f_mailbox_set_dispatch_proxy(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_dispatch_proxy_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_mailbox_set_dispatch_proxy(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, mailbox_set_dispatch_proxy_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            mailbox_set_dispatch_proxy_fut.await();
 
-        // Execute the pending op.
-        mailbox_set_dispatch_proxy_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -176,7 +170,7 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_mailbox_set_owner(public signing_op_id: field, public owner: address) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let mailbox_set_owner_fut = mailbox.aleo/set_owner(owner);
 
         let hashed_op = BHP256::hash_to_field(Op {
@@ -191,22 +185,20 @@ program hyp_multisig.aleo {
             arg_u128_3: 0u128,
         });
 
-        return f_mailbox_set_owner(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_owner_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_mailbox_set_owner(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, mailbox_set_owner_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            mailbox_set_owner_fut.await();
 
-        // Execute the pending op.
-        mailbox_set_owner_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -214,7 +206,7 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_mailbox_set_default_ism(public signing_op_id: field, public ism: address) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let mailbox_set_default_ism_fut = mailbox.aleo/set_default_ism(ism);
 
         let hashed_op = BHP256::hash_to_field(Op {
@@ -229,22 +221,20 @@ program hyp_multisig.aleo {
             arg_u128_3: 0u128,
         });
 
-        return f_mailbox_set_default_ism(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_default_ism_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_mailbox_set_default_ism(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, mailbox_set_default_ism_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            mailbox_set_default_ism_fut.await();
 
-        // Execute the pending op.
-        mailbox_set_default_ism_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -252,7 +242,7 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_mailbox_set_default_hook(public signing_op_id: field, public default_hook: address) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let mailbox_set_default_hook_fut = mailbox.aleo/set_default_hook(default_hook);
 
         let hashed_op = BHP256::hash_to_field(Op {
@@ -267,22 +257,20 @@ program hyp_multisig.aleo {
             arg_u128_3: 0u128,
         });
 
-        return f_mailbox_set_default_hook(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_default_hook_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_mailbox_set_default_hook(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, mailbox_set_default_hook_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            mailbox_set_default_hook_fut.await();
 
-        // Execute the pending op.
-        mailbox_set_default_hook_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -290,7 +278,7 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_mailbox_set_required_hook(public signing_op_id: field, public required_hook: address) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let mailbox_set_required_hook_fut = mailbox.aleo/set_required_hook(required_hook);
 
         let hashed_op = BHP256::hash_to_field(Op {
@@ -305,22 +293,20 @@ program hyp_multisig.aleo {
             arg_u128_3: 0u128,
         });
 
-        return f_mailbox_set_required_hook(signing_op_id, hashed_op, signing_complete_fut, mailbox_set_required_hook_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_mailbox_set_required_hook(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, mailbox_set_required_hook_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            mailbox_set_required_hook_fut.await();
 
-        // Execute the pending op.
-        mailbox_set_required_hook_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -328,7 +314,7 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_ism_manager_set_domain(public signing_op_id: field, public ism: address, public domain: u32, public module: address) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let ism_manager_set_domain_fut = ism_manager.aleo/set_domain(ism, domain, module);
 
         let hashed_op = BHP256::hash_to_field(Op {
@@ -343,22 +329,20 @@ program hyp_multisig.aleo {
             arg_u128_3: 0u128,
         });
 
-        return f_ism_manager_set_domain(signing_op_id, hashed_op, signing_complete_fut, ism_manager_set_domain_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_ism_manager_set_domain(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, ism_manager_set_domain_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            ism_manager_set_domain_fut.await();
 
-        // Execute the pending op.
-        ism_manager_set_domain_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -366,7 +350,7 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_ism_manager_remove_domain(public signing_op_id: field, public ism: address, public domain: u32) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let ism_manager_remove_domain_fut = ism_manager.aleo/remove_domain(ism, domain);
 
         let hashed_op = BHP256::hash_to_field(Op {
@@ -381,22 +365,20 @@ program hyp_multisig.aleo {
             arg_u128_3: 0u128,
         });
 
-        return f_ism_manager_remove_domain(signing_op_id, hashed_op, signing_complete_fut, ism_manager_remove_domain_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_ism_manager_remove_domain(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, ism_manager_remove_domain_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            ism_manager_remove_domain_fut.await();
 
-        // Execute the pending op.
-        ism_manager_remove_domain_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -404,7 +386,7 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_ism_manager_set_owner(public signing_op_id: field, public ism: address, public new_owner: address) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let ism_manager_set_owner_fut = ism_manager.aleo/transfer_routing_ism_ownership(ism, new_owner);
 
         let hashed_op = BHP256::hash_to_field(Op {
@@ -419,22 +401,20 @@ program hyp_multisig.aleo {
             arg_u128_3: 0u128,
         });
 
-        return f_ism_manager_set_owner(signing_op_id, hashed_op, signing_complete_fut, ism_manager_set_owner_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_ism_manager_set_owner(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, ism_manager_set_owner_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            ism_manager_set_owner_fut.await();
 
-        // Execute the pending op.
-        ism_manager_set_owner_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -443,7 +423,7 @@ program hyp_multisig.aleo {
 
     // Name shortened to fit in 31 bytes
     async transition exec_hook_mgr_set_gas_config(public signing_op_id: field, public igp: address, public destination_domain: u32, public config: DomainGasConfig) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let hook_manager_set_gas_config_fut = hook_manager.aleo/set_destination_gas_config(igp, destination_domain, config);
 
 
@@ -459,22 +439,20 @@ program hyp_multisig.aleo {
             arg_u128_3: config.gas_price,
         });
 
-        return f_hook_manager_set_gas_config(signing_op_id, hashed_op, signing_complete_fut, hook_manager_set_gas_config_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_hook_manager_set_gas_config(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, hook_manager_set_gas_config_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            hook_manager_set_gas_config_fut.await();
 
-        // Execute the pending op.
-        hook_manager_set_gas_config_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -482,7 +460,7 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_hook_manager_set_igp_owner(public signing_op_id: field, public igp: address, public new_owner: address) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let hook_manager_set_owner_fut = hook_manager.aleo/transfer_igp_ownership(igp, new_owner);
 
         let hashed_op = BHP256::hash_to_field(Op {
@@ -497,22 +475,20 @@ program hyp_multisig.aleo {
             arg_u128_3: 0u128,
         });
 
-        return f_hook_manager_set_igp_owner(signing_op_id, hashed_op, signing_complete_fut, hook_manager_set_owner_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_hook_manager_set_igp_owner(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, hook_manager_set_owner_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            hook_manager_set_owner_fut.await();
 
-        // Execute the pending op.
-        hook_manager_set_owner_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -521,7 +497,7 @@ program hyp_multisig.aleo {
 
     // Name shortened to fit in 31 bytes
     async transition exec_hook_mgr_rem_gas_config(public signing_op_id: field, public igp: address, public destination_domain: u32) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let hook_manager_rem_gas_config_fut = hook_manager.aleo/remove_destination_gas_config(igp, destination_domain);
 
         let hashed_op = BHP256::hash_to_field(Op {
@@ -536,22 +512,20 @@ program hyp_multisig.aleo {
             arg_u128_3: 0u128,
         });
 
-        return f_hook_manager_rem_gas_config(signing_op_id, hashed_op, signing_complete_fut, hook_manager_rem_gas_config_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_hook_manager_rem_gas_config(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, hook_manager_rem_gas_config_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            hook_manager_rem_gas_config_fut.await();
 
-        // Execute the pending op.
-        hook_manager_rem_gas_config_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -560,7 +534,7 @@ program hyp_multisig.aleo {
 
     // Name shortened to fit in 31 bytes
     async transition exec_hook_manager_claim(public signing_op_id: field, public igp: address, public amount: u64) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let hook_manager_claim_fut = hook_manager.aleo/claim(igp, amount);
 
         let hashed_op = BHP256::hash_to_field(Op {
@@ -575,22 +549,20 @@ program hyp_multisig.aleo {
             arg_u128_3: 0u128,
         });
 
-        return f_hook_manager_claim(signing_op_id, hashed_op, signing_complete_fut, hook_manager_claim_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_hook_manager_claim(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, hook_manager_claim_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            hook_manager_claim_fut.await();
 
-        // Execute the pending op.
-        hook_manager_claim_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -598,7 +570,7 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_credits_transfer_to_caller(public signing_op_id: field, public amount: u64) -> Future {
-        let signing_complete_fut = multisig.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_impl.aleo/assert_signing_completed(self.address, signing_op_id);
         let transfer_fut = credits.aleo/transfer_public(self.caller, amount);
 
         let hashed_op = BHP256::hash_to_field(Op {
@@ -613,21 +585,19 @@ program hyp_multisig.aleo {
             arg_u128_3: 0u128,
         });
 
-        return f_credits_transfer_to_caller(signing_op_id, hashed_op, signing_complete_fut, transfer_fut);
-    }
+        return async {
+            // Signing must be completed.
+            signing_complete_fut.await();
 
-    async function f_credits_transfer_to_caller(signing_op_id: field, hashed_op: field, signing_complete_fut: Future, transfer_fut: Future) {
-        // Signing must be completed.
-        signing_complete_fut.await();
+            // The signing op must match the stored one.
+            let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
+            assert_eq(hashed_pending_op, hashed_op);
 
-        // The signing op must match the stored one.
-        let hashed_pending_op = hashed_pending_ops.get(signing_op_id);
-        assert_eq(hashed_pending_op, hashed_op);
+            // Execute the pending op.
+            transfer_fut.await();
 
-        // Execute the pending op.
-        transfer_fut.await();
-
-        // Removing is crucial, otherwise the operation can be executed twice.
-        hashed_pending_ops.remove(signing_op_id);
+            // Removing is crucial, otherwise the operation can be executed twice.
+            hashed_pending_ops.remove(signing_op_id);
+        };
     }
 }
