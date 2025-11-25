@@ -53,7 +53,6 @@ program dispatch_proxy.aleo {
 
     async function finalize_dispatch(passed_state: MailboxState, mailbox_dispatch: Future, default_hook: Future, required_hook: Future) {
         let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
-        assert_eq(mailbox.default_ism, passed_state.default_ism);
         assert_eq(mailbox.default_hook, passed_state.default_hook);
         assert_eq(mailbox.required_hook, passed_state.required_hook);
 
