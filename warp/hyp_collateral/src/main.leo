@@ -232,9 +232,7 @@ program hyp_collateral.aleo {
     ) -> Future {
         let mailbox_future: Future = mailbox.aleo/process(unverified_ism, message, message_length, id, metadata);
 
-        let address_raw = [0u128, 0u128];
-        address_raw[0] = message.body[0];
-        address_raw[1] = message.body[1];
+        let address_raw = [message.body[0], message.body[1]];
         let recipient = bytes_raw_to_address(address_raw);
         let amount = convert_ingoing_amount([message.body[2], message.body[3]], unverified_token_metadata.local_decimals, unverified_token_metadata.remote_decimals);
 
@@ -283,7 +281,7 @@ program hyp_collateral.aleo {
         return res;
     }
 
-    // Helper function to obtain the
+    // Helper function to obtain the balance key for an address and token id.
     transition get_balance_key(a: address, token_id: field) -> field {
         let role_owner: TokenOwner = TokenOwner {
               account: a,
