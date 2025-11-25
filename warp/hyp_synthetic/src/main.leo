@@ -188,7 +188,7 @@ program hyp_synthetic.aleo {
         let message_body = get_message_body(recipient, body_amount);
         
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
-        let token_future: Future = token_registry.aleo/burn_public(unverified_token_metadata.token_id, self.caller, amount);
+        let token_future: Future = token_registry.aleo/burn_public(unverified_token_metadata.token_id, self.signer, amount);
         return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_token_metadata);
     }
 
@@ -211,7 +211,7 @@ program hyp_synthetic.aleo {
         let message_body = get_message_body(recipient, body_amount);
         
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
-        let token_future: Future = token_registry.aleo/burn_public(unverified_token_metadata.token_id, self.caller, amount);
+        let token_future: Future = token_registry.aleo/burn_public(unverified_token_metadata.token_id, self.signer, amount);
         return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_token_metadata);
     }
 
