@@ -5,7 +5,6 @@ import hook_manager.aleo;
 program dispatch_proxy.aleo {
 
     struct MailboxState {
-        default_ism: address,
         default_hook: address,
         required_hook: address,
     }

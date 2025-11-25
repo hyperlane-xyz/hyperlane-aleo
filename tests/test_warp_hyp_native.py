@@ -185,7 +185,6 @@ def test_transfer_remote():
 
 def test_invalid_transfer_remote_wrong_mailbox():
     unverified_mailbox_state = {
-        "default_ism": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
         "default_hook": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
         "required_hook": "aleo10t2uecxm36lww6jakrfc3jcfelc42duq3km3g8aa3pn4vwyj2sgsrvql6f"
     }
