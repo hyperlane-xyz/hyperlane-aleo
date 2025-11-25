@@ -2,20 +2,20 @@ set -e
 
 LEO=~/Projects/aleo/leo/target/release/leo
 
-SIGNING_OP_ID=$($LEO execute --skip-proving --yes hyp_multisig.aleo/nonce_to_signing_op_id ${RANDOM}u32 | grep field | awk '{print $2}')
+SIGNING_OP_ID=$($LEO execute --skip-execute-proof --yes hyp_multisig.aleo/nonce_to_signing_op_id ${RANDOM}u32 | grep field | awk '{print $2}')
 BLOCK_EXPIRATION=10u32
 echo "Signing op id: $SIGNING_OP_ID"
 
-#HYP_MULTISIG_ADDR=$($LEO execute --skip-proving --yes hyp_multisig.aleo/get_self_address | grep " • aleo" | awk '{print $2}')
+#HYP_MULTISIG_ADDR=$($LEO execute --skip-execute-proof --yes hyp_multisig.aleo/get_self_address | grep " • aleo" | awk '{print $2}')
 #echo "Hyp multisig address: $HYP_MULTISIG_ADDR"
 
 IGP=aleo1luec7p59xlxlldvh697073yn6prwpv59ax32utu6tpq40c4ahs9q3axudk
 NEW_OWNER=aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px
 
 
-$LEO execute --skip-proving --yes --broadcast hyp_multisig.aleo/init_multisig_op $SIGNING_OP_ID $BLOCK_EXPIRATION "{op: 21u8, arg_addr_0: $IGP, arg_addr_1: $NEW_OWNER, arg_addr_2: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_addr_3: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_u128_0: 0u128, arg_u128_1: 0u128, arg_u128_2: 0u128, arg_u128_3: 0u128}"
+$LEO execute --skip-execute-proof --yes --broadcast hyp_multisig.aleo/init_multisig_op $SIGNING_OP_ID $BLOCK_EXPIRATION "{op: 21u8, arg_addr_0: $IGP, arg_addr_1: $NEW_OWNER, arg_addr_2: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_addr_3: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_u128_0: 0u128, arg_u128_1: 0u128, arg_u128_2: 0u128, arg_u128_3: 0u128}"
 
-PRIVATE_KEY=APrivateKey1zkp2RWGDcde3efb89rjhME1VYA8QMxcxep5DShNBR6n8Yjh $LEO execute --skip-proving --yes --broadcast multisig_impl.aleo/sign hyp_multisig.aleo $SIGNING_OP_ID
+PRIVATE_KEY=APrivateKey1zkp2RWGDcde3efb89rjhME1VYA8QMxcxep5DShNBR6n8Yjh $LEO execute --skip-execute-proof --yes --broadcast multisig_core.aleo/sign hyp_multisig.aleo $SIGNING_OP_ID
 
 
-$LEO execute --skip-proving --yes --broadcast hyp_multisig.aleo/exec_hook_manager_set_igp_owner $SIGNING_OP_ID $IGP $NEW_OWNER
+$LEO execute --skip-execute-proof --yes --broadcast hyp_multisig.aleo/exec_hook_manager_set_igp_owner $SIGNING_OP_ID $IGP $NEW_OWNER
