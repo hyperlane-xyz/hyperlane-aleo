@@ -217,9 +217,7 @@ program hyp_synthetic.aleo {
 
     async function finalize_transfer_remote(dispatch_future: Future, token_future: Future, unverified_remote_router: RemoteRouter, destination: u32, unverified_metadata: Metadata) {
         let actual_remote_router = remote_routers.get(destination);
-        assert_eq(actual_remote_router.domain, unverified_remote_router.domain);
-        assert_eq(actual_remote_router.recipient, unverified_remote_router.recipient);
-        assert_eq(actual_remote_router.gas, unverified_remote_router.gas);
+        assert_eq(actual_remote_router, unverified_remote_router);
 
         let actual_metadata = app_metadata.get(true);
         assert_eq(unverified_metadata, actual_metadata);
@@ -238,9 +236,7 @@ program hyp_synthetic.aleo {
     ) -> Future {
         let mailbox_future: Future = mailbox.aleo/process(unverified_ism, message, message_length, id, metadata);
 
-        let address_raw = [0u128, 0u128];
-        address_raw[0] = message.body[0];
-        address_raw[1] = message.body[1];
+        let address_raw = [message.body[0], message.body[1]];
         let recipient = bytes_raw_to_address(address_raw);
         let amount = convert_ingoing_amount([message.body[2], message.body[3]], unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
 
@@ -289,7 +285,7 @@ program hyp_synthetic.aleo {
         return res;
     }
 
-    // Helper function to obtain the
+    // Helper function to obtain the balance key for an address and token id.
     transition get_balance_key(a: address, token_id: field) -> field {
         let role_owner: TokenOwner = TokenOwner {
               account: a,
@@ -401,27 +397,6 @@ program hyp_synthetic.aleo {
         
         let amount = ((quotient[2] as u128) << 64u32) | (quotient[3] as u128);
         return amount;
-    }
-
-    /// The gas limit is stored in the first 16 bytes of the metadata as a big-endian u128
-    /// Converts the gas limit to big endian u128 representation.
-    inline u128_to_bytes(gas_limit: u128) -> [u8; 16] {
-        let bytes: [u8; 16] = [0u8; 16];
-        for i: u8 in 0u8..16u8 {
-            // Big-endian: most significant byte at index 0
-            bytes[i] = ((gas_limit >> ((15u8 - i) * 8u8)) % 256u128) as u8;
-        }
-        return bytes;
-    }
-
-    /// Extracts the gas limit from the metadata bytes
-    /// The gas limit is stored in the first 16 bytes of the metadata as a big-endian u128
-    inline metadata_gas_limit(bytes: [u8; 256]) -> u128 {
-        let value = 0u128;
-        for i in 0u32..16u32 {
-            value = value << 8u32 | bytes[i] as u128;
-        }
-        return value;
     }
 
     inline get_message_body(recipient: [u128; 2], amount: [u128; 2]) -> [u128; 16] {
