@@ -120,6 +120,11 @@ def construct_local_message(nonce: int, recipient: list[int], body: list[int]) -
 
     return message
 
+def state_without_ism():
+    state_copy = STATE.copy()
+    state_copy.pop("default_ism", None)
+    return to_aleo_like(state_copy)
+
 def test_dispatch_message():
     recipient = [random.randint(0, 255) for _ in range(32)]
     body = [random.randint(0, 2**128-1) for _ in range(16)]
@@ -131,7 +136,7 @@ def test_dispatch_message():
     result = cwd_transact(
         "execute",
         "dispatch",
-        to_aleo_like(STATE),
+        state_without_ism(),
         destination,
         to_aleo_like(recipient, numeric_suffix=8),
         to_aleo_like(body, numeric_suffix=128),
@@ -157,6 +162,7 @@ def test_invalid_dispatch_wrong_state():
     metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
     hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
     state_copy = STATE.copy()
+    state_copy["default_ism"] = None
     state_copy["default_hook"] = NULL_ADDRESS  # Invalid state
     result = cwd_transact(
         "execute",
@@ -188,7 +194,7 @@ def test_post_dispatch_custom_hook():
     result = cwd_transact(
         "execute",
         "dispatch",
-        to_aleo_like(STATE),
+        state_without_ism(),
         destination,
         to_aleo_like(recipient, numeric_suffix=8),
         to_aleo_like(body, numeric_suffix=128),

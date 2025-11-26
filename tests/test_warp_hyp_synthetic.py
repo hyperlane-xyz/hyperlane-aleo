@@ -25,6 +25,11 @@ GAS_LIMIT = 1000
 
 HYP_PROGRAM_HEX = bytes.fromhex("4e9fe80899d4b820694150205efff1a866d7c25d45d6beb1ba0a5e2d2fbd9e0a")
 
+def mailbox_without_ism():
+    mailbox_state = MAILBOX.copy()
+    mailbox_state.pop("default_ism", None)
+    return to_aleo_like(mailbox_state)
+
 def get_mapping_value(mapping: str, key: str):
     return get_program_mapping_value(PROGRAM, mapping, key)
 
@@ -336,7 +341,7 @@ def test_transfer_remote():
         "execute",
         "transfer_remote",
         to_aleo_like(METADATA, numeric_suffix='8'),
-        to_aleo_like(MAILBOX, numeric_suffix='8'),
+        mailbox_without_ism(),
         unverified_remote_router,
         "1u32",
         '[258938393984388867711851864522651336704u128, 86407088643764425831394674034555577650u128]',
@@ -379,7 +384,6 @@ def test_transfer_remote():
 
 def test_invalid_transfer_remote_wrong_mailbox():
     unverified_mailbox_state = {
-        "default_ism": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
         "default_hook": "aleo1k8h4rvk7q4jplv4w8a2qk8zn8ahgtsk3urgj2z5f9krxwm606gys9c607w",
         "required_hook": "aleo1ysyt49787vznynprcz8vlgepdkh0ykyzf0pvcc2jt4tv89v0nurqceqcjp"
     }
@@ -410,7 +414,7 @@ def test_invalid_transfer_remote_wrong_metadata():
         "execute",
         "transfer_remote",
         to_aleo_like(unverified_metadata, numeric_suffix='8'),
-        to_aleo_like(MAILBOX, numeric_suffix='8'),
+        mailbox_without_ism(),
         unverified_remote_router,
         "1u32",
         '[258938393984388867711851864522651336704u128, 86407088643764425831394674034555577650u128]',
@@ -432,7 +436,7 @@ def test_transfer_custom_hook():
         "execute",
         "transfer_remote_with_hook",
         to_aleo_like(METADATA, numeric_suffix='8'),
-        to_aleo_like(MAILBOX, numeric_suffix='8'),
+        mailbox_without_ism(),
         unverified_remote_router,
         "1u32",
         '[258938393984388867711851864522651336704u128, 86407088643764425831394674034555577650u128]',
@@ -463,7 +467,7 @@ def test_transfer_custom_hook_metadata():
         "execute",
         "transfer_remote_with_hook",
         to_aleo_like(METADATA, numeric_suffix='8'),
-        to_aleo_like(MAILBOX, numeric_suffix='8'),
+        mailbox_without_ism(),
         unverified_remote_router,
         "1u32",
         '[258938393984388867711851864522651336704u128, 86407088643764425831394674034555577650u128]',
@@ -487,7 +491,7 @@ def test_invalid_transfer_wrong_custom_hook():
         "execute",
         "transfer_remote_with_hook",
         to_aleo_like(METADATA, numeric_suffix='8'),
-        to_aleo_like(MAILBOX, numeric_suffix='8'),
+        mailbox_without_ism(),
         unverified_remote_router,
         "1u32",
         '[258938393984388867711851864522651336704u128, 86407088643764425831394674034555577650u128]',
@@ -521,7 +525,7 @@ def test_transfer_after_set_hook():
         "execute",
         "transfer_remote",
         to_aleo_like(METADATA, numeric_suffix='8'),
-        to_aleo_like(MAILBOX, numeric_suffix='8'),
+        mailbox_without_ism(),
         unverified_remote_router,
         "1u32",
         '[258938393984388867711851864522651336704u128, 86407088643764425831394674034555577650u128]',
