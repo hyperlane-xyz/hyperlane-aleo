@@ -33,7 +33,7 @@ def test_deploy():
     assert result.get("success"), f"Deployment failed: {result}"
 
 def test_init():
-    exists = get_mapping_value("token_metadata", "true")
+    exists = get_mapping_value("app_metadata", "true")
     if exists:
         return
     program_id = list(b"hyp_native.aleo")
@@ -45,13 +45,13 @@ def test_init():
         f"{SCALE}u8"
     )
     assert result.get("success"), f"Warp Hyp Native init failed: {result}"
-    token_metadata = get_mapping_value("token_metadata", "true")
-    assert token_metadata["token_owner"] == CALLER
-    assert token_metadata["scale"] == SCALE
-    assert token_metadata["ism"] == NULL_ADDRESS
+    app_metadata = get_mapping_value("app_metadata", "true")
+    assert app_metadata["token_owner"] == CALLER
+    assert app_metadata["scale"] == SCALE
+    assert app_metadata["ism"] == NULL_ADDRESS
 
 def test_init_again():
-    exists = get_mapping_value("token_metadata", "true")
+    exists = get_mapping_value("app_metadata", "true")
     assert exists is not None
     program_id = list(b"hyp_native.aleo")
     program_id = program_id + [0] * (128 - len(program_id))
@@ -62,12 +62,12 @@ def test_init_again():
         f"{SCALE}u8"
     )
     assert not result.get("success"), f"Warp Hyp Native init should have failed: {result}"
-    token_metadata = get_mapping_value("token_metadata", "true")
-    assert token_metadata["token_owner"] == CALLER
-    assert token_metadata["scale"] == SCALE
-    assert token_metadata["ism"] == NULL_ADDRESS
-    assert token_metadata["hook"] == NULL_ADDRESS
-    assert token_metadata["token_type"] == 0
+    app_metadata = get_mapping_value("app_metadata", "true")
+    assert app_metadata["token_owner"] == CALLER
+    assert app_metadata["scale"] == SCALE
+    assert app_metadata["ism"] == NULL_ADDRESS
+    assert app_metadata["hook"] == NULL_ADDRESS
+    assert app_metadata["token_type"] == 0
 
 def test_enroll_remote_router():
     address = [1, 2] * 16
@@ -435,7 +435,7 @@ def test_custom_ism():
 
     assert result.get("success"), "Setting custom ISM failed"
 
-    onchain_metadata = get_mapping_value("token_metadata", "true")
+    onchain_metadata = get_mapping_value("app_metadata", "true")
     assert onchain_metadata["ism"] == routing_ism, "Custom ISM not set correctly on-chain"
 
     METADATA["ism"] = routing_ism
@@ -481,5 +481,5 @@ def test_ownership_transfer():
 
     assert result.get("success"), "Ownership transfer failed"
 
-    onchain_metadata = get_mapping_value("token_metadata", "true")
+    onchain_metadata = get_mapping_value("app_metadata", "true")
     assert onchain_metadata["token_owner"] == SECONDARY_ACCOUNT["address"], "Ownership not transferred correctly on-chain"

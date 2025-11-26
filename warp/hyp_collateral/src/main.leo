@@ -13,7 +13,7 @@ program hyp_collateral.aleo {
     // The program needs to know with which other contracts from other blockchains it can communicate.
     // For each destination chain it is required to enroll an remote router containing the correspondents address
     // and the expected gas limit which is required to execute the transaction on the destination chain.
-    // This can be changed by the contract owner specified in the `token_metadata`.
+    // This can be changed by the contract owner specified in the `app_metadata`.
     mapping remote_routers: u32 => RemoteRouter;
 
     // Mapping to iterate all remote router entries
@@ -24,9 +24,9 @@ program hyp_collateral.aleo {
     mapping remote_router_length: bool => u32;
 
     // Metadata stores necessary information about the program.
-    // This can be changed by the contract owner specified in the `token_metadata`
+    // This can be changed by the contract owner specified in the `app_metadata`
     // The metadata is queried by the relayer and passed to the process function.
-    mapping token_metadata: bool => Metadata;
+    mapping app_metadata: bool => Metadata;
 
     const TYPE_COLLATERAL: u8 = 2u8;
 
@@ -80,10 +80,10 @@ program hyp_collateral.aleo {
             assert_eq(difference.abs() <= 18i16, true);
 
             // Token can only be initialized once
-            let initialized: bool = token_metadata.contains(true);
+            let initialized: bool = app_metadata.contains(true);
             assert_eq(initialized, false);
 
-            token_metadata.set(true, Metadata {
+            app_metadata.set(true, Metadata {
                 token_type: TYPE_COLLATERAL,
                 token_owner: caller,
                 token_id: token_id,
@@ -105,10 +105,10 @@ program hyp_collateral.aleo {
     async transition set_custom_hook(hook_address: address) -> Future {
         let caller = self.caller;
         return async {
-            let state = token_metadata.get(true);
+            let state = app_metadata.get(true);
             assert_eq(state.token_owner, caller);
             state.hook = hook_address;
-            token_metadata.set(true, state);
+            app_metadata.set(true, state);
         };
     }
 
@@ -116,10 +116,10 @@ program hyp_collateral.aleo {
     async transition set_custom_ism(ism_address: address) -> Future {
         let caller = self.caller;
         return async {
-            let state = token_metadata.get(true);
+            let state = app_metadata.get(true);
             assert_eq(state.token_owner, caller);
             state.ism = ism_address;
-            token_metadata.set(true, state);
+            app_metadata.set(true, state);
         };
     }
 
@@ -127,18 +127,18 @@ program hyp_collateral.aleo {
     async transition set_owner(new_owner: address) -> Future {
         let caller = self.caller;
         return async {
-            let state = token_metadata.get(true);
+            let state = app_metadata.get(true);
             assert_eq(state.token_owner, caller);
 
             state.token_owner = new_owner;
-            token_metadata.set(true, state);
+            app_metadata.set(true, state);
         };
     }
 
     async transition enroll_remote_router(destination: u32, recipient: [u8; 32], gas: u128) -> Future {
         let caller = self.caller;
         return async {
-            let state = token_metadata.get(true);
+            let state = app_metadata.get(true);
             assert_eq(state.token_owner, caller);
 
             if !remote_routers.contains(destination) {
@@ -158,7 +158,7 @@ program hyp_collateral.aleo {
     async transition unroll_remote_router(destination: u32) -> Future {
         let caller = self.caller;
         return async {
-            let state = token_metadata.get(true);
+            let state = app_metadata.get(true);
             assert_eq(state.token_owner, caller);
 
             remote_routers.remove(destination);
@@ -166,7 +166,7 @@ program hyp_collateral.aleo {
     }
 
     async transition transfer_remote(
-        public unverified_token_metadata: Metadata,
+        public unverified_app_metadata: Metadata,
         public unverified_mailbox_state: MailboxState,
         public unverified_remote_router: RemoteRouter,
         public destination: u32,
@@ -174,22 +174,22 @@ program hyp_collateral.aleo {
         public amount: u128,
         public allowance: [CreditAllowance; 4],
     ) -> Future {
-        let custom_hook: address = unverified_token_metadata.hook;
+        let custom_hook: address = unverified_app_metadata.hook;
         let hook_metadata = HookMetadata {
             gas_limit: unverified_remote_router.gas,
             extra_data: [0u8; 64],
         };
 
-        let body_amount = convert_outgoing_amount(amount, unverified_token_metadata.local_decimals, unverified_token_metadata.remote_decimals);
+        let body_amount = convert_outgoing_amount(amount, unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
         let message_body = get_message_body(recipient, body_amount);
         
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
-        let token_future: Future = token_registry.aleo/transfer_public_as_signer(unverified_token_metadata.token_id, self.address, amount);
-        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_token_metadata);
+        let token_future: Future = token_registry.aleo/transfer_public_as_signer(unverified_app_metadata.token_id, self.address, amount);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
     }
 
     async transition transfer_remote_with_hook(
-        public unverified_token_metadata: Metadata,
+        public unverified_app_metadata: Metadata,
         public unverified_mailbox_state: MailboxState,
         public unverified_remote_router: RemoteRouter,
         public destination: u32,
@@ -203,19 +203,19 @@ program hyp_collateral.aleo {
             hook_metadata.gas_limit = unverified_remote_router.gas;
         }
 
-        let body_amount = convert_outgoing_amount(amount, unverified_token_metadata.local_decimals, unverified_token_metadata.remote_decimals);
+        let body_amount = convert_outgoing_amount(amount, unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
         let message_body = get_message_body(recipient, body_amount);
         
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
-        let token_future: Future = token_registry.aleo/transfer_public_as_signer(unverified_token_metadata.token_id, self.address, amount);
-        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_token_metadata);
+        let token_future: Future = token_registry.aleo/transfer_public_as_signer(unverified_app_metadata.token_id, self.address, amount);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
     }
 
     async function finalize_transfer_remote(dispatch_future: Future, token_future: Future, unverified_remote_router: RemoteRouter, destination: u32, unverified_metadata: Metadata) {
         let actual_remote_router = remote_routers.get(destination);
         assert_eq(actual_remote_router, unverified_remote_router);
 
-        let actual_metadata = token_metadata.get(true);
+        let actual_metadata = app_metadata.get(true);
         assert_eq(unverified_metadata, actual_metadata);
 
         dispatch_future.await();
@@ -224,7 +224,7 @@ program hyp_collateral.aleo {
 
     async transition process(
         public unverified_ism: address,
-        public unverified_token_metadata: Metadata,
+        public unverified_app_metadata: Metadata,
         public message: Message,
         public message_length: u32,
         public id: [u128; 2],
@@ -232,20 +232,18 @@ program hyp_collateral.aleo {
     ) -> Future {
         let mailbox_future: Future = mailbox.aleo/process(unverified_ism, message, message_length, id, metadata);
 
-        let address_raw = [0u128, 0u128];
-        address_raw[0] = message.body[0];
-        address_raw[1] = message.body[1];
+        let address_raw = [message.body[0], message.body[1]];
         let recipient = bytes_raw_to_address(address_raw);
-        let amount = convert_ingoing_amount([message.body[2], message.body[3]], unverified_token_metadata.local_decimals, unverified_token_metadata.remote_decimals);
+        let amount = convert_ingoing_amount([message.body[2], message.body[3]], unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
 
-        let token_future: Future = token_registry.aleo/transfer_public(unverified_token_metadata.token_id, recipient, amount);
-        return finalize_process(mailbox_future, unverified_token_metadata, message, token_future, unverified_ism);
+        let token_future: Future = token_registry.aleo/transfer_public(unverified_app_metadata.token_id, recipient, amount);
+        return finalize_process(mailbox_future, unverified_app_metadata, message, token_future, unverified_ism);
     }
 
     // Validates the unverified inputs from the process transition and awaits its futures.
-    async function finalize_process(mailbox_future: Future, unverified_token_metadata: Metadata, message: Message, credits_future: Future, unverified_ism: address) {
-        let metadata = token_metadata.get(true);
-        assert_eq(metadata, unverified_token_metadata);
+    async function finalize_process(mailbox_future: Future, unverified_app_metadata: Metadata, message: Message, credits_future: Future, unverified_ism: address) {
+        let metadata = app_metadata.get(true);
+        assert_eq(metadata, unverified_app_metadata);
 
         // Check if custom ISM is provided, otherwise use the default ISM from the mailbox
         let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
@@ -283,7 +281,7 @@ program hyp_collateral.aleo {
         return res;
     }
 
-    // Helper function to obtain the
+    // Helper function to obtain the balance key for an address and token id.
     transition get_balance_key(a: address, token_id: field) -> field {
         let role_owner: TokenOwner = TokenOwner {
               account: a,
