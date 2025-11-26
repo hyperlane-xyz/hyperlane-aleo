@@ -38,7 +38,7 @@ def test_deploy():
     assert result.get("success"), f"Deployment failed: {result}"
 
 def test_init():
-    exists = get_mapping_value("token_metadata", "true")
+    exists = get_mapping_value("app_metadata", "true")
     if exists:
         return
     program_id = list(b"hyp_synthetic.aleo")
@@ -54,17 +54,17 @@ def test_init():
         f"{REMOTE_DECIMALS}u8",
     )
     assert result.get("success"), f"Warp Hyp Synthetic init failed: {result}"
-    token_metadata = get_mapping_value("token_metadata", "true")
-    assert token_metadata["token_owner"] == CALLER
-    assert token_metadata["local_decimals"] == LOCAL_DECIMALS
-    assert token_metadata["remote_decimals"] == REMOTE_DECIMALS
-    assert token_metadata["ism"] == NULL_ADDRESS
-    assert token_metadata["hook"] == NULL_ADDRESS
-    assert token_metadata["token_type"] == 1
-    assert token_metadata["token_id"] == METADATA["token_id"]
+    app_metadata = get_mapping_value("app_metadata", "true")
+    assert app_metadata["token_owner"] == CALLER
+    assert app_metadata["local_decimals"] == LOCAL_DECIMALS
+    assert app_metadata["remote_decimals"] == REMOTE_DECIMALS
+    assert app_metadata["ism"] == NULL_ADDRESS
+    assert app_metadata["hook"] == NULL_ADDRESS
+    assert app_metadata["token_type"] == 1
+    assert app_metadata["token_id"] == METADATA["token_id"]
 
 def test_init_again():
-    exists = get_mapping_value("token_metadata", "true")
+    exists = get_mapping_value("app_metadata", "true")
     assert exists is not None
 
     program_id = list(b"hyp_synthetic.aleo")
@@ -285,7 +285,7 @@ def test_custom_ism():
 
     assert result.get("success"), "Setting custom ISM failed"
 
-    onchain_metadata = get_mapping_value("token_metadata", "true")
+    onchain_metadata = get_mapping_value("app_metadata", "true")
     assert onchain_metadata["ism"] == routing_ism, "Custom ISM not set correctly on-chain"
 
     METADATA["ism"] = routing_ism
@@ -547,5 +547,5 @@ def test_ownership_transfer():
 
     assert result.get("success"), "Ownership transfer failed"
 
-    onchain_metadata = get_mapping_value("token_metadata", "true")
+    onchain_metadata = get_mapping_value("app_metadata", "true")
     assert onchain_metadata["token_owner"] == SECONDARY_ACCOUNT["address"], "Ownership not transferred correctly on-chain"
