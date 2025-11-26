@@ -473,8 +473,8 @@ program hook_manager.aleo {
             let merkle_tree_hook = merkle_tree_hooks.get(hook);
             // Only the parent is allowed to call the merkle_tree_hook
             // We assume that the parent calls the merkle tree hook & dispatch function of the mailbox in the correct order
-            // This means the parent has to make sure, that the merkle tree hook won't get invoked twice for the same message
-            // In practice the parent is usually the dispatch_proxy
+            // In pratice this will be enforced by the `dispatch_proxy` program.
+            // It is not a security issue if the parent calls the merkle tree hook multiple times for the same message
             assert_eq(merkle_tree_hook.parent, caller);
             
             let index: u32 = merkle_tree_hook.tree.count;
