@@ -14,9 +14,23 @@ program hyp_multisig.aleo {
 
     mapping hashed_pending_ops: field => field; // signing_op_id => hash(Op)
 
-    // TODO
-    @admin(address="aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px")
-    async constructor() {}
+    struct ChecksumEdition {
+        checksum: [u8; 32],
+        edition: u16,
+    }
+
+    @custom
+    async constructor() {
+        // Only require multisig for upgrades - initial deployment has no checks.
+        if self.edition > 0u16 {
+            let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
+
+            let wallet_signing_op_id_hash = BHP256::hash_to_field(WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
+            let signing_complete = multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            assert(signing_complete);
+        }
+    }
+
 
     //////////////////////////////////////////////////////////////////////////
     // Init function that must be called after deployment before the rest
