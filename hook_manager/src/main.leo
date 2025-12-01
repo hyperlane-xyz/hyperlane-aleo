@@ -1,5 +1,6 @@
 import mailbox.aleo;
 import credits.aleo;
+import multisig_core.aleo;
 
 // The 'hook_manager' program.
 program hook_manager.aleo {
@@ -22,7 +23,7 @@ program hook_manager.aleo {
 
     // Mapping for MerkleTreeHook
     mapping merkle_tree_hooks: address => MerkleTreeHook;
-    
+
     // Events
     // GasPayment Events: sequence => Event
     mapping gas_payment_events: HookIndexKey => GasPaymentEvent;
@@ -180,8 +181,22 @@ program hook_manager.aleo {
     const TOKEN_EXCHANGE_RATE_SCALE: u128 = 10000000000u128; // 1e10
     const DEFAULT_GAS_LIMIT: u128 = 50000;
 
-    @noupgrade
-    async constructor() {}
+    struct ChecksumEdition {
+        checksum: [u8; 32],
+        edition: u16,
+    }
+
+    @custom
+    async constructor() {
+        // Only require multisig for upgrades - initial deployment has no checks.
+        if self.edition > 0u16 {
+            let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
+
+            let wallet_signing_op_id_hash = BHP256::hash_to_field(WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
+            let signing_complete = multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            assert(signing_complete);
+        }
+    }
 
     async transition init_noop() -> Future {
         return finalize_noop();
@@ -323,7 +338,7 @@ program hook_manager.aleo {
             destination_domain,
         };
         gas_payment_events.set(event_key, event);
-        
+
         let event_index_key = EventIndexKey {
             hook: igp_address,
             block_height: block.height,
@@ -434,7 +449,7 @@ program hook_manager.aleo {
     //
     // General dispatch logic for all hooks
     //
-    
+
     /// Post Dispatch
     /// Fetches the latest message from the mailbox and performs the post_dispatch function on that.
     /// - hook_allowance: mapping from hook_address -> allowed credits to spend. This is used to correctly initialize credit transfers in the `post_dispatch` hooks
@@ -476,7 +491,7 @@ program hook_manager.aleo {
             // In pratice this will be enforced by the `dispatch_proxy` program.
             // It is not a security issue if the parent calls the merkle tree hook multiple times for the same message
             assert_eq(merkle_tree_hook.parent, caller);
-            
+
             let index: u32 = merkle_tree_hook.tree.count;
             merkle_tree_hook.tree = insert_into_tree(merkle_tree_hook.tree, message_id);
             merkle_tree_hook.root = merkle_tree_root(merkle_tree_hook.tree);
@@ -504,7 +519,7 @@ program hook_manager.aleo {
                 destination: message.destination_domain,
                 igp: hook,
             };
-            
+
             // If the config does not exist, we default to a zero quote
             let config = destination_gas_configs.get_or_use(key, DomainGasConfig {
                 gas_overhead: 0u128,
@@ -532,7 +547,7 @@ program hook_manager.aleo {
             };
             gas_payment_events.set(event_key, event);
             last_event_index.set(event_index_key, igp.count);
-            
+
             igp.balance += credits_amount;
             igp.count += 1;
 
