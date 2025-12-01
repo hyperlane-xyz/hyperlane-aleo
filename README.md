@@ -1,8 +1,5 @@
 # Hyperlane-Aleo
 
-> [!WARNING]  
-> This project is currently under development and not intended to be used in production.
-
 This project is an implementation of Hyperlane for the Aleo, designed for
 a seamless interchain communication following the Hyperlane spec.
 
@@ -48,6 +45,14 @@ git checkout 4a4e28c5ddf947eaa7b71e1ecdca4308f9234bec
 
 # Install leo with features
 cargo install --path .
+```
+
+## Development
+
+Setup local environment:
+
+```bash
+cp .env.example .env
 ```
 
 **Building the project:**
