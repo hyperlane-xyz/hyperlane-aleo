@@ -1,5 +1,6 @@
 import mailbox.aleo;
 import hook_manager.aleo;
+import multisig_core.aleo;
 
 // The 'dispatch_proxy' program.
 program dispatch_proxy.aleo {
@@ -9,8 +10,22 @@ program dispatch_proxy.aleo {
         required_hook: address,
     }
 
-    @noupgrade
-    async constructor() {}
+    struct ChecksumEdition {
+        checksum: [u8; 32],
+        edition: u16,
+    }
+
+    @custom
+    async constructor() {
+        // Only require multisig for upgrades - initial deployment has no checks.
+        if self.edition > 0u16 {
+            let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
+
+            let wallet_signing_op_id_hash = BHP256::hash_to_field(WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
+            let signing_complete = multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            assert(signing_complete);
+        }
+    }
 
     const NULL_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
 

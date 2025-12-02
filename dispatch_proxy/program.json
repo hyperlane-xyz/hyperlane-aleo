@@ -16,6 +16,12 @@
       "location": "local",
       "path": "../mailbox",
       "edition": null
+    },
+    {
+      "name": "multisig_core.aleo",
+      "location": "local",
+      "path": "../multisig_core",
+      "edition": null
     }
   ],
   "dev_dependencies": null
