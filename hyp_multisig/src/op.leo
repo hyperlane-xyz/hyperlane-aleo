@@ -16,7 +16,7 @@ const HOOK_MANAGER_SET_IGP_OWNER: u8 = 21;
 const HOOK_MANAGER_REM_GAS_CONFIG: u8 = 22;
 const HOOK_MANAGER_CLAIM: u8 = 23;
 
-const CREDITS_TRANSFER_TO_CALLER: u8 = 30;
+const CREDITS_TRANSFER: u8 = 30;
 
 struct Op {
     op: u8,
@@ -33,6 +33,7 @@ struct Op {
     // HOOK_MANAGER_SET_IGP_OWNER: IGP address
     // HOOK_MANAGER_REM_GAS_CONFIG: IGP address
     // HOOK_MANAGER_CLAIM: IGP address
+    // CREDITS_TRANSFER: Recipient that will receive the credits
     arg_addr_0: address,
 
     // ISM_MANAGER_SET_DOMAIN: The module address
@@ -49,7 +50,7 @@ struct Op {
     // HOOK_MANAGER_SET_GAS_CONFIG: The destination domain
     // HOOK_MANAGER_REM_GAS_CONFIG: The destination domain
     // HOOK_MANAGER_CLAIM: Amount to claim
-    // CREDITS_TRANSFER_TO_CALLER: Amount to transfer
+    // CREDITS_TRANSFER: Amount to transfer
     arg_u128_0: u128,
 
     // HOOK_MANAGER_SET_GAS_CONFIG: gas_overhead

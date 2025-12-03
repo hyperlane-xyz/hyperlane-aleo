@@ -530,13 +530,13 @@ program hyp_multisig.aleo {
     // Credits: Transfer to caller
     //////////////////////////////////////////////////////////////////////////
 
-    async transition exec_credits_transfer_to_caller(public signing_op_id: field, public amount: u64) -> Future {
+    async transition exec_credits_transfer(public signing_op_id: field, public recipient: address, public amount: u64) -> Future {
         let signing_complete_fut = multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let transfer_fut = credits.aleo/transfer_public(self.caller, amount);
+        let transfer_fut = credits.aleo/transfer_public(recipient, amount);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
-            op: op::CREDITS_TRANSFER_TO_CALLER,
-            arg_addr_0: ALEO_ZERO_ADDRESS,
+            op: op::CREDITS_TRANSFER,
+            arg_addr_0: recipient,
             arg_addr_1: ALEO_ZERO_ADDRESS,
             arg_addr_2: ALEO_ZERO_ADDRESS,
             arg_addr_3: ALEO_ZERO_ADDRESS,
