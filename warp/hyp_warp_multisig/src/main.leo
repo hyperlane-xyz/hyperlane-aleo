@@ -35,10 +35,25 @@ program hyp_warp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition init(public threshold: u8, aleo_signers: [address; 4], ecdsa_signers: [[u8; 20]; 4]) -> Future {
-        let f = multisig_core.aleo/create_wallet(self.address, threshold, aleo_signers, ecdsa_signers);
+        let f = multisig_core.aleo/create_wallet(get_wallet_id(), threshold, aleo_signers, ecdsa_signers);
         return async {
             f.await();
         };
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Helper functions
+    //////////////////////////////////////////////////////////////////////////
+
+    // Derive a wallet id from self.address that is different from self.address.
+    // We cannot use self.address directly because that is reserved for the upgrade
+    // functionality in the constructor.
+    inline get_wallet_id() -> address {
+        return BHP256::commit_to_address(self.address, 1scalar);
+    }
+
+    transition wallet_id() -> address {
+        return get_wallet_id();
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -47,10 +62,6 @@ program hyp_warp_multisig.aleo {
 
     transition nonce_to_signing_op_id(nonce: u32) -> field {
         return BHP256::hash_to_field(nonce);
-    }
-
-    transition get_self_address() -> address {
-        return self.address;
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -71,7 +82,7 @@ program hyp_warp_multisig.aleo {
 
         let op_hash = BHP256::hash_to_field(op);
 
-        let (wallet_signing_op_id_hash, init_signing_op_fut) = multisig_core.aleo/initiate_signing_op(self.address, signing_op_id, block_expiration);
+        let (wallet_signing_op_id_hash, init_signing_op_fut) = multisig_core.aleo/initiate_signing_op(get_wallet_id(), signing_op_id, block_expiration);
         return async {
             // This guarantees signing_op_id is either one that hasn't been used before, or one that has expired.
             init_signing_op_fut.await();
@@ -85,7 +96,7 @@ program hyp_warp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_set_custom_hook(public signing_op_id: field, public custom_hook: address) -> Future {
-        let signing_complete_fut = multisig_core.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
         let set_custom_hook_fut = hyp_collateral.aleo/set_custom_hook(custom_hook);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
@@ -122,7 +133,7 @@ program hyp_warp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_set_custom_ism(public signing_op_id: field, public custom_ism: address) -> Future {
-        let signing_complete_fut = multisig_core.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
         let set_custom_ism_fut = hyp_collateral.aleo/set_custom_ism(custom_ism);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
@@ -159,7 +170,7 @@ program hyp_warp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_set_owner(public signing_op_id: field, public owner: address) -> Future {
-        let signing_complete_fut = multisig_core.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
         let set_owner_fut = hyp_collateral.aleo/set_owner(owner);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
@@ -196,7 +207,7 @@ program hyp_warp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_enroll_remote_router(public signing_op_id: field, public destination: u32, public recipient: [u8; 32], public gas: u128) -> Future {
-        let signing_complete_fut = multisig_core.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
         let enroll_remote_router_fut = hyp_collateral.aleo/enroll_remote_router(destination, recipient, gas);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
@@ -233,7 +244,7 @@ program hyp_warp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_unroll_remote_router(public signing_op_id: field, public destination: u32) -> Future {
-        let signing_complete_fut = multisig_core.aleo/assert_signing_completed(self.address, signing_op_id);
+        let signing_complete_fut = multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
         let unroll_remote_router_fut = hyp_collateral.aleo/unroll_remote_router(destination);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
