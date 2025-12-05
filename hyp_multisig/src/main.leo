@@ -1,4 +1,4 @@
-// This program can be used to gate privilleged operations on the Hyperlane Mailbox/ISM/Hook Manager programs by a multisig.
+// This program can be used to gate privileged operations on the Hyperlane Mailbox/ISM/Hook Manager programs by a multisig.
 // The idea is that this program becomes the owner of the mailbox, ism_manager, and hook_manager programs, and it then can
 // make calls to the privileged operations and will only allow making these calls if sufficient signatures have been provided.
 import multisig_core.aleo;
