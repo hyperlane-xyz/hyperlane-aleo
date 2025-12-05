@@ -74,7 +74,7 @@ program hyp_warp_multisig.aleo {
     // necessary for each call and an assert statement ensures the op used to initialize the signing operation is the same
     async transition init_multisig_op(public signing_op_id: field, public block_expiration: u32, public op: op::Op) -> Future {
         assert_eq(op.arg_addr_1, ALEO_ZERO_ADDRESS);
-        assert_eq(op.arg_addr_3, ALEO_ZERO_ADDRESS);
+        assert_eq(op.arg_addr_2, ALEO_ZERO_ADDRESS);
         assert_eq(op.arg_addr_3, ALEO_ZERO_ADDRESS);
 
         assert_eq(op.arg_u128_2, 0u128);
