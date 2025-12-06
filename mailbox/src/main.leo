@@ -242,7 +242,7 @@ program mailbox.aleo {
     /// Returns the message id based on the static sized message
     inline static_message_id(message: Message) -> [u128; 2] {
         let message_raw = message_to_raw(message);
-        let hash = Keccak256::hash_native_raw(message_raw);
+        let hash = Keccak256::hash_to_bits_raw(message_raw);
         return Deserialize::from_bits_raw::[[u128; 2]](hash);
     }
 
@@ -266,85 +266,85 @@ program mailbox.aleo {
         if message_length == 77u32 {
             let message = [0u8; 77];
             for i in 0u32..77u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 93u32 {
             let message = [0u8; 93];
             for i in 0u32..93u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 109u32 {
             let message = [0u8; 109];
             for i in 0u32..109u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 125u32 {
             let message = [0u8; 125];
             for i in 0u32..125u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 141u32 {
             let message = [0u8; 141];
             for i in 0u32..141u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 157u32 {
             let message = [0u8; 157];
             for i in 0u32..157u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 173u32 {
             let message = [0u8; 173];
             for i in 0u32..173u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 189u32 {
             let message = [0u8; 189];
             for i in 0u32..189u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 205u32 {
             let message = [0u8; 205];
             for i in 0u32..205u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 221u32 {
             let message = [0u8; 221];
             for i in 0u32..221u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 237u32 {
             let message = [0u8; 237];
             for i in 0u32..237u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 253u32 {
             let message = [0u8; 253];
             for i in 0u32..253u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 269u32 {
             let message = [0u8; 269];
             for i in 0u32..269u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 285u32 {
             let message = [0u8; 285];
             for i in 0u32..285u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 301u32 {
             let message = [0u8; 301];
             for i in 0u32..301u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 317u32 {
             let message = [0u8; 317];
             for i in 0u32..317u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 333u32 {
-            let hash = Keccak256::hash_native_raw(message_raw);
+            let hash = Keccak256::hash_to_bits_raw(message_raw);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         }
 
@@ -353,17 +353,17 @@ program mailbox.aleo {
         if message_length == 206 {
             let message = [0u8; 206];
             for i in 0u32..206u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 149 {
             let message = [0u8; 149];
             for i in 0u32..149u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         } else if message_length == 167 {
             let message = [0u8; 167];
             for i in 0u32..167u32 { message[i] = message_raw[i]; }
-            let hash = Keccak256::hash_native_raw(message);
+            let hash = Keccak256::hash_to_bits_raw(message);
             id = Deserialize::from_bits_raw::[[u128; 2]](hash);
         }
 

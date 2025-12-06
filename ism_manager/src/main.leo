@@ -300,7 +300,7 @@ program ism_manager.aleo {
             msg[68u8 + i] = id_bytes[i];
         }
 
-        let checkpoint_bits = Keccak256::hash_native_raw(msg);
+        let checkpoint_bits = Keccak256::hash_to_bits_raw(msg);
         let checkpoint = Deserialize::from_bits_raw::[[u8; 32]](checkpoint_bits);
 
         return to_eth_signed_message_hash(checkpoint);
@@ -343,7 +343,7 @@ program ism_manager.aleo {
         msg[43] = 78u8;  // N
         msg[44] = 69u8;  // E
 
-        let hash = Keccak256::hash_native_raw(msg);
+        let hash = Keccak256::hash_to_bits_raw(msg);
         return Deserialize::from_bits_raw::[[u8; 32]](hash);
     }
 
@@ -385,7 +385,7 @@ program ism_manager.aleo {
             digest[28u8 + i] = hash[i];
         }
 
-        let hash_bits = Keccak256::hash_native_raw(digest);
+        let hash_bits = Keccak256::hash_to_bits_raw(digest);
         return Deserialize::from_bits_raw::[[u8; 32]](hash_bits);
     }
 

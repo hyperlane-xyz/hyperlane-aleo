@@ -401,7 +401,7 @@ program hook_manager.aleo {
             } else {
                 let branch = tree.branch[i];
                 let digest: [u128; 4] = [branch[0], branch[1], node[0], node[1]];
-                let hash = Keccak256::hash_native_raw(digest);
+                let hash = Keccak256::hash_to_bits_raw(digest);
                 node = Deserialize::from_bits_raw::[[u128; 2]](hash);
                 index /= 2;
             }
@@ -419,11 +419,11 @@ program hook_manager.aleo {
             if ithBit == 1 {
                 let next = tree.branch[i];
                 let digest: [u128; 4] = [next[0], next[1], current[0], current[1]];
-                let hash = Keccak256::hash_native_raw(digest);
+                let hash = Keccak256::hash_to_bits_raw(digest);
                 current = Deserialize::from_bits_raw::[[u128; 2]](hash);
             } else {
                 let digest: [u128; 4] = [current[0], current[1], ZERO_HASHES[i][0], ZERO_HASHES[i][1]];
-                let hash = Keccak256::hash_native_raw(digest);
+                let hash = Keccak256::hash_to_bits_raw(digest);
                 current = Deserialize::from_bits_raw::[[u128; 2]](hash);
             }
         }

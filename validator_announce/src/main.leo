@@ -90,7 +90,7 @@ program validator_announce.aleo {
         for i in 0u32..480u32 {
             packed[i + 20] = storage_location[i];
         }
-        let hash_bits = Keccak256::hash_native_raw(packed);
+        let hash_bits = Keccak256::hash_to_bits_raw(packed);
         return HashKey {
             hash: Deserialize::from_bits_raw::[[u8; 32]](hash_bits),
         };
@@ -106,8 +106,8 @@ program validator_announce.aleo {
         for i in 0u32..480u32 {
             packed[i+32] = storage_location[i];
         }
-        
-        let hash_bits = Keccak256::hash_native_raw(packed);
+
+        let hash_bits = Keccak256::hash_to_bits_raw(packed);
         let message = Deserialize::from_bits_raw::[[u8; 32]](hash_bits);
         return to_eth_signed_message_hash(message);
     }
@@ -156,7 +156,7 @@ program validator_announce.aleo {
         msg[56] = 78u8;  // N
         msg[57] = 84u8;  // T
 
-        let hash = Keccak256::hash_native_raw(msg);
+        let hash = Keccak256::hash_to_bits_raw(msg);
         return Deserialize::from_bits_raw::[[u8; 32]](hash);
     }
 
@@ -198,7 +198,7 @@ program validator_announce.aleo {
             digest[28 + i] = hash[i];
         }
 
-        let hash_bits = Keccak256::hash_native_raw(digest);
+        let hash_bits = Keccak256::hash_to_bits_raw(digest);
         return Deserialize::from_bits_raw::[[u8; 32]](hash_bits);
     }
 
