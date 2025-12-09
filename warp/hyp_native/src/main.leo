@@ -1,6 +1,7 @@
 import dispatch_proxy.aleo;
 import mailbox.aleo;
 import credits.aleo;
+import hyp_multisig_core.aleo;
 
 /*
  *  The 'hyp_native' implements the Hyperlane Hyp Native Token which is used
@@ -30,8 +31,22 @@ program hyp_native.aleo {
 
     const TYPE_NATIVE: u8 = 0u8;
 
-    @noupgrade
-    async constructor() {}
+    struct ChecksumEdition {
+        checksum: [u8; 32],
+        edition: u16,
+    }
+
+    @custom
+    async constructor() {
+        // Only require multisig for upgrades - initial deployment has no checks.
+        if self.edition > 0u16 {
+            let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
+
+            let wallet_signing_op_id_hash = BHP256::hash_to_field(WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
+            let signing_complete = hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            assert(signing_complete);
+        }
+    }
 
     struct RemoteRouter {
         // Domain according to the Hyperlane Spec. Can be found here: https://github.com/hyperlane-xyz/hyperlane-registry
