@@ -12,7 +12,7 @@ RECIPIENT='[12u8, 12u8, 12u8, 12u8, 12u8, 12u8, 12u8, 12u8, 12u8, 12u8, 12u8, 12
 
 $LEO execute --skip-execute-proof --yes --broadcast hyp_warp_multisig.aleo/init_multisig_op $SIGNING_OP_ID $BLOCK_EXPIRATION "{op: 4u8, arg_addr_0: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_addr_1: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_addr_2: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_addr_3: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_u128_0: ${DESTINATION}u128, arg_u128_1: ${GAS}u128, arg_u128_2: 0u128, arg_u128_3: 0u128, arg_bytes: $RECIPIENT}"
 
-PRIVATE_KEY=APrivateKey1zkp2RWGDcde3efb89rjhME1VYA8QMxcxep5DShNBR6n8Yjh $LEO execute --skip-execute-proof --yes --broadcast hyp_multisig_core.aleo/sign $WALLET_ID $SIGNING_OP_ID
+PRIVATE_KEY=APrivateKey1zkp2RWGDcde3efb89rjhME1VYA8QMxcxep5DShNBR6n8Yjh $LEO execute --skip-execute-proof --yes --broadcast test_hyp_multisig_core.aleo/sign $WALLET_ID $SIGNING_OP_ID
 
 
 $LEO execute --skip-execute-proof --yes --broadcast hyp_warp_multisig.aleo/exec_enroll_remote_router $SIGNING_OP_ID ${DESTINATION}u32  "$RECIPIENT" ${GAS}u128

@@ -1,10 +1,10 @@
 // This program can be used to gate privileged operations on the Hyperlane Mailbox/ISM/Hook Manager programs by a multisig.
 // The idea is that this program becomes the owner of the mailbox, ism_manager, and hook_manager programs, and it then can
 // make calls to the privileged operations and will only allow making these calls if sufficient signatures have been provided.
-import hyp_multisig_core.aleo;
-import mailbox.aleo;
-import ism_manager.aleo;
-import hook_manager.aleo;
+import test_hyp_multisig_core.aleo;
+import test_hyp_mailbox.aleo;
+import test_hyp_ism_manager.aleo;
+import test_hyp_hook_manager.aleo;
 import credits.aleo;
 
 program hyp_multisig.aleo {
@@ -24,7 +24,7 @@ program hyp_multisig.aleo {
             let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
 
             let wallet_signing_op_id_hash = BHP256::hash_to_field(WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
-            let signing_complete = hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            let signing_complete = test_hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
             assert(signing_complete);
         }
     }
@@ -35,7 +35,7 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition init(public threshold: u8, aleo_signers: [address; 4], ecdsa_signers: [[u8; 20]; 4]) -> Future {
-        let f = hyp_multisig_core.aleo/create_wallet(get_wallet_id(), threshold, aleo_signers, ecdsa_signers);
+        let f = test_hyp_multisig_core.aleo/create_wallet(get_wallet_id(), threshold, aleo_signers, ecdsa_signers);
         return async {
             f.await();
         };
@@ -79,7 +79,7 @@ program hyp_multisig.aleo {
 
         let op_hash = BHP256::hash_to_field(op);
 
-        let (wallet_signing_op_id_hash, init_signing_op_fut) = hyp_multisig_core.aleo/initiate_signing_op(get_wallet_id(), signing_op_id, block_expiration);
+        let (wallet_signing_op_id_hash, init_signing_op_fut) = test_hyp_multisig_core.aleo/initiate_signing_op(get_wallet_id(), signing_op_id, block_expiration);
 
         return async {
             // This guarantees signing_op_id is either one that hasn't been used before, or one that has expired.
@@ -95,8 +95,8 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_mailbox_set_dispatch_proxy(public signing_op_id: field, public dispatch_proxy: address) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let mailbox_set_dispatch_proxy_fut = mailbox.aleo/set_dispatch_proxy(dispatch_proxy);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let mailbox_set_dispatch_proxy_fut = test_hyp_mailbox.aleo/set_dispatch_proxy(dispatch_proxy);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
             op: op::MAILBOX_SET_DISPATCH_PROXY,
@@ -131,8 +131,8 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_mailbox_set_owner(public signing_op_id: field, public owner: address) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let mailbox_set_owner_fut = mailbox.aleo/set_owner(owner);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let mailbox_set_owner_fut = test_hyp_mailbox.aleo/set_owner(owner);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
             op: op::MAILBOX_SET_OWNER,
@@ -167,8 +167,8 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_mailbox_set_default_ism(public signing_op_id: field, public ism: address) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let mailbox_set_default_ism_fut = mailbox.aleo/set_default_ism(ism);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let mailbox_set_default_ism_fut = test_hyp_mailbox.aleo/set_default_ism(ism);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
             op: op::MAILBOX_SET_DEFAULT_ISM,
@@ -203,8 +203,8 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_mailbox_set_default_hook(public signing_op_id: field, public default_hook: address) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let mailbox_set_default_hook_fut = mailbox.aleo/set_default_hook(default_hook);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let mailbox_set_default_hook_fut = test_hyp_mailbox.aleo/set_default_hook(default_hook);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
             op: op::MAILBOX_SET_DEFAULT_HOOK,
@@ -239,8 +239,8 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_mailbox_set_required_hook(public signing_op_id: field, public required_hook: address) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let mailbox_set_required_hook_fut = mailbox.aleo/set_required_hook(required_hook);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let mailbox_set_required_hook_fut = test_hyp_mailbox.aleo/set_required_hook(required_hook);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
             op: op::MAILBOX_SET_REQUIRED_HOOK,
@@ -275,8 +275,8 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_ism_manager_set_domain(public signing_op_id: field, public ism: address, public domain: u32, public module: address) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let ism_manager_set_domain_fut = ism_manager.aleo/set_domain(ism, domain, module);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let ism_manager_set_domain_fut = test_hyp_ism_manager.aleo/set_domain(ism, domain, module);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
             op: op::ISM_MANAGER_SET_DOMAIN,
@@ -311,8 +311,8 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_ism_manager_remove_domain(public signing_op_id: field, public ism: address, public domain: u32) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let ism_manager_remove_domain_fut = ism_manager.aleo/remove_domain(ism, domain);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let ism_manager_remove_domain_fut = test_hyp_ism_manager.aleo/remove_domain(ism, domain);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
             op: op::ISM_MANAGER_REMOVE_DOMAIN,
@@ -347,8 +347,8 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_ism_manager_set_owner(public signing_op_id: field, public ism: address, public new_owner: address) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let ism_manager_set_owner_fut = ism_manager.aleo/transfer_routing_ism_ownership(ism, new_owner);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let ism_manager_set_owner_fut = test_hyp_ism_manager.aleo/transfer_routing_ism_ownership(ism, new_owner);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
             op: op::ISM_MANAGER_SET_OWNER,
@@ -384,8 +384,8 @@ program hyp_multisig.aleo {
 
     // Name shortened to fit in 31 bytes
     async transition exec_hook_mgr_set_gas_config(public signing_op_id: field, public igp: address, public destination_domain: u32, public config: DomainGasConfig) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let hook_manager_set_gas_config_fut = hook_manager.aleo/set_destination_gas_config(igp, destination_domain, config);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let hook_manager_set_gas_config_fut = test_hyp_hook_manager.aleo/set_destination_gas_config(igp, destination_domain, config);
 
 
         let hashed_op = BHP256::hash_to_field(op::Op {
@@ -421,8 +421,8 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_hook_manager_set_igp_owner(public signing_op_id: field, public igp: address, public new_owner: address) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let hook_manager_set_owner_fut = hook_manager.aleo/transfer_igp_ownership(igp, new_owner);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let hook_manager_set_owner_fut = test_hyp_hook_manager.aleo/transfer_igp_ownership(igp, new_owner);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
             op: op::HOOK_MANAGER_SET_IGP_OWNER,
@@ -458,8 +458,8 @@ program hyp_multisig.aleo {
 
     // Name shortened to fit in 31 bytes
     async transition exec_hook_mgr_rem_gas_config(public signing_op_id: field, public igp: address, public destination_domain: u32) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let hook_manager_rem_gas_config_fut = hook_manager.aleo/remove_destination_gas_config(igp, destination_domain);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let hook_manager_rem_gas_config_fut = test_hyp_hook_manager.aleo/remove_destination_gas_config(igp, destination_domain);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
             op: op::HOOK_MANAGER_REM_GAS_CONFIG,
@@ -495,8 +495,8 @@ program hyp_multisig.aleo {
 
     // Name shortened to fit in 31 bytes
     async transition exec_hook_manager_claim(public signing_op_id: field, public igp: address, public amount: u64) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
-        let hook_manager_claim_fut = hook_manager.aleo/claim(igp, amount);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let hook_manager_claim_fut = test_hyp_hook_manager.aleo/claim(igp, amount);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
             op: op::HOOK_MANAGER_CLAIM,
@@ -531,7 +531,7 @@ program hyp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_credits_transfer(public signing_op_id: field, public recipient: address, public amount: u64) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
         let transfer_fut = credits.aleo/transfer_public(recipient, amount);
 
         let hashed_op = BHP256::hash_to_field(op::Op {

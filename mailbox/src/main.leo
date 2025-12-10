@@ -1,8 +1,8 @@
-import ism_manager.aleo;
-import hyp_multisig_core.aleo;
+import test_hyp_ism_manager.aleo;
+import test_hyp_multisig_core.aleo;
 
 // The 'mailbox' program.
-program mailbox.aleo {
+program test_hyp_mailbox.aleo {
 
     // messageId => Delivery
     mapping deliveries: DeliveryKey => Delivery;
@@ -72,7 +72,7 @@ program mailbox.aleo {
             let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
 
             let wallet_signing_op_id_hash = BHP256::hash_to_field(WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
-            let signing_complete = hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            let signing_complete = test_hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
             assert(signing_complete);
         }
     }
@@ -172,7 +172,7 @@ program mailbox.aleo {
     /// - message_length: the raw message length in bytes
     async transition process(public ism: address, public message: Message, public message_length: u32, public id: [u128; 2], public metadata: [u8; 512]) -> Future {
         let processor = self.caller;
-        let verify_future = ism_manager.aleo/verify(ism, message, id, metadata);
+        let verify_future = test_hyp_ism_manager.aleo/verify(ism, message, id, metadata);
         return finalize_process(ism, message, message_length, id, processor, verify_future);
     }
 

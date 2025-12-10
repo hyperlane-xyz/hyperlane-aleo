@@ -1,7 +1,7 @@
-import hyp_multisig_core.aleo;
+import test_hyp_multisig_core.aleo;
 
 // The 'validator_announce' program.
-program validator_announce.aleo {
+program test_hyp_validator_announce.aleo {
     
     struct EthAddress {
         bytes: [u8; 20],
@@ -43,7 +43,7 @@ program validator_announce.aleo {
             let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
 
             let wallet_signing_op_id_hash = BHP256::hash_to_field(WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
-            let signing_complete = hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            let signing_complete = test_hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
             assert(signing_complete);
         }
     }

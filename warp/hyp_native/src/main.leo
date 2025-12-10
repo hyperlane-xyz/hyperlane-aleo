@@ -1,7 +1,7 @@
-import dispatch_proxy.aleo;
-import mailbox.aleo;
+import test_hyp_dispatch_proxy.aleo;
+import test_hyp_mailbox.aleo;
 import credits.aleo;
-import hyp_multisig_core.aleo;
+import test_hyp_multisig_core.aleo;
 
 /*
  *  The 'hyp_native' implements the Hyperlane Hyp Native Token which is used
@@ -11,7 +11,7 @@ import hyp_multisig_core.aleo;
  *  NULL_ADDRESS to prevent further modification.
  *  This is independent from the aleo program owner which is allowed to upgrade the contract.
  */
-program hyp_native.aleo {
+program test_hyp_warp_token_credits.aleo {
 
     // The program needs to know with which other contracts from other blockchains it can communicate.
     // For each destination chain it is required to enroll an remote router containing the correspondents address
@@ -43,7 +43,7 @@ program hyp_native.aleo {
             let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
 
             let wallet_signing_op_id_hash = BHP256::hash_to_field(WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
-            let signing_complete = hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            let signing_complete = test_hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
             assert(signing_complete);
         }
     }
@@ -83,7 +83,7 @@ program hyp_native.aleo {
 
         assert_eq(token_scale <= 19u8, true);
 
-        let register_future = mailbox.aleo/register_application(program_id);
+        let register_future = test_hyp_mailbox.aleo/register_application(program_id);
 
         return async {
             let initialized: bool = app_metadata.contains(true);
@@ -188,7 +188,7 @@ program hyp_native.aleo {
         let body_amount = upscale(amount, 10u64**unverified_app_metadata.scale);
         let message_body = get_message_body(recipient, body_amount);
         
-        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
+        let dispatch_future: Future = test_hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
         return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination);
     }
@@ -212,7 +212,7 @@ program hyp_native.aleo {
 
         let body_amount = upscale(amount, 10u64**unverified_app_metadata.scale);
         let message_body = get_message_body(recipient, body_amount);
-        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
+        let dispatch_future: Future = test_hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
         return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination);
     }
@@ -251,7 +251,7 @@ program hyp_native.aleo {
         // Aleo warp transfers allow at most u64::MAX credits to be transferred
         let amount = downscale([message.body[2], message.body[3]], 10u64**unverified_app_metadata.scale);
 
-        let mailbox_future: Future = mailbox.aleo/process(unverified_ism, message, message_length, id, metadata);
+        let mailbox_future: Future = test_hyp_mailbox.aleo/process(unverified_ism, message, message_length, id, metadata);
 
         let address_raw = [message.body[0], message.body[1]];
         let recipient = bytes_raw_to_address(address_raw);
@@ -266,7 +266,7 @@ program hyp_native.aleo {
         assert_eq(metadata, unverified_app_metadata);
 
         // Check if custom ISM is provided, otherwise use the default ISM from the mailbox
-        let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
+        let mailbox = Mapping::get(test_hyp_mailbox.aleo/mailbox, true);
         let verify_ism = metadata.ism == NULL_ADDRESS ? mailbox.default_ism : metadata.ism;
         assert_eq(verify_ism, unverified_ism);
 

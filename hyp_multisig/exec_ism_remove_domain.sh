@@ -11,7 +11,7 @@ DOMAIN=0
 
 $LEO execute --skip-execute-proof --yes --broadcast hyp_multisig.aleo/init_multisig_op $SIGNING_OP_ID $BLOCK_EXPIRATION "{op: 11u8, arg_addr_0: $ISM, arg_addr_1: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_addr_2: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_addr_3: aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc, arg_u128_0: ${DOMAIN}u128, arg_u128_1: 0u128, arg_u128_2: 0u128, arg_u128_3: 0u128}"
 
-PRIVATE_KEY=APrivateKey1zkp2RWGDcde3efb89rjhME1VYA8QMxcxep5DShNBR6n8Yjh $LEO execute --skip-execute-proof --yes --broadcast hyp_multisig_core.aleo/sign $WALLET_ID $SIGNING_OP_ID
+PRIVATE_KEY=APrivateKey1zkp2RWGDcde3efb89rjhME1VYA8QMxcxep5DShNBR6n8Yjh $LEO execute --skip-execute-proof --yes --broadcast test_hyp_multisig_core.aleo/sign $WALLET_ID $SIGNING_OP_ID
 
 
 $LEO execute --skip-execute-proof --yes --broadcast hyp_multisig.aleo/exec_ism_manager_remove_domain $SIGNING_OP_ID $ISM ${DOMAIN}u32

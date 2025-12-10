@@ -1,5 +1,5 @@
 {
-  "program": "hyp_multisig_core.aleo",
+  "program": "test_hyp_multisig_core.aleo",
   "version": "0.1.0",
   "description": "",
   "leo": "3.4.0",

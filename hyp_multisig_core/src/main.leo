@@ -2,7 +2,7 @@
 //
 // This contains a reusable implementation of an k-of-n multisig scheme that supports both Aleo
 // signers and ECDSA signers. For more details see the README.md file.
-program hyp_multisig_core.aleo {
+program test_hyp_multisig_core.aleo {
     // The initial deployer, who is allowed to deploy the first edition of the program and call the init
     // transition.
     // When setting guard_create_wallet=true, this is also the only address that is allowed to create

@@ -6,7 +6,7 @@
   "leo": "3.4.0",
   "dependencies": [
     {
-      "name": "hyp_multisig_core.aleo",
+      "name": "test_hyp_multisig_core.aleo",
       "location": "local",
       "path": "../../hyp_multisig_core",
       "edition": null

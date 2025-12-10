@@ -1,13 +1,13 @@
 from . import get_mapping_value as get_program_mapping_value, program_exists, transact as cwd_transact, to_aleo_like
 
 def get_mapping_value(mapping: str, key: str):
-    return get_program_mapping_value("validator_announce.aleo", mapping, key)
+    return get_program_mapping_value("test_hyp_validator_announce.aleo", mapping, key)
 
 def transact(*args, **kwargs):
     return cwd_transact(*args, cwd="validator_announce", **kwargs)
 
 def test_deploy():
-    if program_exists("validator_announce.aleo"):
+    if program_exists("test_hyp_validator_announce.aleo"):
         return
     result = transact("deploy")
     assert result.get("success"), f"Deployment failed: {result}"

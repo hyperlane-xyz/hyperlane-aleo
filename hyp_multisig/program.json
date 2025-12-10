@@ -6,25 +6,25 @@
   "leo": "3.4.0",
   "dependencies": [
     {
-      "name": "hyp_multisig_core.aleo",
+      "name": "test_hyp_multisig_core.aleo",
       "location": "local",
       "path": "../hyp_multisig_core",
       "edition": null
     },
     {
-      "name": "mailbox.aleo",
+      "name": "test_hyp_mailbox.aleo",
       "location": "local",
       "path": "../mailbox",
       "edition": null
     },
     {
-      "name": "ism_manager.aleo",
+      "name": "test_hyp_ism_manager.aleo",
       "location": "local",
       "path": "../ism_manager",
       "edition": null
     },
     {
-      "name": "hook_manager.aleo",
+      "name": "test_hyp_hook_manager.aleo",
       "location": "local",
       "path": "../hook_manager",
       "edition": null

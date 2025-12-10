@@ -3,7 +3,7 @@ from . import get_mapping_value as get_program_mapping_value,get_mapping_value_r
     NULL_ADDRESS, CALLER
 from .conftest import SECONDARY_ACCOUNT
 
-PROGRAM = "hyp_native.aleo"
+PROGRAM = "test_hyp_warp_token_credits.aleo"
 SCALE = 12
 MAILBOX = {
     "default_ism": "aleo12x2p8lhu2xk9fxuj56c5d8salwks4zv02x7nh72xvkhlc0594qrstkms35",
@@ -41,7 +41,7 @@ def test_init():
     exists = get_mapping_value("app_metadata", "true")
     if exists:
         return
-    program_id = list(b"hyp_native.aleo")
+    program_id = list(b"test_hyp_warp_token_credits.aleo")
     program_id = program_id + [0] * (128 - len(program_id))
     result = transact(
         "execute",
@@ -58,7 +58,7 @@ def test_init():
 def test_init_again():
     exists = get_mapping_value("app_metadata", "true")
     assert exists is not None
-    program_id = list(b"hyp_native.aleo")
+    program_id = list(b"test_hyp_warp_token_credits.aleo")
     program_id = program_id + [0] * (128 - len(program_id))
     result = transact(
         "execute",
@@ -159,9 +159,9 @@ def test_transfer_remote():
     )
     assert result.get("success"), f"Warp Hyp Native init failed: {result}"
 
-    mailbox = get_program_mapping_value("mailbox.aleo", "mailbox", "true")
+    mailbox = get_program_mapping_value("test_hyp_mailbox.aleo", "mailbox", "true")
     nonce = (int(mailbox["nonce"]) - 1)
-    event = get_mapping_value_raw("mailbox.aleo", "dispatch_events", str(nonce) + "u32")
+    event = get_mapping_value_raw("test_hyp_mailbox.aleo", "dispatch_events", str(nonce) + "u32")
 
     message_body = (
         "0000000000000000000000007eb8cdc23265fda88f5b9b72aed1f8a362660141" # dummy user address
@@ -231,7 +231,7 @@ def test_invalid_transfer_remote_wrong_metadata():
 def test_transfer_custom_hook():
     unverified_remote_router = f"{{domain: 1u32, recipient:{to_aleo_like([1, 2] * 16, numeric_suffix='8')}, gas: 1000u128 }}"
     metadata = {"gas_limit": "0u128", "extra_data": [0] * 64}
-    igp = get_program_mapping_value("hook_manager.aleo", "igps", IGP)["count"]
+    igp = get_program_mapping_value("test_hyp_hook_manager.aleo", "igps", IGP)["count"]
     # Allowance for IGP only
     credits = (GAS_LIMIT + 10) * 5000000000 * 4 / 10000000000
     hook_allowance = [{"spender": IGP, "amount": int(credits)}] + [{"spender": NULL_ADDRESS, "amount": 0}] * 3
@@ -249,7 +249,7 @@ def test_transfer_custom_hook():
         to_aleo_like(metadata, numeric_suffix=8),
     )
 
-    post_igp = get_program_mapping_value("hook_manager.aleo", "igps", IGP)["count"]
+    post_igp = get_program_mapping_value("test_hyp_hook_manager.aleo", "igps", IGP)["count"]
     assert post_igp - igp == 1, "IGP event count did not increment"
     assert result.get("success"), f"Warp Hyp Native transfer with custom hook failed: {result}"
 
@@ -258,7 +258,7 @@ def test_transfer_custom_hook_metadata():
     gas_limit = GAS_LIMIT + 500
     metadata = {"gas_limit": f"{gas_limit}u128", "extra_data": [0] * 64}
     
-    igp = get_program_mapping_value("hook_manager.aleo", "igps", IGP)["count"]
+    igp = get_program_mapping_value("test_hyp_hook_manager.aleo", "igps", IGP)["count"]
     # Allowance for IGP only
     credits = (gas_limit + 10) * 5000000000 * 4 / 10000000000
     hook_allowance = [{"spender": IGP, "amount": int(credits)}] + [{"spender": NULL_ADDRESS, "amount": 0}] * 3
@@ -276,7 +276,7 @@ def test_transfer_custom_hook_metadata():
         to_aleo_like(metadata, numeric_suffix=8),
     )
 
-    post_igp = get_program_mapping_value("hook_manager.aleo", "igps", IGP)["count"]
+    post_igp = get_program_mapping_value("test_hyp_hook_manager.aleo", "igps", IGP)["count"]
     assert post_igp - igp == 1, "IGP event count did not increment"
     assert result.get("success"), f"Warp Hyp Native transfer with custom hook failed: {result}"
 
@@ -311,7 +311,7 @@ def test_set_hook():
 
 def test_transfer_after_set_hook():
     unverified_remote_router = f"{{domain: 1u32, recipient:{to_aleo_like([1, 2] * 16, numeric_suffix='8')}, gas: 1000u128 }}"
-    igp = get_program_mapping_value("hook_manager.aleo", "igps", IGP)["count"]
+    igp = get_program_mapping_value("test_hyp_hook_manager.aleo", "igps", IGP)["count"]
     # Allowance for IGP only
     credits = (GAS_LIMIT + 10) * 5000000000 * 4 / 10000000000
     hook_allowance = [{"spender": IGP, "amount": int(credits)}] + [{"spender": NULL_ADDRESS, "amount": 0}] * 3
@@ -330,7 +330,7 @@ def test_transfer_after_set_hook():
 
     assert result.get("success"), f"Warp Hyp Native transfer with custom hook failed: {result}"
 
-    post_igp = get_program_mapping_value("hook_manager.aleo", "igps", IGP)["count"]
+    post_igp = get_program_mapping_value("test_hyp_hook_manager.aleo", "igps", IGP)["count"]
     assert post_igp - igp == 1, "IGP event count did not increment"
     assert result.get("success"), f"Warp Hyp Native transfer with custom hook failed: {result}"
 
@@ -416,9 +416,9 @@ def test_invalid_process_incoming_message_unknown_router():
 
 def test_custom_ism():
     # deploy a routing ism first
-    nonce = int(get_program_mapping_value("ism_manager.aleo", "nonce", "true") or 0)
+    nonce = int(get_program_mapping_value("test_hyp_ism_manager.aleo", "nonce", "true") or 0)
     cwd_transact("execute", "init_domain_routing", cwd="ism_manager")
-    routing_ism = get_program_mapping_value("ism_manager.aleo", "ism_addresses", to_aleo_like(nonce, numeric_suffix="32"))
+    routing_ism = get_program_mapping_value("test_hyp_ism_manager.aleo", "ism_addresses", to_aleo_like(nonce, numeric_suffix="32"))
 
     # Set for origin domain 1 the mailbox default's ism
     cwd_transact(

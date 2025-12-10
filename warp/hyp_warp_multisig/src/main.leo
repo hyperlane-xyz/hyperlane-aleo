@@ -1,8 +1,8 @@
-// This is the interface program between hyp_multisig_core.aleo and any one of the warp token programs.
+// This is the interface program between test_hyp_multisig_core.aleo and any one of the warp token programs.
 // You will need to deploy a version of this for each warp token you are deploying.
 // Note that you will need to search and replace hyp_collateral.aleo with whatever name you use for your
 // token.
-import hyp_multisig_core.aleo;
+import test_hyp_multisig_core.aleo;
 import hyp_collateral.aleo;
 
 program hyp_warp_multisig.aleo {
@@ -18,7 +18,7 @@ program hyp_warp_multisig.aleo {
             let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
 
             let wallet_signing_op_id_hash = BHP256::hash_to_field(WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
-            let signing_complete = hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            let signing_complete = test_hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
             assert(signing_complete);
         }
     }
@@ -35,7 +35,7 @@ program hyp_warp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition init(public threshold: u8, aleo_signers: [address; 4], ecdsa_signers: [[u8; 20]; 4]) -> Future {
-        let f = hyp_multisig_core.aleo/create_wallet(get_wallet_id(), threshold, aleo_signers, ecdsa_signers);
+        let f = test_hyp_multisig_core.aleo/create_wallet(get_wallet_id(), threshold, aleo_signers, ecdsa_signers);
         return async {
             f.await();
         };
@@ -82,7 +82,7 @@ program hyp_warp_multisig.aleo {
 
         let op_hash = BHP256::hash_to_field(op);
 
-        let (wallet_signing_op_id_hash, init_signing_op_fut) = hyp_multisig_core.aleo/initiate_signing_op(get_wallet_id(), signing_op_id, block_expiration);
+        let (wallet_signing_op_id_hash, init_signing_op_fut) = test_hyp_multisig_core.aleo/initiate_signing_op(get_wallet_id(), signing_op_id, block_expiration);
         return async {
             // This guarantees signing_op_id is either one that hasn't been used before, or one that has expired.
             init_signing_op_fut.await();
@@ -96,7 +96,7 @@ program hyp_warp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_set_custom_hook(public signing_op_id: field, public custom_hook: address) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
         let set_custom_hook_fut = hyp_collateral.aleo/set_custom_hook(custom_hook);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
@@ -133,7 +133,7 @@ program hyp_warp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_set_custom_ism(public signing_op_id: field, public custom_ism: address) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
         let set_custom_ism_fut = hyp_collateral.aleo/set_custom_ism(custom_ism);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
@@ -170,7 +170,7 @@ program hyp_warp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_set_owner(public signing_op_id: field, public owner: address) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
         let set_owner_fut = hyp_collateral.aleo/set_owner(owner);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
@@ -207,7 +207,7 @@ program hyp_warp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_enroll_remote_router(public signing_op_id: field, public destination: u32, public recipient: [u8; 32], public gas: u128) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
         let enroll_remote_router_fut = hyp_collateral.aleo/enroll_remote_router(destination, recipient, gas);
 
         let hashed_op = BHP256::hash_to_field(op::Op {
@@ -244,7 +244,7 @@ program hyp_warp_multisig.aleo {
     //////////////////////////////////////////////////////////////////////////
 
     async transition exec_unroll_remote_router(public signing_op_id: field, public destination: u32) -> Future {
-        let signing_complete_fut = hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
+        let signing_complete_fut = test_hyp_multisig_core.aleo/assert_signing_completed(get_wallet_id(), signing_op_id);
         let unroll_remote_router_fut = hyp_collateral.aleo/unroll_remote_router(destination);
 
         let hashed_op = BHP256::hash_to_field(op::Op {

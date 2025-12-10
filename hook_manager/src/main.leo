@@ -1,9 +1,9 @@
-import mailbox.aleo;
+import test_hyp_mailbox.aleo;
 import credits.aleo;
-import hyp_multisig_core.aleo;
+import test_hyp_multisig_core.aleo;
 
 // The 'hook_manager' program.
-program hook_manager.aleo {
+program test_hyp_hook_manager.aleo {
 
     // Every hook gets enumerated by the nonce
     mapping nonce: bool => u32;
@@ -193,7 +193,7 @@ program hook_manager.aleo {
             let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
 
             let wallet_signing_op_id_hash = BHP256::hash_to_field(WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
-            let signing_complete = hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            let signing_complete = test_hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
             assert(signing_complete);
         }
     }
@@ -473,10 +473,10 @@ program hook_manager.aleo {
         transfer.await();
 
         // This gets the latest dispatched message from the mailbox
-        let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
+        let mailbox = Mapping::get(test_hyp_mailbox.aleo/mailbox, true);
         assert(mailbox.nonce > 0);
-        let message = Mapping::get(mailbox.aleo/dispatch_events, mailbox.nonce - 1);
-        let message_id = Mapping::get(mailbox.aleo/dispatch_id_events, mailbox.nonce - 1);
+        let message = Mapping::get(test_hyp_mailbox.aleo/dispatch_events, mailbox.nonce - 1);
+        let message_id = Mapping::get(test_hyp_mailbox.aleo/dispatch_id_events, mailbox.nonce - 1);
 
         // Event index key for last_event_index mapping
         let event_index_key = EventIndexKey {
