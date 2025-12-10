@@ -16,6 +16,12 @@
       "location": "local",
       "path": "../mailbox",
       "edition": null
+    },
+    {
+      "name": "hyp_multisig_core.aleo",
+      "location": "local",
+      "path": "../hyp_multisig_core",
+      "edition": null
     }
   ],
   "dev_dependencies": null

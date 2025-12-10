@@ -1,3 +1,5 @@
+import hyp_multisig_core.aleo;
+
 // The 'validator_announce' program.
 program validator_announce.aleo {
     
@@ -29,8 +31,22 @@ program validator_announce.aleo {
     // stores the current validator announce state
     mapping validator_announce: bool => ValidatorAnnounce;
 
-    @noupgrade
-    async constructor() {}
+    struct ChecksumEdition {
+        checksum: [u8; 32],
+        edition: u16,
+    }
+
+    @custom
+    async constructor() {
+        // Only require multisig for upgrades - initial deployment has no checks.
+        if self.edition > 0u16 {
+            let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
+
+            let wallet_signing_op_id_hash = BHP256::hash_to_field(WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
+            let signing_complete = hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            assert(signing_complete);
+        }
+    }
 
     async transition init(mailbox: address, local_domain: u32) -> Future {
         let mailbox_bytes = address_to_bytes(mailbox);

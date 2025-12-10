@@ -15,7 +15,13 @@
       "name": "token_registry.aleo",
       "location": "local",
       "path": "../token_registry/token_registry.aleo",
-      "network": "mainnet"
+      "edition": null
+    },
+    {
+      "name": "hyp_multisig_core.aleo",
+      "location": "local",
+      "path": "../../hyp_multisig_core",
+      "edition": null
     }
   ],
   "dev_dependencies": null

@@ -4,6 +4,13 @@
   "description": "",
   "license": "MIT",
   "leo": "3.4.0",
-  "dependencies": [],
+  "dependencies": [
+    {
+      "name": "hyp_multisig_core.aleo",
+      "location": "local",
+      "path": "../hyp_multisig_core",
+      "edition": null
+    }
+  ],
   "dev_dependencies": null
 }

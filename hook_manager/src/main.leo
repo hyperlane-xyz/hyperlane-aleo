@@ -1,5 +1,6 @@
 import mailbox.aleo;
 import credits.aleo;
+import hyp_multisig_core.aleo;
 
 // The 'hook_manager' program.
 program hook_manager.aleo {
@@ -180,8 +181,22 @@ program hook_manager.aleo {
     const TOKEN_EXCHANGE_RATE_SCALE: u128 = 10000000000u128; // 1e10
     const DEFAULT_GAS_LIMIT: u128 = 50000;
 
-    @noupgrade
-    async constructor() {}
+    struct ChecksumEdition {
+        checksum: [u8; 32],
+        edition: u16,
+    }
+
+    @custom
+    async constructor() {
+        // Only require multisig for upgrades - initial deployment has no checks.
+        if self.edition > 0u16 {
+            let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
+
+            let wallet_signing_op_id_hash = BHP256::hash_to_field(WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
+            let signing_complete = hyp_multisig_core.aleo/completed_signing_ops.contains(wallet_signing_op_id_hash);
+            assert(signing_complete);
+        }
+    }
 
     async transition init_noop() -> Future {
         return finalize_noop();
