@@ -1,0 +1,22 @@
+{
+  "program": "hyp_warp_multisig.aleo",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT",
+  "leo": "3.4.0",
+  "dependencies": [
+    {
+      "name": "hyp_multisig_core.aleo",
+      "location": "local",
+      "path": "../../hyp_multisig_core",
+      "edition": null
+    },
+    {
+      "name": "hyp_collateral.aleo",
+      "location": "local",
+      "path": "../hyp_collateral",
+      "edition": null
+    }
+  ],
+  "dev_dependencies": null
+}

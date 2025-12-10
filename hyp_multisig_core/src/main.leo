@@ -158,7 +158,7 @@ program hyp_multisig_core.aleo {
     // Privileged operations
     ///////////////////////////////////////////////////////////////////////////
 
-    // @notice Initialize the multisig_core program
+    // @notice Initialize the hyp_multisig_core program
     // @param upgrader_address The address that can upgrade the program
     // @param guard_create_wallet Whether to guard the creation of new wallets with
     //                            a multisig operation
