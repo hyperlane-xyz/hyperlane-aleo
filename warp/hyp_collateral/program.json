@@ -6,21 +6,21 @@
   "leo": "3.4.0",
   "dependencies": [
     {
-      "name": "dispatch_proxy.aleo",
+      "name": "hyp_dispatch_proxy.aleo",
       "location": "local",
       "path": "../../dispatch_proxy",
       "edition": null
     },
     {
       "name": "token_registry.aleo",
-      "location": "local",
-      "path": "../token_registry/token_registry.aleo",
+      "location": "network",
+      "path": null,
       "edition": null
     },
     {
       "name": "hyp_multisig_core.aleo",
-      "location": "local",
-      "path": "../../hyp_multisig_core",
+      "location": "network",
+      "path": null,
       "edition": null
     }
   ],

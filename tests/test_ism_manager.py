@@ -3,7 +3,7 @@ from . import get_mapping_value as get_program_mapping_value, program_exists, tr
 STATE: dict[str, str] = {}
 
 def get_mapping_value(mapping: str, key: str):
-    return get_program_mapping_value("ism_manager.aleo", mapping, key)
+    return get_program_mapping_value("hyp_ism_manager.aleo", mapping, key)
 
 def transact(*args, **kwargs):
     return cwd_transact(*args, cwd="ism_manager", **kwargs)

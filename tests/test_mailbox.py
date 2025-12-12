@@ -7,7 +7,7 @@ DISPATCH_PROXY = "aleo1jgnn4lla2d6v0llffwhp6s87x03xqtdezwkzxv0u2ehq2wmqcsqqganvw
 SENDER=[29,208,222,123,215,65,0,216,154,82,63,49,200,202,69,26,172,55,11,91,152,136,211,189,19,192,232,147,97,223,189,7]
 
 def get_mapping_value(mapping: str, key: str):
-    return get_program_mapping_value("mailbox.aleo", mapping, key)
+    return get_program_mapping_value("hyp_mailbox.aleo", mapping, key)
 
 def transact(*args, **kwargs):
     return cwd_transact(*args, cwd="mailbox", **kwargs)
@@ -23,24 +23,24 @@ def test_invalid_init_mailbox():
     assert not result.get("success"), "Mailbox initialization should have failed due to already being initialized"
 
 def hook_nonce():
-    return int(get_program_mapping_value("hook_manager.aleo", "nonce", "true") or 0)
+    return int(get_program_mapping_value("hyp_hook_manager.aleo", "nonce", "true") or 0)
 
 def get_noop_ism():
-    nonce = int(get_program_mapping_value("ism_manager.aleo", "nonce", "true") or 0)
+    nonce = int(get_program_mapping_value("hyp_ism_manager.aleo", "nonce", "true") or 0)
     cwd_transact("execute", "init_noop", cwd="ism_manager")
-    address = get_program_mapping_value("ism_manager.aleo", "ism_addresses", to_aleo_like(nonce, numeric_suffix="32"))
+    address = get_program_mapping_value("hyp_ism_manager.aleo", "ism_addresses", to_aleo_like(nonce, numeric_suffix="32"))
     return address
     
 def deploy_noop_hook():
     current_nonce = hook_nonce()
     cwd_transact("execute", "init_noop", cwd="hook_manager")
-    address = get_program_mapping_value("hook_manager.aleo", "hook_addresses", to_aleo_like(current_nonce, numeric_suffix="32"))
+    address = get_program_mapping_value("hyp_hook_manager.aleo", "hook_addresses", to_aleo_like(current_nonce, numeric_suffix="32"))
     return address
 
 def deploy_merkle_tree_hook():
     current_nonce = hook_nonce()
     cwd_transact("execute", "init_merkle_tree", DISPATCH_PROXY, cwd="hook_manager")
-    address = get_program_mapping_value("hook_manager.aleo", "hook_addresses", to_aleo_like(current_nonce, numeric_suffix="32"))
+    address = get_program_mapping_value("hyp_hook_manager.aleo", "hook_addresses", to_aleo_like(current_nonce, numeric_suffix="32"))
     return address
 
 def test_configure_mailbox():
@@ -180,7 +180,7 @@ def test_invalid_dispatch_wrong_state():
 
 def test_post_dispatch_custom_hook():
     hook_address = STATE["required_hook"]
-    merkle_tree_hook = get_program_mapping_value("hook_manager.aleo", "merkle_tree_hooks", hook_address)
+    merkle_tree_hook = get_program_mapping_value("hyp_hook_manager.aleo", "merkle_tree_hooks", hook_address)
     
     # set the required hook to the noop hook
     transact("execute", "set_required_hook", STATE["default_hook"])
@@ -213,7 +213,7 @@ def test_post_dispatch_custom_hook():
     assert stored_message_id == get_message_id(dispatched_message), "Dispatched message ID does not match stored message ID"
 
     # assert that the hook was called by checking whether the count increased
-    post_merkle_tree_hook = get_program_mapping_value("hook_manager.aleo", "merkle_tree_hooks", hook_address)
+    post_merkle_tree_hook = get_program_mapping_value("hyp_hook_manager.aleo", "merkle_tree_hooks", hook_address)
     assert int(post_merkle_tree_hook.get("tree").get("count", 0)) == int(merkle_tree_hook.get("tree").get("count", 0)) + 1, "Merkle tree hook count did not increase"
 
 def get_test_message(recipient: list[int] = None):

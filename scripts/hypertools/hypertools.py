@@ -127,7 +127,7 @@ def process_warp(nonce, origin, sender, destination, recipient, warp_recipient, 
 @cli.command()
 @click.argument("event_id", type=int)
 def fetch(event_id):
-    r = requests.get(f"http://localhost:3030/testnet/program/mailbox.aleo/mapping/dispatch_events/{event_id}u32")
+    r = requests.get(f"http://localhost:3030/testnet/program/hyp_mailbox.aleo/mapping/dispatch_events/{event_id}u32")
     dispatch = Message.from_aleo_event(r.text)
     print("raw-message (hex):\n" + dispatch.get_message_bytes().hex())
     print("message-id (aleo):\t", dispatch.get_aleo_message_id())

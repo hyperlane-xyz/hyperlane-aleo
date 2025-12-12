@@ -1,5 +1,5 @@
-import dispatch_proxy.aleo;
-import mailbox.aleo;
+import hyp_dispatch_proxy.aleo;
+import hyp_mailbox.aleo;
 import token_registry.aleo;
 import hyp_multisig_core.aleo;
 
@@ -94,7 +94,7 @@ program hyp_synthetic.aleo {
         // Register a new token with no supply limit and no external authority.
         // This program will be the owner of the token.
         let register_token_future: Future = token_registry.aleo/register_token(token_id, name, symbol, local_decimals, max_u128, false, NULL_ADDRESS);
-        let register_future = mailbox.aleo/register_application(program_id);
+        let register_future = hyp_mailbox.aleo/register_application(program_id);
 
         return async {
             // Token can only be initialized once
@@ -202,7 +202,7 @@ program hyp_synthetic.aleo {
         let body_amount = convert_outgoing_amount(amount, unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
         let message_body = get_message_body(recipient, body_amount);
         
-        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
+        let dispatch_future: Future = hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let token_future: Future = token_registry.aleo/burn_public(unverified_app_metadata.token_id, self.signer, amount);
         return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
     }
@@ -225,7 +225,7 @@ program hyp_synthetic.aleo {
         let body_amount = convert_outgoing_amount(amount, unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
         let message_body = get_message_body(recipient, body_amount);
         
-        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
+        let dispatch_future: Future = hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let token_future: Future = token_registry.aleo/burn_public(unverified_app_metadata.token_id, self.signer, amount);
         return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
     }
@@ -249,7 +249,7 @@ program hyp_synthetic.aleo {
         public id: [u128; 2],
         public metadata: [u8; 512]
     ) -> Future {
-        let mailbox_future: Future = mailbox.aleo/process(unverified_ism, message, message_length, id, metadata);
+        let mailbox_future: Future = hyp_mailbox.aleo/process(unverified_ism, message, message_length, id, metadata);
 
         let address_raw = [message.body[0], message.body[1]];
         let recipient = bytes_raw_to_address(address_raw);
@@ -265,7 +265,7 @@ program hyp_synthetic.aleo {
         assert_eq(metadata, unverified_app_metadata);
 
         // Check if custom ISM is provided, otherwise use the default ISM from the mailbox
-        let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
+        let mailbox = Mapping::get(hyp_mailbox.aleo/mailbox, true);
         let verify_ism = metadata.ism == NULL_ADDRESS ? mailbox.default_ism : metadata.ism;
         assert_eq(verify_ism, unverified_ism);
 

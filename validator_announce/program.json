@@ -1,5 +1,5 @@
 {
-  "program": "validator_announce.aleo",
+  "program": "hyp_validator_announce.aleo",
   "version": "0.1.0",
   "description": "",
   "license": "MIT",
@@ -7,8 +7,8 @@
   "dependencies": [
     {
       "name": "hyp_multisig_core.aleo",
-      "location": "local",
-      "path": "../hyp_multisig_core",
+      "location": "network",
+      "path": null,
       "edition": null
     }
   ],

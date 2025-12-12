@@ -1,8 +1,8 @@
-import ism_manager.aleo;
+import hyp_ism_manager.aleo;
 import hyp_multisig_core.aleo;
 
 // The 'mailbox' program.
-program mailbox.aleo {
+program hyp_mailbox.aleo {
 
     // messageId => Delivery
     mapping deliveries: DeliveryKey => Delivery;
@@ -172,7 +172,7 @@ program mailbox.aleo {
     /// - message_length: the raw message length in bytes
     async transition process(public ism: address, public message: Message, public message_length: u32, public id: [u128; 2], public metadata: [u8; 512]) -> Future {
         let processor = self.caller;
-        let verify_future = ism_manager.aleo/verify(ism, message, id, metadata);
+        let verify_future = hyp_ism_manager.aleo/verify(ism, message, id, metadata);
         return finalize_process(ism, message, message_length, id, processor, verify_future);
     }
 

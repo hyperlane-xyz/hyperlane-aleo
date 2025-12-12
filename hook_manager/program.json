@@ -1,5 +1,5 @@
 {
-  "program": "hook_manager.aleo",
+  "program": "hyp_hook_manager.aleo",
   "version": "0.1.0",
   "description": "",
   "license": "MIT",
@@ -12,15 +12,15 @@
       "edition": null
     },
     {
-      "name": "mailbox.aleo",
+      "name": "hyp_mailbox.aleo",
       "location": "local",
       "path": "../mailbox",
       "edition": null
     },
     {
       "name": "hyp_multisig_core.aleo",
-      "location": "local",
-      "path": "../hyp_multisig_core",
+      "location": "network",
+      "path": null,
       "edition": null
     }
   ],

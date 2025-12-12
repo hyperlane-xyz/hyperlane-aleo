@@ -1,20 +1,20 @@
 {
-  "program": "mailbox.aleo",
+  "program": "hyp_mailbox.aleo",
   "version": "0.1.0",
   "description": "",
   "license": "MIT",
   "leo": "3.4.0",
   "dependencies": [
     {
-      "name": "ism_manager.aleo",
+      "name": "hyp_ism_manager.aleo",
       "location": "local",
       "path": "../ism_manager",
       "edition": null
     },
     {
       "name": "hyp_multisig_core.aleo",
-      "location": "local",
-      "path": "../hyp_multisig_core",
+      "location": "network",
+      "path": null,
       "edition": null
     }
   ],

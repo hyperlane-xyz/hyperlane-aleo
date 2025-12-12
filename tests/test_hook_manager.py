@@ -122,7 +122,7 @@ class MerkleTree:
 
 
 def get_mapping_value(mapping: str, key: str):
-    return get_program_mapping_value("hook_manager.aleo", mapping, key)
+    return get_program_mapping_value("hyp_hook_manager.aleo", mapping, key)
 
 def transact(*args, **kwargs):
     return cwd_transact(*args, cwd="hook_manager", **kwargs)
@@ -312,7 +312,7 @@ def _dispatch_random_message():
 
 @pytest.fixture(scope='module', autouse=True)
 def initialize_mailbox():
-    mailbox = get_program_mapping_value("mailbox.aleo", "mailbox", "true")
+    mailbox = get_program_mapping_value("hyp_mailbox.aleo", "mailbox", "true")
 
     if not mailbox:
         # Initialize mailbox and set dispatch proxy
@@ -341,10 +341,10 @@ def test_post_dispatch_merkle_tree():
     tree = MerkleTree(ZERO_HASHES)
     for iteration in range(1, 4):
         _dispatch_random_message()
-        mailbox = get_program_mapping_value("mailbox.aleo", "mailbox", "true")
+        mailbox = get_program_mapping_value("hyp_mailbox.aleo", "mailbox", "true")
         # Insert the id locally to check whether or not it is correctly inserted
         count = mailbox.get("nonce")
-        id_to_insert = get_program_mapping_value("mailbox.aleo", "dispatch_id_events", f"{count-1}u32")
+        id_to_insert = get_program_mapping_value("hyp_mailbox.aleo", "dispatch_id_events", f"{count-1}u32")
         tree.insert(u128_to_hash(id_to_insert))
 
         # parameters for the hook call

@@ -7,8 +7,8 @@
   "dependencies": [
     {
       "name": "hyp_multisig_core.aleo",
-      "location": "local",
-      "path": "../../hyp_multisig_core",
+      "location": "network",
+      "path": null,
       "edition": null
     },
     {

@@ -1,9 +1,9 @@
-import mailbox.aleo;
+import hyp_mailbox.aleo;
 import credits.aleo;
 import hyp_multisig_core.aleo;
 
 // The 'hook_manager' program.
-program hook_manager.aleo {
+program hyp_hook_manager.aleo {
 
     // Every hook gets enumerated by the nonce
     mapping nonce: bool => u32;
@@ -473,10 +473,10 @@ program hook_manager.aleo {
         transfer.await();
 
         // This gets the latest dispatched message from the mailbox
-        let mailbox = Mapping::get(mailbox.aleo/mailbox, true);
+        let mailbox = Mapping::get(hyp_mailbox.aleo/mailbox, true);
         assert(mailbox.nonce > 0);
-        let message = Mapping::get(mailbox.aleo/dispatch_events, mailbox.nonce - 1);
-        let message_id = Mapping::get(mailbox.aleo/dispatch_id_events, mailbox.nonce - 1);
+        let message = Mapping::get(hyp_mailbox.aleo/dispatch_events, mailbox.nonce - 1);
+        let message_id = Mapping::get(hyp_mailbox.aleo/dispatch_id_events, mailbox.nonce - 1);
 
         // Event index key for last_event_index mapping
         let event_index_key = EventIndexKey {

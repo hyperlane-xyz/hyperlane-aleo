@@ -1,7 +1,7 @@
 import hyp_multisig_core.aleo;
 
 // The 'validator_announce' program.
-program validator_announce.aleo {
+program hyp_validator_announce.aleo {
     
     struct EthAddress {
         bytes: [u8; 20],
