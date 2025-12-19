@@ -7,14 +7,14 @@
   "dependencies": [
     {
       "name": "hyp_hook_manager.aleo",
-      "location": "local",
-      "path": "../hook_manager",
+      "location": "network",
+      "path": null,
       "edition": null
     },
     {
       "name": "hyp_mailbox.aleo",
-      "location": "local",
-      "path": "../mailbox",
+      "location": "network",
+      "path": null,
       "edition": null
     },
     {

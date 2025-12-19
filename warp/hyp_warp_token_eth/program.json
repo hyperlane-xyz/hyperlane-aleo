@@ -1,12 +1,18 @@
 {
-  "program": "hyp_mailbox.aleo",
+  "program": "hyp_warp_token_eth.aleo",
   "version": "0.1.0",
   "description": "",
   "license": "MIT",
   "leo": "3.4.0",
   "dependencies": [
     {
-      "name": "hyp_ism_manager.aleo",
+      "name": "hyp_dispatch_proxy.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "token_registry.aleo",
       "location": "network",
       "path": null,
       "edition": null

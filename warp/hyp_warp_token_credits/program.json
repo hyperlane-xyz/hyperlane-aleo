@@ -7,8 +7,8 @@
   "dependencies": [
     {
       "name": "hyp_dispatch_proxy.aleo",
-      "location": "local",
-      "path": "../../dispatch_proxy",
+      "location": "network",
+      "path": null,
       "edition": null
     },
     {

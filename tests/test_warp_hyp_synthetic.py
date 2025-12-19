@@ -3,7 +3,7 @@ from . import get_mapping_value as get_program_mapping_value,get_mapping_value_r
     NULL_ADDRESS, CALLER
 from .conftest import SECONDARY_ACCOUNT
 
-PROGRAM = "hyp_synthetic.aleo"
+PROGRAM = "hyp_warp_token_usdc.aleo"
 LOCAL_DECIMALS = 6
 REMOTE_DECIMALS = 18
 MAILBOX = {
@@ -46,7 +46,7 @@ def test_init():
     exists = get_mapping_value("app_metadata", "true")
     if exists:
         return
-    program_id = list(b"hyp_synthetic.aleo")
+    program_id = list(b"hyp_warp_token_usdc.aleo")
     program_id = program_id + [0] * (128 - len(program_id))
 
     result = transact(
@@ -72,7 +72,7 @@ def test_init_again():
     exists = get_mapping_value("app_metadata", "true")
     assert exists is not None
 
-    program_id = list(b"hyp_synthetic.aleo")
+    program_id = list(b"hyp_warp_token_usdc.aleo")
     program_id = program_id + [0] * (128 - len(program_id))
     result = transact(
         "execute",
