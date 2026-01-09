@@ -116,6 +116,21 @@ program hyp_warp_token_usdc.aleo {
         };
     }
 
+    // Migration from Edition 1 to Edition 2
+    // Edition 1 initialized both local and remote decimals to 6.
+    // To support networks that use 18 decimals, the contract must
+    // update its remote decimals from 6 to 18.
+    // This is an idempotent operation and can only be called by the token owner.
+    async transition migrate_v2_remote_decimals() -> Future {
+        let caller = self.caller;
+        return async {
+            let state = app_metadata.get(true);
+            assert_eq(state.token_owner, caller);
+            state.remote_decimals = 18u8;
+            app_metadata.set(true, state);
+        };
+    }
+
     transition get_address() -> address {
         return self.address;
     }
