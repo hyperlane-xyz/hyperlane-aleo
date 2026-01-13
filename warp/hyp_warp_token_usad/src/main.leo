@@ -1,6 +1,6 @@
 import hyp_dispatch_proxy.aleo;
 import hyp_mailbox.aleo;
-import stablecoin_program.aleo;
+import usad_stablecoin.aleo;
 import hyp_multisig_core.aleo;
 
 // The 'hyp_synthetic' implements the Hyperlane Hyp Synthetic Token which is used
@@ -82,7 +82,6 @@ program hyp_warp_token_usad.aleo {
 
     // Initialize the Synthetic token.
     // Whoever calls this function will be set as the owner
-    // This method calls the stablecoin_program to create a new token.
     // `name`, `symbol` and `decimals` are directly passed to the `register_token` transition.
     async transition init(public program_id: [u8; 128], public name: u128, public symbol: u128, public local_decimals: u8, public remote_decimals: u8) -> Future {
         let caller = self.caller;
@@ -202,7 +201,7 @@ program hyp_warp_token_usad.aleo {
         let message_body = get_message_body(recipient, body_amount);
         
         let dispatch_future: Future = hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
-        let token_future: Future = stablecoin_program.aleo/burn_public(self.signer, amount);
+        let token_future: Future = usad_stablecoin.aleo/burn_public(self.signer, amount);
         return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
     }
 
@@ -225,7 +224,7 @@ program hyp_warp_token_usad.aleo {
         let message_body = get_message_body(recipient, body_amount);
         
         let dispatch_future: Future = hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
-        let token_future: Future = stablecoin_program.aleo/burn_public(self.signer, amount);
+        let token_future: Future = usad_stablecoin.aleo/burn_public(self.signer, amount);
         return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
     }
 
@@ -254,7 +253,7 @@ program hyp_warp_token_usad.aleo {
         let recipient = bytes_raw_to_address(address_raw);
         let amount = convert_ingoing_amount([message.body[2], message.body[3]], unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
 
-        let token_future: Future = stablecoin_program.aleo/mint_public(recipient, amount);
+        let token_future: Future = usad_stablecoin.aleo/mint_public(recipient, amount);
         return finalize_process(mailbox_future, unverified_app_metadata, message, token_future, unverified_ism);
     }
 
