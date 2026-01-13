@@ -1,5 +1,6 @@
 import hyp_dispatch_proxy.aleo;
 import hyp_mailbox.aleo;
+import usad_freezelist.aleo;
 import usad_stablecoin.aleo;
 import hyp_multisig_core.aleo;
 
@@ -202,7 +203,7 @@ program hyp_warp_token_usad.aleo {
         
         let dispatch_future: Future = hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let token_future: Future = usad_stablecoin.aleo/burn_public(self.signer, amount);
-        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata, self.signer);
     }
 
     async transition transfer_remote_with_hook(
@@ -225,15 +226,19 @@ program hyp_warp_token_usad.aleo {
         
         let dispatch_future: Future = hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let token_future: Future = usad_stablecoin.aleo/burn_public(self.signer, amount);
-        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata, self.signer);
     }
 
-    async function finalize_transfer_remote(dispatch_future: Future, token_future: Future, unverified_remote_router: RemoteRouter, destination: u32, unverified_metadata: Metadata) {
+    async function finalize_transfer_remote(dispatch_future: Future, token_future: Future, unverified_remote_router: RemoteRouter, destination: u32, unverified_metadata: Metadata, signer: address) {
         let actual_remote_router = remote_routers.get(destination);
         assert_eq(actual_remote_router, unverified_remote_router);
 
         let actual_metadata = app_metadata.get(true);
         assert_eq(unverified_metadata, actual_metadata);
+
+        // Check that the address is not on the freeze list.
+        let is_sender_frozen: bool = usad_freezelist.aleo/freeze_list.get_or_use(signer, false);
+        assert_eq(is_sender_frozen, false);
 
         dispatch_future.await();
         token_future.await();
@@ -254,11 +259,11 @@ program hyp_warp_token_usad.aleo {
         let amount = convert_ingoing_amount([message.body[2], message.body[3]], unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
 
         let token_future: Future = usad_stablecoin.aleo/mint_public(recipient, amount);
-        return finalize_process(mailbox_future, unverified_app_metadata, message, token_future, unverified_ism);
+        return finalize_process(mailbox_future, unverified_app_metadata, message, token_future, unverified_ism, recipient);
     }
 
     // Validates the unverified inputs from the process transition and awaits its futures.
-    async function finalize_process(mailbox_future: Future, unverified_app_metadata: Metadata, message: Message, credits_future: Future, unverified_ism: address) {
+    async function finalize_process(mailbox_future: Future, unverified_app_metadata: Metadata, message: Message, token_future: Future, unverified_ism: address, recipient: address) {
         let metadata = app_metadata.get(true);
         assert_eq(metadata, unverified_app_metadata);
 
@@ -273,8 +278,12 @@ program hyp_warp_token_usad.aleo {
         // Assert that the router recipient matches the message sender
         assert_eq(router.recipient, message.sender);
 
+        // Check that the address is not on the freeze list.
+        let is_sender_frozen: bool = usad_freezelist.aleo/freeze_list.get_or_use(recipient, false);
+        assert_eq(is_sender_frozen, false);
+
         mailbox_future.await();
-        credits_future.await();
+        token_future.await();
     }
 
     // It uses the u128;2 array representing 32 bytes in little endian encoding.
