@@ -342,7 +342,7 @@ program test_hyp_warp_token_usad.aleo {
 
             let upper_le: u128 = ((product[0] as u128) << 64u32) + (product[1] as u128);
             let lower_le: u128 = ((product[2] as u128) << 64u32) + (product[3] as u128);
-            
+
             return [convert_endianness(upper_le),convert_endianness(lower_le)];
         }
     }
@@ -358,13 +358,13 @@ program test_hyp_warp_token_usad.aleo {
             let scale: u8 = protection - remote_decimals;
 
             let amount = convert_endianness(payload[1]);
-            
+
             // Assert that we don't have an overflow
             assert_eq(payload[0], 0u128);
 
             // If the u128 overflows here, the amount is too big and invalid anyway
             let scaled_amount: u128 = amount * (10u64 ** scale) as u128;
-            
+
             return scaled_amount;
         } else {
             // remote_decimals > local_decimals
@@ -407,7 +407,7 @@ program test_hyp_warp_token_usad.aleo {
 
         // We allow for lossy downscaling here
         // and don't check remainder == 0
-        
+
         let amount = ((quotient[2] as u128) << 64u32) | (quotient[3] as u128);
         return amount;
     }
