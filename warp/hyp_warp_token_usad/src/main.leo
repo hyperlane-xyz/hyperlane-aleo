@@ -203,7 +203,7 @@ program hyp_warp_token_usad.aleo {
         
         let dispatch_future: Future = hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let token_future: Future = usad_stablecoin.aleo/burn_public(self.signer, amount);
-        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata, self.signer);
     }
 
     async transition transfer_remote_with_hook(
@@ -226,7 +226,7 @@ program hyp_warp_token_usad.aleo {
         
         let dispatch_future: Future = hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let token_future: Future = usad_stablecoin.aleo/burn_public(self.signer, amount);
-        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata, self.signer);
     }
 
     async function finalize_transfer_remote(dispatch_future: Future, token_future: Future, unverified_remote_router: RemoteRouter, destination: u32, unverified_metadata: Metadata, signer: address) {
@@ -259,7 +259,7 @@ program hyp_warp_token_usad.aleo {
         let amount = convert_ingoing_amount([message.body[2], message.body[3]], unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
 
         let token_future: Future = usad_stablecoin.aleo/mint_public(recipient, amount);
-        return finalize_process(mailbox_future, unverified_app_metadata, message, token_future, unverified_ism);
+        return finalize_process(mailbox_future, unverified_app_metadata, message, token_future, unverified_ism, recipient);
     }
 
     // Validates the unverified inputs from the process transition and awaits its futures.
