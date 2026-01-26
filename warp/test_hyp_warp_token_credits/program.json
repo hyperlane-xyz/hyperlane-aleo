@@ -6,13 +6,25 @@
   "leo": "3.4.0",
   "dependencies": [
     {
-      "name": "test_hyp_dispatch_proxy.aleo",
-      "location": "local",
-      "path": "../../dispatch_proxy",
+      "name": "test_hyp_multisig_core.aleo",
+      "location": "network",
+      "path": null,
       "edition": null
     },
     {
-      "name": "test_hyp_multisig_core.aleo",
+      "name": "test_hyp_dispatch_proxy.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "test_hyp_mailbox.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "credits.aleo",
       "location": "network",
       "path": null,
       "edition": null
