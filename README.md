@@ -27,10 +27,11 @@ a seamless interchain communication following the Hyperlane spec.
 
 Getting started:
 
-It is required to have `leo` installed. You can install it with the following command:
+It is required to have `leo v3.3.0` installed. You can install it with the following command:
 
 ```bash
 cargo install leo-lang
+leo update --name v3.3.0
 ```
 
 > [!NOTE]
