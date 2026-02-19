@@ -172,7 +172,7 @@ program hyp_collateral.aleo {
         public destination: u32,
         public recipient: [u128; 2],
         public amount: u128,
-        public allowance: [CreditAllowance; 4],
+        public allowance: [dispatch_proxy.aleo/CreditAllowance; 4],
     ) -> Future {
         let custom_hook: address = unverified_app_metadata.hook;
         let hook_metadata = HookMetadata {
@@ -190,14 +190,14 @@ program hyp_collateral.aleo {
 
     async transition transfer_remote_with_hook(
         public unverified_app_metadata: Metadata,
-        public unverified_mailbox_state: MailboxState,
+        public unverified_mailbox_state: dispatch_proxy.aleo/MailboxState,
         public unverified_remote_router: RemoteRouter,
         public destination: u32,
         public recipient: [u128; 2],
         public amount: u128,
-        public allowance: [CreditAllowance; 4],
+        public allowance: [dispatch_proxy.aleo/CreditAllowance; 4],
         public custom_hook: address,
-        public hook_metadata: HookMetadata
+        public hook_metadata: dispatch_proxy.aleo/HookMetadata
     ) -> Future {
         if hook_metadata.gas_limit == 0u128 {
             hook_metadata.gas_limit = unverified_remote_router.gas;
@@ -225,7 +225,7 @@ program hyp_collateral.aleo {
     async transition process(
         public unverified_ism: address,
         public unverified_app_metadata: Metadata,
-        public message: Message,
+        public message: mailbox.aleo/Message,
         public message_length: u32,
         public id: [u128; 2],
         public metadata: [u8; 512]
@@ -241,7 +241,7 @@ program hyp_collateral.aleo {
     }
 
     // Validates the unverified inputs from the process transition and awaits its futures.
-    async function finalize_process(mailbox_future: Future, unverified_app_metadata: Metadata, message: Message, credits_future: Future, unverified_ism: address) {
+    async function finalize_process(mailbox_future: Future, unverified_app_metadata: Metadata, message: mailbox.aleo/Message, credits_future: Future, unverified_ism: address) {
         let metadata = app_metadata.get(true);
         assert_eq(metadata, unverified_app_metadata);
 
@@ -283,7 +283,7 @@ program hyp_collateral.aleo {
 
     // Helper function to obtain the balance key for an address and token id.
     transition get_balance_key(a: address, token_id: field) -> field {
-        let role_owner: TokenOwner = TokenOwner {
+        let role_owner: token_registry.aleo/TokenOwner = token_registry.aleo/TokenOwner {
               account: a,
               token_id: token_id
             };

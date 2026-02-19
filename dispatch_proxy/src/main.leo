@@ -31,8 +31,8 @@ program dispatch_proxy.aleo {
         public recipient_address: [u8; 32],
         public message_body: [u128; 16],
         public hook_address: address,
-        public hook_metadata: HookMetadata,
-        public hook_allowance: [CreditAllowance; 4]
+        public hook_metadata: hook_manager.aleo/HookMetadata,
+        public hook_allowance: [hook_manager.aleo/CreditAllowance; 4]
     ) -> Future {
         assert_neq(passed_state.default_hook, NULL_ADDRESS);
         assert_neq(passed_state.required_hook, NULL_ADDRESS);
