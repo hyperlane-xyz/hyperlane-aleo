@@ -4,7 +4,7 @@ on:
     inputs:
       hyperlane_aleo_branch:
         description: "Branch, ref, or tag to build"
-        default: "v1.0.0"
+        default: "v1.0.1"
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
           push: true
           provenance: false
           tags: |
-            ghcr.io/hyperlane-xyz/hyperlane-aleo-tools:${{ github.event.inputs.hyperlane_aleo_branch || 'v1.0.0' }}
+            ghcr.io/hyperlane-xyz/hyperlane-aleo-tools:${{ github.event.inputs.hyperlane_aleo_branch || 'v1.0.1' }}
           build-args: |
-            BRANCH_NAME=${{ github.event.inputs.hyperlane_aleo_branch || 'v1.0.0' }}
+            BRANCH_NAME=${{ github.event.inputs.hyperlane_aleo_branch || 'v1.0.1' }}
           platforms: linux/amd64,linux/arm64
