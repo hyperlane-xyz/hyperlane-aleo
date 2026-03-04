@@ -10,7 +10,7 @@ jobs:
   build-and-test:
     runs-on: depot-ubuntu-latest
     container:
-      image: gcr.io/abacus-labs-dev/hyperlane-aleo-tools:v1.0.0
+      image: ghcr.io/hyperlane-xyz/hyperlane-aleo-tools:v1.0.1
     permissions:
       contents: read
     steps:
