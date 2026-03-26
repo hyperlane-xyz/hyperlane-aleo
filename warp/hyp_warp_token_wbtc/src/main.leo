@@ -203,11 +203,57 @@ program hyp_warp_token_wbtc.aleo {
         let message_body = get_message_body(recipient, body_amount);
         
         let dispatch_future: Future = hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
+        let token_future: Future = token_registry.aleo/burn_public(unverified_app_metadata.token_id, self.caller, amount);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
+    }
+
+    async transition transfer_remote_as_signer(
+        public unverified_app_metadata: Metadata,
+        public unverified_mailbox_state: MailboxState,
+        public unverified_remote_router: RemoteRouter,
+        public destination: u32,
+        public recipient: [u128; 2],
+        public amount: u128,
+        public allowance: [CreditAllowance; 4],
+    ) -> Future {
+        let custom_hook: address = unverified_app_metadata.hook;
+        let hook_metadata = HookMetadata {
+            gas_limit: unverified_remote_router.gas,
+            extra_data: [0u8; 64],
+        };
+
+        let body_amount = convert_outgoing_amount(amount, unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
+        let message_body = get_message_body(recipient, body_amount);
+        
+        let dispatch_future: Future = hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let token_future: Future = token_registry.aleo/burn_public(unverified_app_metadata.token_id, self.signer, amount);
         return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
     }
 
     async transition transfer_remote_with_hook(
+        public unverified_app_metadata: Metadata,
+        public unverified_mailbox_state: MailboxState,
+        public unverified_remote_router: RemoteRouter,
+        public destination: u32,
+        public recipient: [u128; 2],
+        public amount: u128,
+        public allowance: [CreditAllowance; 4],
+        public custom_hook: address,
+        public hook_metadata: HookMetadata
+    ) -> Future {
+        if hook_metadata.gas_limit == 0u128 {
+            hook_metadata.gas_limit = unverified_remote_router.gas;
+        }
+
+        let body_amount = convert_outgoing_amount(amount, unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
+        let message_body = get_message_body(recipient, body_amount);
+        
+        let dispatch_future: Future = hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
+        let token_future: Future = token_registry.aleo/burn_public(unverified_app_metadata.token_id, self.caller, amount);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
+    }
+
+    async transition transfer_remote_with_hook_as(
         public unverified_app_metadata: Metadata,
         public unverified_mailbox_state: MailboxState,
         public unverified_remote_router: RemoteRouter,
