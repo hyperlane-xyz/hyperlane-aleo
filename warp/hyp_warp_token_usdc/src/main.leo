@@ -291,6 +291,17 @@ program hyp_warp_token_usdc.aleo {
         return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
     }
 
+    async function finalize_transfer_remote(dispatch_future: Future, token_future: Future, unverified_remote_router: RemoteRouter, destination: u32, unverified_metadata: Metadata) {
+        let actual_remote_router = remote_routers.get(destination);
+        assert_eq(actual_remote_router, unverified_remote_router);
+
+        let actual_metadata = app_metadata.get(true);
+        assert_eq(unverified_metadata, actual_metadata);
+
+        dispatch_future.await();
+        token_future.await();
+    }
+
     async transition process(
         public unverified_ism: address,
         public unverified_app_metadata: Metadata,
