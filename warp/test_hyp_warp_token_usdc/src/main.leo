@@ -9,7 +9,7 @@ import token_registry.aleo;
 // of the program. If no changes are needed anymore the owner_address can be set to the
 // NULL_ADDRESS to prevent further modification.
 // This is independent from the aleo program owner which is allowed to upgrade the contract.
-program test_hyp_warp_usdc.aleo {
+program test_hyp_warp_token_usdc.aleo {
 
     // The program needs to know with which other contracts from other blockchains it can communicate.
     // For each destination chain it is required to enroll an remote router containing the correspondents address
