@@ -182,7 +182,30 @@ program test_hyp_warp_token_usdt.aleo {
         };
     }
 
-    async transition transfer_remote(
+    async transition transfer_remote_with_hook(
+        public unverified_app_metadata: Metadata,
+        public unverified_mailbox_state: MailboxState,
+        public unverified_remote_router: RemoteRouter,
+        public destination: u32,
+        public recipient: [u128; 2],
+        public amount: u128,
+        public allowance: [CreditAllowance; 4],
+        public custom_hook: address,
+        public hook_metadata: HookMetadata
+    ) -> Future {
+        if hook_metadata.gas_limit == 0u128 {
+            hook_metadata.gas_limit = unverified_remote_router.gas;
+        }
+
+        let body_amount = convert_outgoing_amount(amount, unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
+        let message_body = get_message_body(recipient, body_amount);
+        
+        let dispatch_future: Future = test_hyp_dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
+        let token_future: Future =  token_registry.aleo/burn_public(unverified_app_metadata.token_id, self.caller, amount);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata, self.signer);
+    }
+
+    async transition transfer_remote_as_signer(
         public unverified_app_metadata: Metadata,
         public unverified_mailbox_state: MailboxState,
         public unverified_remote_router: RemoteRouter,
@@ -205,7 +228,7 @@ program test_hyp_warp_token_usdt.aleo {
         return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata, self.signer);
     }
 
-    async transition transfer_remote_with_hook(
+    async transition transfer_remote_with_hook_as(
         public unverified_app_metadata: Metadata,
         public unverified_mailbox_state: MailboxState,
         public unverified_remote_router: RemoteRouter,
