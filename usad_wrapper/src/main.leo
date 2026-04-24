@@ -163,7 +163,8 @@ program private_usad_wrapper.aleo {
             transfer_final.run();
         };
     }
-
+    
+    // Note that this implementation assumes that transfer_remote references self.caller, which is not currently the case.
     fn private_burn(
         usad_record: usad_stablecoin.aleo::Token,
         merkle_proof: [usad_stablecoin.aleo::MerkleProof; 2],
