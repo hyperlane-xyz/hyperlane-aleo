@@ -152,8 +152,31 @@ program hyp_native.aleo {
         };
     }
 
-    // `transfer_remote`
-    async transition transfer_remote(
+    // `transfer_remote_with_hook`
+    async transition transfer_remote_with_hook(
+        public unverified_app_metadata: Metadata,
+        public unverified_mailbox_state: MailboxState,
+        public unverified_remote_router: RemoteRouter,
+        public destination: u32,
+        public recipient: [u128; 2],
+        public amount: u64,
+        public allowance: [CreditAllowance; 4],
+        public custom_hook: address,
+        public hook_metadata: HookMetadata
+    ) -> Future {
+        if hook_metadata.gas_limit == 0u128 {
+            hook_metadata.gas_limit = unverified_remote_router.gas;
+        }
+
+        let body_amount = upscale(amount, 10u64**unverified_app_metadata.scale);
+        let message_body = get_message_body(recipient, body_amount);
+        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
+        let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
+        return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination, self.signer);
+    }
+
+    // `transfer_remote_as_signer`
+    async transition transfer_remote_as_signer(
         public unverified_app_metadata: Metadata,
         public unverified_mailbox_state: MailboxState,
         public unverified_remote_router: RemoteRouter,
@@ -175,12 +198,11 @@ program hyp_native.aleo {
         
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
-        return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination);
+        return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination, self.signer);
     }
 
-
-    // `transfer_remote_with_hook`
-    async transition transfer_remote_with_hook(
+    // `transfer_remote_with_hook_as`
+    async transition transfer_remote_with_hook_as(
         public unverified_app_metadata: Metadata,
         public unverified_mailbox_state: MailboxState,
         public unverified_remote_router: RemoteRouter,
@@ -199,10 +221,10 @@ program hyp_native.aleo {
         let message_body = get_message_body(recipient, body_amount);
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
-        return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination);
+        return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination, self.signer);
     }
 
-    async function finalize_transfer_remote(dispatch_future: Future, credits_future: Future, unverified_app_metadata: Metadata, unverified_remote_router: RemoteRouter, destination: u32) {
+    async function finalize_transfer_remote(dispatch_future: Future, credits_future: Future, unverified_app_metadata: Metadata, unverified_remote_router: RemoteRouter, destination: u32, signer: address) {
         let actual_remote_router = remote_routers.get(destination);
         assert_eq(actual_remote_router, unverified_remote_router);
 
@@ -242,11 +264,11 @@ program hyp_native.aleo {
         let recipient = bytes_raw_to_address(address_raw);
 
         let credits_future: Future = credits.aleo/transfer_public(recipient, amount as u64);
-        return finalize_process(mailbox_future, unverified_app_metadata, message, credits_future, unverified_ism);
+        return finalize_process(mailbox_future, unverified_app_metadata, message, credits_future, unverified_ism, recipient);
     }
 
     // Validates the unverified inputs from the process transition and awaits its futures.
-    async function finalize_process(mailbox_future: Future, unverified_app_metadata: Metadata, message: Message, credits_future: Future, unverified_ism: address) {
+    async function finalize_process(mailbox_future: Future, unverified_app_metadata: Metadata, message: Message, credits_future: Future, unverified_ism: address, recipient: address) {
         let metadata = app_metadata.get(true);
         assert_eq(metadata, unverified_app_metadata);
 
