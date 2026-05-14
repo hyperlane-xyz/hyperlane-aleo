@@ -189,7 +189,30 @@ program hyp_synthetic.aleo {
         
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let token_future: Future = token_registry.aleo/burn_public(unverified_app_metadata.token_id, self.caller, amount);
-        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata, self.signer);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
+    }
+
+    async transition transfer_remote(
+        public unverified_app_metadata: Metadata,
+        public unverified_mailbox_state: MailboxState,
+        public unverified_remote_router: RemoteRouter,
+        public destination: u32,
+        public recipient: [u128; 2],
+        public amount: u128,
+        public allowance: [CreditAllowance; 4],
+    ) -> Future {
+        let custom_hook: address = unverified_app_metadata.hook;
+        let hook_metadata = HookMetadata {
+            gas_limit: unverified_remote_router.gas,
+            extra_data: [0u8; 64],
+        };
+
+        let body_amount = convert_outgoing_amount(amount, unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
+        let message_body = get_message_body(recipient, body_amount);
+
+        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
+        let token_future: Future = token_registry.aleo/burn_public(unverified_app_metadata.token_id, self.caller, amount);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
     }
 
     async transition transfer_remote_as_signer(
@@ -209,10 +232,10 @@ program hyp_synthetic.aleo {
 
         let body_amount = convert_outgoing_amount(amount, unverified_app_metadata.local_decimals, unverified_app_metadata.remote_decimals);
         let message_body = get_message_body(recipient, body_amount);
-        
+
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let token_future: Future = token_registry.aleo/burn_public(unverified_app_metadata.token_id, self.signer, amount);
-        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata, self.signer);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
     }
 
     async transition transfer_remote_with_hook_as(
@@ -235,10 +258,10 @@ program hyp_synthetic.aleo {
         
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let token_future: Future = token_registry.aleo/burn_public(unverified_app_metadata.token_id, self.signer, amount);
-        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata, self.signer);
+        return finalize_transfer_remote(dispatch_future, token_future, unverified_remote_router, destination, unverified_app_metadata);
     }
 
-    async function finalize_transfer_remote(dispatch_future: Future, token_future: Future, unverified_remote_router: RemoteRouter, destination: u32, unverified_metadata: Metadata, signer: address) {
+    async function finalize_transfer_remote(dispatch_future: Future, token_future: Future, unverified_remote_router: RemoteRouter, destination: u32, unverified_metadata: Metadata) {
         let actual_remote_router = remote_routers.get(destination);
         assert_eq(actual_remote_router, unverified_remote_router);
 

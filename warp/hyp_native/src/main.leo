@@ -172,7 +172,33 @@ program hyp_native.aleo {
         let message_body = get_message_body(recipient, body_amount);
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
-        return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination, self.signer);
+        return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination);
+    }
+
+    // `transfer_remote`
+    async transition transfer_remote(
+        public unverified_app_metadata: Metadata,
+        public unverified_mailbox_state: MailboxState,
+        public unverified_remote_router: RemoteRouter,
+        public destination: u32,
+        public recipient: [u128; 2],
+        public amount: u64,
+        public allowance: [CreditAllowance; 4],
+    ) -> Future {
+        let custom_hook: address = unverified_app_metadata.hook;
+        let hook_metadata = HookMetadata {
+            gas_limit: unverified_remote_router.gas,
+            extra_data: [0u8; 64],
+        };
+
+        // We assure in the finalize step of this function
+        // that scale is <= 19, so 10**scale fits in u64
+        let body_amount = upscale(amount, 10u64**unverified_app_metadata.scale);
+        let message_body = get_message_body(recipient, body_amount);
+
+        let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
+        let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
+        return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination);
     }
 
     // `transfer_remote_as_signer`
@@ -195,10 +221,10 @@ program hyp_native.aleo {
         // that scale is <= 19, so 10**scale fits in u64
         let body_amount = upscale(amount, 10u64**unverified_app_metadata.scale);
         let message_body = get_message_body(recipient, body_amount);
-        
+
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
-        return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination, self.signer);
+        return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination);
     }
 
     // `transfer_remote_with_hook_as`
@@ -221,10 +247,10 @@ program hyp_native.aleo {
         let message_body = get_message_body(recipient, body_amount);
         let dispatch_future: Future = dispatch_proxy.aleo/dispatch(unverified_mailbox_state, destination, unverified_remote_router.recipient, message_body, custom_hook, hook_metadata, allowance);
         let credits_future: Future = credits.aleo/transfer_public_as_signer(self.address, amount);
-        return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination, self.signer);
+        return finalize_transfer_remote(dispatch_future, credits_future, unverified_app_metadata, unverified_remote_router, destination);
     }
 
-    async function finalize_transfer_remote(dispatch_future: Future, credits_future: Future, unverified_app_metadata: Metadata, unverified_remote_router: RemoteRouter, destination: u32, signer: address) {
+    async function finalize_transfer_remote(dispatch_future: Future, credits_future: Future, unverified_app_metadata: Metadata, unverified_remote_router: RemoteRouter, destination: u32) {
         let actual_remote_router = remote_routers.get(destination);
         assert_eq(actual_remote_router, unverified_remote_router);
 
