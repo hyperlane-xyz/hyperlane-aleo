@@ -148,7 +148,7 @@ def test_transfer_remote():
     hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
     result = transact(
         "execute",
-        "transfer_remote",
+        "transfer_remote_as_signer",
         to_aleo_like(METADATA, numeric_suffix='8'),
         mailbox_without_ism(),
         unverified_remote_router,
@@ -197,7 +197,7 @@ def test_invalid_transfer_remote_wrong_mailbox():
     hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
     result = transact(
         "execute",
-        "transfer_remote",
+        "transfer_remote_as_signer",
         to_aleo_like(METADATA, numeric_suffix='8'),
         to_aleo_like(unverified_mailbox_state, numeric_suffix='8'),
         unverified_remote_router,
@@ -217,7 +217,7 @@ def test_invalid_transfer_remote_wrong_metadata():
     hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
     result = transact(
         "execute",
-        "transfer_remote",
+        "transfer_remote_as_signer",
         to_aleo_like(unverified_metadata, numeric_suffix='8'),
         mailbox_without_ism(),
         unverified_remote_router,
@@ -237,7 +237,7 @@ def test_transfer_custom_hook():
     hook_allowance = [{"spender": IGP, "amount": int(credits)}] + [{"spender": NULL_ADDRESS, "amount": 0}] * 3
     result = transact(
         "execute",
-        "transfer_remote_with_hook",
+        "transfer_remote_with_hook_as",
         to_aleo_like(METADATA, numeric_suffix='8'),
         mailbox_without_ism(),
         unverified_remote_router,
@@ -264,7 +264,7 @@ def test_transfer_custom_hook_metadata():
     hook_allowance = [{"spender": IGP, "amount": int(credits)}] + [{"spender": NULL_ADDRESS, "amount": 0}] * 3
     result = transact(
         "execute",
-        "transfer_remote_with_hook",
+        "transfer_remote_with_hook_as",
         to_aleo_like(METADATA, numeric_suffix='8'),
         mailbox_without_ism(),
         unverified_remote_router,
@@ -286,7 +286,7 @@ def test_invalid_transfer_wrong_custom_hook():
     hook_allowance = [{"spender": NULL_ADDRESS, "amount": 0}] * 4
     result = transact(
         "execute",
-        "transfer_remote_with_hook",
+        "transfer_remote_with_hook_as",
         to_aleo_like(METADATA, numeric_suffix='8'),
         mailbox_without_ism(),
         unverified_remote_router,
@@ -318,7 +318,7 @@ def test_transfer_after_set_hook():
     METADATA["hook"] = IGP
     result = transact(
         "execute",
-        "transfer_remote",
+        "transfer_remote_as_signer",
         to_aleo_like(METADATA, numeric_suffix='8'),
         mailbox_without_ism(),
         unverified_remote_router,
