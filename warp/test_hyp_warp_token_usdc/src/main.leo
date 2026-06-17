@@ -341,6 +341,9 @@ program test_hyp_warp_token_usdc.aleo {
         token_future.await();
     }
 
+    // This function will only be called by the new warp route's token upgrade function.
+    // The new warp route will not be granted mint and burn privileges for token registry. 
+    // An equivalent amount of ARC20 USDC will be minted to the signer.
     async transition burn_token_registry_usdc(amount: u128) -> Future {
         // Only the v2 warp token program can call this function.
         assert_eq(self.caller, test_hyp_warp_token_usdc_v2.aleo);
