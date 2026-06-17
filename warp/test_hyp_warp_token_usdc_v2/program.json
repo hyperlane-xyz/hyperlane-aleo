@@ -38,7 +38,7 @@
     {
       "name": "test_hyp_warp_token_usdc.aleo",
       "location": "local",
-      "path": "../test_hyp_warp_token_usdc/build/main.aleo",
+      "path": "../test_hyp_warp_token_usdc/test_hyp_warp_token_usdc.aleo",
       "edition": null
     }
   ],

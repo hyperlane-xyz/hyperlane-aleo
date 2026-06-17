@@ -1,0 +1,26 @@
+{
+  "program": "test_arc20_token_usdc.aleo",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT",
+  "leo": "4.3.0",
+  "dependencies": [
+    {
+      "name": "test_hyp_multisig_core.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "IARC20",
+      "location": "git",
+      "path": null,
+      "edition": null,
+      "git": {
+        "url": "https://github.com/ProvableHQ/ARCs/",
+        "rev": "3fc1867"
+      }
+    }
+  ],
+  "dev_dependencies": null
+}
