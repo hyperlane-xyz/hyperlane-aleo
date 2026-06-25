@@ -3,7 +3,6 @@ import test_hyp_hook_manager.aleo;
 import test_hyp_mailbox.aleo;
 import test_hyp_multisig_core.aleo;
 import test_arc20_token_usdc.aleo;
-import token_registry.aleo;
 import test_hyp_warp_token_usdc.aleo;
 
 // It uses the u128;2 array representing 32 bytes in little endian encoding.
@@ -137,7 +136,6 @@ final fn finalize_transfer_remote(
     unverified_remote_router: RemoteRouter,
     destination: u32,
     unverified_metadata: Metadata,
-    signer: address,
 ) {
     let actual_remote_router = remote_routers.get(destination);
     assert_eq(actual_remote_router, unverified_remote_router);
@@ -193,7 +191,7 @@ const TYPE_SYNTHETIC: u8 = 1u8;
 // of the program. If no changes are needed anymore the owner_address can be set to the
 // NULL_ADDRESS to prevent further modification.
 // This is independent from the aleo program owner which is allowed to upgrade the contract.
-program test_hyp_warp_token_usdc_v2.aleo {
+program test_hyp_warp_token_template_v2.aleo {
     // The program needs to know with which other contracts from other blockchains it can communicate.
     // For each destination chain it is required to enroll an remote router containing the correspondents address
     // and the expected gas limit which is required to execute the transaction on the destination chain.
@@ -248,17 +246,6 @@ program test_hyp_warp_token_usdc_v2.aleo {
         let difference = remote_decimals as i16 - local_decimals as i16;
         assert_eq(difference.abs() <= 18i16, true);
 
-        // Register a new token with no supply limit and no external authority.
-        // This program will be the owner of the token.
-        let register_token_future: Final = token_registry.aleo::register_token(
-            token_id,
-            name,
-            symbol,
-            local_decimals,
-            max_u128,
-            false,
-            NULL_ADDRESS,
-        );
         let register_future: Final = test_hyp_mailbox.aleo::register_application(program_id);
         return final {
             // Token can only be initialized once
@@ -273,23 +260,7 @@ program test_hyp_warp_token_usdc_v2.aleo {
                 local_decimals: local_decimals,
                 remote_decimals: remote_decimals,
             });
-            register_token_future.run();
             register_future.run();
-        };
-    }
-
-    // Migration from Edition 0 to Edition 1
-    // Edition 0 initialized both local and remote decimals to 6.
-    // To support networks that use 18 decimals, the contract must
-    // update its remote decimals from 6 to 18.
-    // This is an idempotent operation and can only be called by the token owner.
-    fn migrate_v1_remote_decimals() -> Final {
-        let caller = self.caller;
-        return final {
-            let state = app_metadata.get(true);
-            assert_eq(state.token_owner, caller);
-            state.remote_decimals = 18u8;
-            app_metadata.set(true, state);
         };
     }
 
@@ -386,7 +357,6 @@ program test_hyp_warp_token_usdc_v2.aleo {
             allowance,
         );
         let token_future: Final = test_arc20_token_usdc.aleo::burn_public(self.caller, amount);
-        let caller = self.caller;
         return final {
             finalize_transfer_remote(
                 dispatch_future,
@@ -394,7 +364,6 @@ program test_hyp_warp_token_usdc_v2.aleo {
                 unverified_remote_router,
                 destination,
                 unverified_app_metadata,
-                caller,
             );
         };
     }
@@ -429,7 +398,6 @@ program test_hyp_warp_token_usdc_v2.aleo {
             allowance,
         );
         let token_future: Final = test_arc20_token_usdc.aleo::burn_public(self.caller, amount);
-        let signer = self.signer;
         return final {
             finalize_transfer_remote(
                 dispatch_future,
@@ -437,7 +405,6 @@ program test_hyp_warp_token_usdc_v2.aleo {
                 unverified_remote_router,
                 destination,
                 unverified_app_metadata,
-                signer,
             );
         };
     }
@@ -472,7 +439,6 @@ program test_hyp_warp_token_usdc_v2.aleo {
             allowance,
         );
         let token_future: Final = test_arc20_token_usdc.aleo::burn_public(self.signer, amount);
-        let signer = self.signer;
         return final {
             finalize_transfer_remote(
                 dispatch_future,
@@ -480,7 +446,6 @@ program test_hyp_warp_token_usdc_v2.aleo {
                 unverified_remote_router,
                 destination,
                 unverified_app_metadata,
-                signer,
             );
         };
     }
@@ -515,7 +480,6 @@ program test_hyp_warp_token_usdc_v2.aleo {
             allowance,
         );
         let token_future: Final = test_arc20_token_usdc.aleo::burn_public(self.signer, amount);
-        let signer = self.signer;
         return final {
             finalize_transfer_remote(
                 dispatch_future,
@@ -523,7 +487,6 @@ program test_hyp_warp_token_usdc_v2.aleo {
                 unverified_remote_router,
                 destination,
                 unverified_app_metadata,
-                signer,
             );
         };
     }
@@ -601,14 +564,5 @@ program test_hyp_warp_token_usdc_v2.aleo {
             burn_final.run();
             mint_final.run();
         };
-    }
-
-    // Helper function to obtain the balance key for an address and token id.
-    fn get_balance_key(a: address, token_id: field) -> field {
-        let role_owner: token_registry.aleo::TokenOwner = token_registry.aleo::TokenOwner {
-            account: a,
-            token_id: token_id,
-        };
-        return BHP256::hash_to_field(role_owner);
     }
 }
