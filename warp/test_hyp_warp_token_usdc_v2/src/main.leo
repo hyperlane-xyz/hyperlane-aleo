@@ -187,6 +187,7 @@ struct Metadata {
 
 const NULL_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
 const TYPE_SYNTHETIC: u8 = 1u8;
+const TESTNET_HYPERLANE_PAUSE_ADMIN: address = aleo1h9x8mx3yc8uqylsrguuqklkq9us4t7vkd7z9wxp04nt0p8sxjgzqhth7t0;
 
 // The 'hyp_synthetic' implements the Hyperlane Hyp Synthetic Token which is used
 // for bridging tokens from other chains to the Aleo network. It uses the stablecoin_program program.
@@ -579,8 +580,7 @@ program test_hyp_warp_token_template_v2.aleo {
     fn set_pause(pause: bool) -> Final {
         let caller = self.caller;
         return final {
-            let state = app_metadata.get(true);
-            assert_eq(state.token_owner, caller);
+            assert_eq(TESTNET_HYPERLANE_PAUSE_ADMIN, caller);
             pause.set(true, pause);
         };
     }
