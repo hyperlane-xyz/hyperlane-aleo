@@ -137,6 +137,9 @@ final fn finalize_transfer_remote(
     destination: u32,
     unverified_metadata: Metadata,
 ) {
+    let paused_status = pause.get_or_use(true, false);
+    assert_eq(paused_status, false);
+    
     let actual_remote_router = remote_routers.get(destination);
     assert_eq(actual_remote_router, unverified_remote_router);
 
@@ -209,6 +212,9 @@ program test_hyp_warp_token_template_v2.aleo {
     // This can be changed by the contract owner specified in the `app_metadata`
     // The metadata is queried by the relayer and passed to the process function.
     mapping app_metadata: bool => Metadata;
+
+    // Bridge activity can be paused by the admin.
+    mapping pause: bool => bool;
 
     @custom
     constructor() {
@@ -535,6 +541,9 @@ program test_hyp_warp_token_template_v2.aleo {
         unverified_ism: address,
         recipient: address,
     ) {
+        let paused_status = pause.get_or_use(true, false);
+        assert_eq(paused_status, false);
+
         let metadata = app_metadata.get(true);
         assert_eq(metadata, unverified_app_metadata);
 
@@ -563,6 +572,16 @@ program test_hyp_warp_token_template_v2.aleo {
         return final {
             burn_final.run();
             mint_final.run();
+        };
+    }
+
+    // This function is called by an admin to pause or unpause the bridging activity.
+    fn set_pause(pause: bool) -> Final {
+        let caller = self.caller;
+        return final {
+            let state = app_metadata.get(true);
+            assert_eq(state.token_owner, caller);
+            pause.set(true, pause);
         };
     }
 }
