@@ -2,7 +2,7 @@ import test_hyp_dispatch_proxy.aleo;
 import test_hyp_hook_manager.aleo;
 import test_hyp_mailbox.aleo;
 import test_hyp_multisig_core.aleo;
-import test_arc20_token_usdc.aleo;
+import test_arc20_usdc.aleo;
 import test_hyp_warp_token_usdc.aleo;
 
 // It uses the u128;2 array representing 32 bytes in little endian encoding.
@@ -195,7 +195,7 @@ const TESTNET_HYPERLANE_PAUSE_ADMIN: address = aleo1h9x8mx3yc8uqylsrguuqklkq9us4
 // of the program. If no changes are needed anymore the owner_address can be set to the
 // NULL_ADDRESS to prevent further modification.
 // This is independent from the aleo program owner which is allowed to upgrade the contract.
-program test_hyp_warp_token_template_v2.aleo {
+program test_hyp_warp_token_usdc_v2.aleo {
     // The program needs to know with which other contracts from other blockchains it can communicate.
     // For each destination chain it is required to enroll an remote router containing the correspondents address
     // and the expected gas limit which is required to execute the transaction on the destination chain.
@@ -363,7 +363,7 @@ program test_hyp_warp_token_template_v2.aleo {
             hook_metadata,
             allowance,
         );
-        let token_future: Final = test_arc20_token_usdc.aleo::burn_public(self.caller, amount);
+        let token_future: Final = test_arc20_usdc.aleo::burn_public(self.caller, amount);
         return final {
             finalize_transfer_remote(
                 dispatch_future,
@@ -404,7 +404,7 @@ program test_hyp_warp_token_template_v2.aleo {
             hook_metadata,
             allowance,
         );
-        let token_future: Final = test_arc20_token_usdc.aleo::burn_public(self.caller, amount);
+        let token_future: Final = test_arc20_usdc.aleo::burn_public(self.caller, amount);
         return final {
             finalize_transfer_remote(
                 dispatch_future,
@@ -445,7 +445,7 @@ program test_hyp_warp_token_template_v2.aleo {
             hook_metadata,
             allowance,
         );
-        let token_future: Final = test_arc20_token_usdc.aleo::burn_public(self.signer, amount);
+        let token_future: Final = test_arc20_usdc.aleo::burn_public(self.signer, amount);
         return final {
             finalize_transfer_remote(
                 dispatch_future,
@@ -486,7 +486,7 @@ program test_hyp_warp_token_template_v2.aleo {
             hook_metadata,
             allowance,
         );
-        let token_future: Final = test_arc20_token_usdc.aleo::burn_public(self.signer, amount);
+        let token_future: Final = test_arc20_usdc.aleo::burn_public(self.signer, amount);
         return final {
             finalize_transfer_remote(
                 dispatch_future,
@@ -520,7 +520,7 @@ program test_hyp_warp_token_template_v2.aleo {
             unverified_app_metadata.local_decimals,
             unverified_app_metadata.remote_decimals,
         );
-        let token_future: Final = test_arc20_token_usdc.aleo::mint_public(recipient, amount);
+        let token_future: Final = test_arc20_usdc.aleo::mint_public(recipient, amount);
         return final {
             finalize_process(
                 mailbox_future,
@@ -569,7 +569,7 @@ program test_hyp_warp_token_template_v2.aleo {
     // Funds are burned from the signer and minted to the signer.
     fn upgrade_token(amount: u128) -> Final {
         let burn_final: Final = test_hyp_warp_token_usdc.aleo::burn_token_registry_usdc(amount);
-        let mint_final: Final = test_arc20_token_usdc.aleo::mint_public(self.signer, amount);
+        let mint_final: Final = test_arc20_usdc.aleo::mint_public(self.signer, amount);
         return final {
             burn_final.run();
             mint_final.run();
@@ -577,11 +577,11 @@ program test_hyp_warp_token_template_v2.aleo {
     }
 
     // This function is called by an admin to pause or unpause the bridging activity.
-    fn set_pause(pause: bool) -> Final {
+    fn set_pause(pause_status: bool) -> Final {
         let caller = self.caller;
         return final {
             assert_eq(TESTNET_HYPERLANE_PAUSE_ADMIN, caller);
-            pause.set(true, pause);
+            pause.set(true, pause_status);
         };
     }
 }

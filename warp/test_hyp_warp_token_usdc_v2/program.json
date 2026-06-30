@@ -30,15 +30,15 @@
       "edition": null
     },
     {
-      "name": "test_arc20_token_usdc.aleo",
-      "location": "local",
-      "path": "../test_arc20_token_usdc/build/test_arc20_token_usdc/test_arc20_token_usdc.aleo",
+      "name": "test_arc20_usdc.aleo",
+      "location": "network",
+      "path": null,
       "edition": null
     },
     {
       "name": "test_hyp_warp_token_usdc.aleo",
-      "location": "local",
-      "path": "../test_hyp_warp_token_usdc/test_hyp_warp_token_usdc.aleo",
+      "location": "network",
+      "path": null,
       "edition": null
     }
   ],
