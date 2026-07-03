@@ -33,7 +33,7 @@
       "name": "test_hyp_warp_token_eth.aleo",
       "location": "network",
       "path": null,
-      "edition": null
+      "edition": 1
     }
   ],
   "dev_dependencies": null
