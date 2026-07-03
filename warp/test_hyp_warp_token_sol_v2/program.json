@@ -1,9 +1,9 @@
 {
-  "program": "test_hyp_warp_token_usdc_v2.aleo",
+  "program": "test_hyp_warp_token_sol_v2.aleo",
   "version": "0.1.0",
   "description": "",
   "license": "MIT",
-  "leo": "3.3.0",
+  "leo": "4.3.0",
   "dependencies": [
     {
       "name": "test_hyp_dispatch_proxy.aleo",
@@ -24,21 +24,15 @@
       "edition": null
     },
     {
-      "name": "token_registry.aleo",
+      "name": "test_arc20_sol.aleo",
       "location": "network",
       "path": null,
       "edition": null
     },
     {
-      "name": "test_arc20_usdc.aleo",
+      "name": "test_hyp_warp_token_sol.aleo",
       "location": "network",
       "path": null,
-      "edition": null
-    },
-    {
-      "name": "test_hyp_warp_token_usdc.aleo",
-      "location": "local",
-      "path": "../test_hyp_warp_token_usdc/build/main.aleo",
       "edition": null
     }
   ],
