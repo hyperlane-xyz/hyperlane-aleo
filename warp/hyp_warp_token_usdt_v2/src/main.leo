@@ -308,6 +308,22 @@ program hyp_warp_token_usdt_v2.aleo {
         };
     }
 
+    // Corrects local_decimals/remote_decimals after a misconfigured init.
+    // init() can only run once and had no other way to fix these fields.
+    fn set_decimals(new_local_decimals: u8, new_remote_decimals: u8) -> Final {
+        let caller = self.caller;
+        let difference = new_remote_decimals as i16 - new_local_decimals as i16;
+        assert_eq(difference.abs() <= 18i16, true);
+        return final {
+            let state = app_metadata.get(true);
+            assert_eq(HYPERLANE_PAUSE_ADMIN, caller);
+
+            state.local_decimals = new_local_decimals;
+            state.remote_decimals = new_remote_decimals;
+            app_metadata.set(true, state);
+        };
+    }
+
     fn enroll_remote_router(destination: u32, recipient: [u8; 32], gas: u128) -> Final {
         let caller = self.caller;
         return final {
