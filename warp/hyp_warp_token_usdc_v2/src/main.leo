@@ -324,38 +324,6 @@ program hyp_warp_token_usdc_v2.aleo {
         };
     }
 
-    // Recovers balances that were minted with a wrong decimals scale by burning an
-    // account down to `target_amount`. Uses the burner role this program already holds
-    // on arc20_usdc.aleo (the same role transfer_remote relies on) - does not require
-    // any change to arc20_usdc.aleo.
-    //
-    // `unverified_current_balance` must be queried directly from arc20_usdc.aleo's
-    // `balances` mapping for `account` before calling this (Aleo can't read another
-    // program's mapping and use it to parameterize a call in the same transition - the
-    // call has to be made at proving time, before finalize's on-chain state read runs).
-    // If the supplied balance is stale by the time this executes, the assert below fails
-    // and the whole transaction reverts, so this can never over- or under-burn relative
-    // to the account's real balance.
-    fn admin_burn(
-        account: address,
-        target_amount: u128,
-        unverified_current_balance: u128,
-    ) -> Final {
-        let caller = self.caller;
-        assert(unverified_current_balance >= target_amount);
-        let excess = unverified_current_balance - target_amount;
-        let burn_future: Final = arc20_usdc.aleo::burn_public(account, excess);
-        return final {
-            let state = app_metadata.get(true);
-            assert_eq(HYPERLANE_PAUSE_ADMIN, caller);
-
-            let actual_balance = Mapping::get_or_use(arc20_usdc.aleo::balances, account, 0u128);
-            assert_eq(actual_balance, unverified_current_balance);
-
-            burn_future.run();
-        };
-    }
-
     fn enroll_remote_router(destination: u32, recipient: [u8; 32], gas: u128) -> Final {
         let caller = self.caller;
         return final {
