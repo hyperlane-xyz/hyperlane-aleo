@@ -20,7 +20,7 @@ program arc20_token.aleo {
     storage token_supply: u128;
 
     // Immutable template. The deployer administers roles and pause initially.
-    // Grant the router 3u16 (mint | burn) with update_role after deployment.
+    // Grant the router 3u16 (mint | burn) only after initializing and verifying it.
     @custom
     constructor() {
         assert_eq(self.edition, 0u16);

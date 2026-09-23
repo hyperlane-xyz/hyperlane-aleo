@@ -40,20 +40,26 @@ source intentionally does not depend on the repository's Leo 3 source packages.
 ## Configure a new deployment
 
 1. Rename `arc20_token.aleo` and `hyp_synthetic_v2.aleo`, including imports,
-   self-references, and manifest entries. Set the token's `name`, `symbol`,
-   `decimals`, and `max_supply` views in `arc20_token/src/main.leo` before
-   deployment. Defaults are `TOKEN`, `TOKEN`, 18 decimals, and the maximum u128 supply.
+   self-references, and manifest entries. Set the token's `name`, `symbol`, and
+   `decimals` views and its `MAX_SUPPLY` constant in
+   `arc20_token/src/main.leo` before deployment. Keep the `max_supply()` view
+   returning `MAX_SUPPLY` so the reported and enforced limits cannot diverge.
+   Defaults are `TOKEN`, `TOKEN`, 18 decimals, and the maximum u128 supply.
 2. Deploy the token and router. The token constructor gives its deployer role
    `12u16` (role administrator + pauser). No account starts with mint/burn rights.
-3. As token administrator, call `update_role(router_address, 3u16)` to grant the
-   router mint (`1u16`) and burn (`2u16`) permissions. Roles are a bitmask;
-   `update_role` replaces the entire mask. Pauser is `4u16`, administrator `8u16`.
-4. Initialize the router immediately with the desired local/remote decimals and
-   enroll remote routers. Its initializer retains the deployed ABI, including
-   unused name/symbol arguments; these do not configure the standalone token.
-   The initialization caller becomes router owner. Token decimals must match
-   the router's configured local decimals.
-5. Transfer router ownership and configure token roles for the intended owners.
+3. Initialize the router with the desired local/remote decimals, then configure
+   its ISM, hook, and remote routers. Its initializer retains the deployed ABI,
+   including unused name/symbol arguments; these do not configure the standalone
+   token. The initialization caller becomes router owner. Token decimals must
+   match the router's configured local decimals.
+4. Read the router state back and verify its owner, decimals, security
+   configuration, and remote routers. Abort the deployment if the router was
+   already initialized or any value differs from the intended configuration.
+   Transfer router ownership and configure token roles for the intended owners.
+5. Only after verifying the initialized router, call
+   `update_role(router_address, 3u16)` as token administrator to grant it mint
+   (`1u16`) and burn (`2u16`) permissions. Roles are a bitmask; `update_role`
+   replaces the entire mask. Pauser is `4u16`, administrator `8u16`.
 
 The router does not register a token or grant itself mint/burn permissions.
 Its `token_id` metadata field remains for compatibility with the deployed ABI.
