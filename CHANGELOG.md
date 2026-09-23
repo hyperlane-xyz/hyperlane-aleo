@@ -13,6 +13,12 @@
 
 An '!' indicates a state machine breaking change.
 
+## Unreleased
+
+### Features
+
+- Added standalone ARC-20 token and synthetic v2 warp route templates based on the deployed mainnet programs, including caller-funded and signer-funded transfers.
+
 ## [v1.0.0](https://github.com/hyperlane-xyz/hyperlane-aleo/releases/tag/v1.0.0) - 2025-12-01
 
 **Initial Release of the Hyperlane Aleo Contracts**

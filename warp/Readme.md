@@ -24,3 +24,10 @@ chain asset; on outbound transfers they are burned before dispatch. It defines:
 
 This template enables bridging of existing assets that are already registered in the `token_registry` contract.
 On inbound transfers, tokens are transferred from the `hyp_collateral` contract to the recipient; on outbound transfers they are transferred from the sender to the `hyp_collateral` contract before dispatch.
+
+## Hyp Synthetic V2 and ARC-20 Templates
+
+[`hyp_synthetic_v2`](./hyp_synthetic_v2) bridges a standalone
+[`arc20_token`](./arc20_token), rather than a token registered in
+`token_registry.aleo`. See [the template guide](./hyp_synthetic_v2/README.md) for
+build requirements, role setup, and differences from the deployed programs.
