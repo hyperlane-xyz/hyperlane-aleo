@@ -13,6 +13,16 @@
 
 An '!' indicates a state machine breaking change.
 
+## [Unreleased]
+
+### Features
+
+- Added `transfer_remote_as_signer` and `transfer_remote_with_hook_as` to preserve signer-funded bridging. Synthetic and collateral `transfer_remote` variants debit the immediate caller; collateral callers must approve the router. All native ALEO variants remain signer-funded, matching the deployed native route.
+
+### Bug Fixes
+
+- Fixed `TypeError: can't concat str to bytes` in test infrastructure when a subprocess times out (`TimeoutExpired.stdout`/`stderr` are bytes even when `text=True` is set).
+
 ## [v1.0.0](https://github.com/hyperlane-xyz/hyperlane-aleo/releases/tag/v1.0.0) - 2025-12-01
 
 **Initial Release of the Hyperlane Aleo Contracts**

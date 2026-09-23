@@ -204,7 +204,9 @@ def transact(*cmd, cwd=os.getcwd(), timeout: float = 600.0) -> dict:
         output = proc.stdout
         exit_code = proc.returncode
     except subprocess.TimeoutExpired as e:
-        output = (e.stdout or "") + (e.stderr or "") + "\n<timeout>"
+        def _decode(v):
+            return v.decode("utf-8", errors="replace") if isinstance(v, bytes) else (v or "")
+        output = _decode(e.stdout) + _decode(e.stderr) + "\n<timeout>"
         exit_code = -1
     except FileNotFoundError:
         output = "Command not found"
