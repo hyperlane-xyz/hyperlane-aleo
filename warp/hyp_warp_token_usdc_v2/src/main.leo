@@ -235,6 +235,17 @@ program hyp_warp_token_usdc_v2.aleo {
         }
     }
 
+    // Correct remote decimals on routes initialized before the v2 scaling fix.
+    fn migrate_v2_remote_decimals() -> Final {
+        let caller = self.caller;
+        return final {
+            let state = app_metadata.get(true);
+            assert_eq(state.token_owner, caller);
+            state.remote_decimals = 18u8;
+            app_metadata.set(true, state);
+        };
+    }
+
     // Initialize the Synthetic token.
     // Whoever calls this function will be set as the owner
     // `name`, `symbol` and `decimals` are directly passed to the `register_token` transition.
