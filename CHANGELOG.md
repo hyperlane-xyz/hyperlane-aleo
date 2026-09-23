@@ -17,7 +17,7 @@ An '!' indicates a state machine breaking change.
 
 ### Features
 
-- Added `transfer_as_signer` methods to warp route programs, allowing the transaction signer to act as the sender/recipient.
+- Added `transfer_remote_as_signer` and `transfer_remote_with_hook_as` to preserve signer-funded bridging. Synthetic and collateral `transfer_remote` variants debit the immediate caller; collateral callers must approve the router. All native ALEO variants remain signer-funded, matching the deployed native route.
 
 ### Bug Fixes
 

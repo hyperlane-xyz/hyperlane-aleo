@@ -152,6 +152,8 @@ program hyp_native.aleo {
         };
     }
 
+    // All native transfer variants debit self.signer, including calls through
+    // intermediary programs. The explicit signer variants preserve this behavior.
     // `transfer_remote_with_hook`
     async transition transfer_remote_with_hook(
         public unverified_app_metadata: Metadata,

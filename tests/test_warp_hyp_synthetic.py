@@ -541,6 +541,11 @@ def test_transfer_after_set_hook():
     assert post_igp - igp == 1, "IGP event count did not increment"
     assert result.get("success"), f"Warp Hyp Synthetic transfer with custom hook failed: {result}"
 
+def test_intermediary_transfer_sources(tmp_path):
+    from .warp_transfer_helpers import check_intermediary_transfers
+
+    check_intermediary_transfers("synthetic", tmp_path, MAILBOX["default_hook"], ("--private-key", SECONDARY_ACCOUNT["private_key"]))
+
 def test_ownership_transfer():
     
     result = transact(

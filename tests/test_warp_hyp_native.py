@@ -475,6 +475,11 @@ def test_custom_ism():
     assert int(hyp_balance_after) - int(hyp_balance_before) == -999
     assert int(user_balance_after) - int(user_balance_before) == 999
 
+def test_intermediary_transfer_sources(tmp_path):
+    from .warp_transfer_helpers import check_intermediary_transfers
+
+    check_intermediary_transfers("native", tmp_path, MAILBOX["default_hook"])
+
 def test_ownership_transfer():
     
     result = transact(
