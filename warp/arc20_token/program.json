@@ -1,0 +1,9 @@
+{
+  "program": "arc20_token.aleo",
+  "version": "0.1.0",
+  "description": "Standalone ARC-20 token template",
+  "license": "Apache-2.0",
+  "leo": "4.3.0",
+  "dependencies": [],
+  "dev_dependencies": null
+}

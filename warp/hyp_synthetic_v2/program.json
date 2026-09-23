@@ -1,0 +1,28 @@
+{
+  "program": "hyp_synthetic_v2.aleo",
+  "version": "0.1.0",
+  "description": "Synthetic warp route backed by a standalone ARC-20 token",
+  "license": "Apache-2.0",
+  "leo": "4.3.0",
+  "dependencies": [
+    {
+      "name": "hyp_dispatch_proxy.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "hyp_mailbox.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "arc20_token.aleo",
+      "location": "local",
+      "path": "../arc20_token",
+      "network": "mainnet"
+    }
+  ],
+  "dev_dependencies": null
+}
