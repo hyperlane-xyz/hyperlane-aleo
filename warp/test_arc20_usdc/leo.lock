@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "git": [
+    {
+      "name": "IARC20",
+      "git": "https://github.com/ProvableHQ/ARCs/",
+      "reference": "rev=3fc1867",
+      "commit": "3fc1867ca9d7a7b4877d533557ebd8023b19843a"
+    }
+  ]
+}
