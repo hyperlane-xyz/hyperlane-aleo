@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "",
   "license": "MIT",
-  "leo": "3.3.0",
+  "leo": "4.3.0",
   "dependencies": [
     {
       "name": "test_hyp_dispatch_proxy.aleo",
@@ -37,8 +37,8 @@
     },
     {
       "name": "test_hyp_warp_token_usdc.aleo",
-      "location": "local",
-      "path": "../test_hyp_warp_token_usdc/build/main.aleo",
+      "location": "network",
+      "path": null,
       "edition": null
     }
   ],

@@ -1,4 +1,4 @@
-import test_hyp_multisig_core.aleo;
+import test_arc20_multisig_core.aleo;
 
 // The Hyperlane wrapped USDC token that implements `arc20_interface::ARC20Metadata`.
 
@@ -18,17 +18,6 @@ struct TokenAllowance {
     spender: address,
 }
 
-// Token metadata constants. `identifier` is not a storable type, so we
-// surface name/symbol as program-level constants rather than `storage`.
-// Public state describing the wrapped token.
-struct TokenInfo {
-    name: u128,
-    symbol: u128,
-    decimals: u8,
-    supply: u128,
-    max_supply: u128,
-}
-
 // Roles can be assigned using bitmasking to allow multiple roles per address
 const NONE_ROLE: u16 = 0u16;
 const MINTER_ROLE: u16 = 1u16;
@@ -38,49 +27,24 @@ const MANAGER_ROLE: u16 = 8u16; // can only assign roles
 
 const PAUSE_STATUS_INDEX: bool = true;
 
-const TESTNET_HYPERLANE_MANAGER_KEY_0: address = aleo1h9x8mx3yc8uqylsrguuqklkq9us4t7vkd7z9wxp04nt0p8sxjgzqhth7t0;
+const TESTNET_HYPERLANE_MANAGER_KEY_0: address = aleo1axurgcdhztu8m23ttzju38qzchtzs8kyk7nga9n58zyrmnxzmuqqf6wqdc;
 
-fn default_token_info() -> TokenInfo {
-    return TokenInfo {
-        // USDC
-        name: 113416722041000672961669155589399248896u128,
-        // USDC
-        symbol: 113416722041000672961669155589399248896u128,
-        decimals: 6u8,
-        supply: 0u128,
-        max_supply: 18000000000000000u128,
-    };
-}
+const MAX_SUPPLY: u128 = 340282366920938463463374607431768211455u128;
 
 final fn add_supply(amount: u128) {
-    let info = token_info.unwrap_or(default_token_info());
-
-    // Check that the token supply + amount <= max_supply
-    let new_supply: u128 = info.supply + amount;
-    assert(new_supply <= info.max_supply);
-
-    token_info = TokenInfo {
-        name: info.name,
-        symbol: info.symbol,
-        decimals: info.decimals,
-        supply: new_supply,
-        max_supply: info.max_supply,
-    };
+    let supply = token_supply.unwrap_or(0u128);
+    let new_supply = supply + amount;
+    assert(new_supply <= MAX_SUPPLY);
+    token_supply = new_supply;
 }
 
 final fn sub_supply(amount: u128) {
-    let info = token_info.unwrap_or(default_token_info());
-
-    token_info = TokenInfo {
-        name: info.name,
-        symbol: info.symbol,
-        decimals: info.decimals,
-        supply: info.supply - amount,
-        max_supply: info.max_supply,
-    };
+    let supply = token_supply.unwrap_or(0u128);
+    assert(supply >= amount);
+    token_supply = supply - amount;
 }
 
-program test_arc20_token_usdc.aleo: IARC20::IARC20 {
+program test_arc20_usdc.aleo: IARC20::IARC20 {
     record Token {
         owner:  address,
         amount: u128,
@@ -92,28 +56,20 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
     mapping pause: bool => bool;
     mapping initialized: bool => bool;
 
-    storage token_info: TokenInfo;
+    storage token_supply: u128;
 
     @custom
     constructor() {
         // Only require multisig for upgrades - initial deployment has no checks.
         if self.edition > 0u16 {
             let signing_op_id = BHP256::hash_to_field(ChecksumEdition { checksum: self.checksum, edition: self.edition });
-            let wallet_signing_op_id_hash = BHP256::hash_to_field(test_hyp_multisig_core.aleo::WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
-            let signing_complete = test_hyp_multisig_core.aleo::completed_signing_ops.contains(wallet_signing_op_id_hash);
+            let wallet_signing_op_id_hash = BHP256::hash_to_field(test_arc20_multisig_core.aleo::WalletSigningOpId { wallet_id: self.address, signing_op_id: signing_op_id });
+            let signing_complete = test_arc20_multisig_core.aleo::completed_signing_ops.contains(wallet_signing_op_id_hash);
             assert(signing_complete);
         } 
     }
 
-    // ----------------------------------------------------------------
-    //  READ-ONLY ACCESSORS (`view fn`)
-    //
-    // snarkVM requires a view body to contain at least one command
-    // (something like `get` / `assert` / `add`). For `decimals`,
-    // `name`, and `symbol` the returned value is a compile-time
-    // constant, so we touch `total_supply_value` to give the emitted
-    // bytecode a `get.or_use` instruction to anchor on.
-    // ----------------------------------------------------------------
+    // Read-only ARC-20 metadata and balance accessors.
 
     view fn balance_of(account: address) -> u128 {
         return balances.get_or_use(account, 0u128);
@@ -125,18 +81,15 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
     }
 
     view fn supply() -> u128 {
-        let info: TokenInfo = token_info.unwrap_or(default_token_info());
-        return info.supply;
+        return token_supply.unwrap_or(0u128);
     }
 
     view fn max_supply() -> u128 {
-        let info: TokenInfo = token_info.unwrap_or(default_token_info());
-        return info.max_supply;
+        return MAX_SUPPLY;
     }
 
     view fn decimals() -> u8 {
-        let info: TokenInfo = token_info.unwrap_or(default_token_info());
-        return info.decimals;
+        return 6u8;
     }
 
     view fn name() -> identifier {
@@ -162,7 +115,7 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
     fn unapprove_public(public spender: address, public amount: u128) -> Final {
         let key: field = BHP256::hash_to_field(TokenAllowance { account: self.caller, spender: spender });
         return final {
-            let current: u128 = allowances.get(key);
+            let current: u128 = allowances.get_or_use(key, 0u128);
             assert(current >= amount);
             allowances.set(key, current - amount);
         };
@@ -175,7 +128,7 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
     fn transfer_public(public recipient: address, public amount: u128) -> Final {
         let from: address = self.caller;
         return final {
-            let prev_from: u128 = balances.get(from);
+            let prev_from: u128 = balances.get_or_use(from, 0u128);
             assert(prev_from >= amount);
             balances.set(from, prev_from - amount);
             let prev_to: u128 = balances.get_or_use(recipient, 0u128);
@@ -186,7 +139,7 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
     fn transfer_public_as_signer(public recipient: address, public amount: u128) -> Final {
         let from: address = self.signer;
         return final {
-            let prev_from: u128 = balances.get(from);
+            let prev_from: u128 = balances.get_or_use(from, 0u128);
             assert(prev_from >= amount);
             balances.set(from, prev_from - amount);
             let prev_to: u128 = balances.get_or_use(recipient, 0u128);
@@ -217,7 +170,7 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
         return (
             received,
             final {
-                let prev: u128 = balances.get(from);
+                let prev: u128 = balances.get_or_use(from, 0u128);
                 assert(prev >= amount);
                 balances.set(from, prev - amount);
             },
@@ -228,10 +181,10 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
         let spender: address = self.caller;
         let key: field = BHP256::hash_to_field(TokenAllowance { account: owner, spender: spender });
         return final {
-            let current: u128 = allowances.get(key);
+            let current: u128 = allowances.get_or_use(key, 0u128);
             assert(current >= amount);
             allowances.set(key, current - amount);
-            let prev_owner: u128 = balances.get(owner);
+            let prev_owner: u128 = balances.get_or_use(owner, 0u128);
             assert(prev_owner >= amount);
             balances.set(owner, prev_owner - amount);
             let prev_to: u128 = balances.get_or_use(recipient, 0u128);
@@ -250,10 +203,10 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
         return (
             received,
             final {
-                let current: u128 = allowances.get(key);
+                let current: u128 = allowances.get_or_use(key, 0u128);
                 assert(current >= amount);
                 allowances.set(key, current - amount);
-                let prev_owner: u128 = balances.get(owner);
+                let prev_owner: u128 = balances.get_or_use(owner, 0u128);
                 assert(prev_owner >= amount);
                 balances.set(owner, prev_owner - amount);
             },
@@ -273,7 +226,7 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
         return (
             received,
             final {
-                let prev: u128 = balances.get(from);
+                let prev: u128 = balances.get_or_use(from, 0u128);
                 assert(prev >= amount);
                 balances.set(from, prev - amount);
             },
@@ -317,7 +270,7 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
             let role: u16 = address_to_role.get(caller);
             assert(role & MINTER_ROLE == MINTER_ROLE);
 
-            let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
+            let is_paused: bool = pause.get_or_use(PAUSE_STATUS_INDEX, false);
             assert_eq(is_paused, false);
 
             // Update the balance
@@ -338,10 +291,8 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
                 let role: u16 = address_to_role.get(caller);
                 assert(role & MINTER_ROLE == MINTER_ROLE);
 
-                let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
+                let is_paused: bool = pause.get_or_use(PAUSE_STATUS_INDEX, false);
                 assert_eq(is_paused, false);
-
-                let info = token_info.unwrap_or(default_token_info());
 
                 add_supply(amount);
             },
@@ -354,11 +305,12 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
             let role: u16 = address_to_role.get(caller);
             assert(role & BURNER_ROLE == BURNER_ROLE);
 
-            let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
+            let is_paused: bool = pause.get_or_use(PAUSE_STATUS_INDEX, false);
             assert_eq(is_paused, false);
 
             // Update the balance
-            let balance = balances.get(owner);
+            let balance = balances.get_or_use(owner, 0u128);
+            assert(balance >= amount);
             let new_balance = balance - amount;
             balances.set(owner, new_balance);
 
@@ -375,7 +327,7 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
                 let role: u16 = address_to_role.get(caller);
                 assert(role & BURNER_ROLE == BURNER_ROLE);
 
-                let is_paused: bool = pause.get(PAUSE_STATUS_INDEX);
+                let is_paused: bool = pause.get_or_use(PAUSE_STATUS_INDEX, false);
                 assert_eq(is_paused, false);
 
                 sub_supply(amount);
@@ -387,21 +339,15 @@ program test_arc20_token_usdc.aleo: IARC20::IARC20 {
     //  ADMIN RESTRICTED FUNCTIONS
     // ----------------------------------------------------------------
     
-    fn initialize_token(name: u128, symbol: u128, decimals: u8, max_supply: u128, manager_address: address) -> Final {
+    fn initialize_token(manager_address: address) -> Final {
         assert(self.caller == TESTNET_HYPERLANE_MANAGER_KEY_0);
         return final {
             // Prevent re-initialization of the token info.
             let already_initialized: bool = initialized.get_or_use(true, false);
             assert_eq(already_initialized, false);
             
-            // Initialize the token info struct with the provided parameters.
-            token_info = TokenInfo {
-                name: name,
-                symbol: symbol,
-                decimals: decimals,
-                supply: 0u128,
-                max_supply: max_supply,
-            };
+            // Initialize the circulating supply.
+            token_supply = 0u128;
 
             // Set the manager role for the provided manager address.
             address_to_role.set(manager_address, MANAGER_ROLE);
