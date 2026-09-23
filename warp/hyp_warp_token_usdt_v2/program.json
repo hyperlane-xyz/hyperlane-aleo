@@ -1,0 +1,40 @@
+{
+  "program": "hyp_warp_token_usdt_v2.aleo",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT",
+  "leo": "4.3.2",
+  "dependencies": [
+    {
+      "name": "hyp_dispatch_proxy.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "hyp_multisig_core.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "hyp_mailbox.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "arc20_usdt.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "hyp_warp_token_usdt.aleo",
+      "location": "network",
+      "path": null,
+      "edition": 1
+    }
+  ],
+  "dev_dependencies": null
+}
