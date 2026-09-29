@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "network": "mainnet",
+  "leoVersion": "4.3.2",
+  "encoding": {
+    "program_id": "ASCII bytes, zero-padded on the right to [u8; 128]",
+    "name_and_symbol": "UTF-8 bytes, zero-padded on the right to 16 bytes, interpreted as a big-endian u128",
+    "remote_router": "32-byte address representation produced by the Hyperlane SDK"
+  },
+  "roles": {
+    "mintAndBurn": "3u16"
+  },
+  "domains": {
+    "1": "ethereum",
+    "1399811149": "solanamainnet"
+  },
+  "valueSources": {
+    "deployedProgramAddress": "Aleo address derived from the deployed router program ID",
+    "remoteRouters[destination].address": "router address emitted by deployment of the corresponding remote leg",
+    "destinationGas[destination]": "destination gas value resolved from the warp route configuration",
+    "configuredOwner": "the configuredOwner signer value below"
+  },
+  "signers": {
+    "arc22RoleAdmin": "aleo1kmcydn6me4fn20eq0pcdf8zhh58jpnela8ys3e77xr4x0fn00czqt3v8x2",
+    "routerOwner": "the account that calls init",
+    "configuredOwner": "aleo1mx0tldt5qsqymn5a3whnmf9rx2whp837jjn0tvqgxqf86zg6dvyqnc8spm"
+  },
+  "tokens": [
+    {
+      "symbol": "BAT",
+      "program": "hyp_warp_token_bat_v2.aleo",
+      "deploymentArtifact": "warp/hyp_warp_token_bat_v2/build/hyp_warp_token_bat_v2/hyp_warp_token_bat_v2.aleo",
+      "deploymentOverrideEnv": "ALEO_HYP_SYNTHETIC",
+      "underlyingToken": "shield_arc22_bat.aleo",
+      "remoteDomains": [1, 1399811149],
+      "operations": [
+        {
+          "order": 1,
+          "program": "hyp_warp_token_bat_v2.aleo",
+          "function": "init",
+          "signer": "routerOwner",
+          "inputs": [
+            { "name": "program_id", "type": "[u8; 128]", "value": "hyp_warp_token_bat_v2.aleo", "encoding": "program_id" },
+            { "name": "name", "type": "u128", "value": "88235041343821820532044685720352157184u128", "decoded": "Basic Attention" },
+            { "name": "symbol", "type": "u128", "value": "88068250740015918147821359809010073600u128", "decoded": "BAT" },
+            { "name": "local_decimals", "type": "u8", "value": "18u8" },
+            { "name": "remote_decimals", "type": "u8", "value": "18u8" }
+          ]
+        },
+        {
+          "order": 2,
+          "program": "shield_arc22_bat.aleo",
+          "function": "update_role",
+          "signer": "arc22RoleAdmin",
+          "inputs": [
+            { "name": "account", "type": "address", "valueFrom": "deployedProgramAddress" },
+            { "name": "role", "type": "u16.private", "value": "3u16", "description": "mint and burn" }
+          ]
+        },
+        {
+          "order": 3,
+          "program": "hyp_warp_token_bat_v2.aleo",
+          "function": "enroll_remote_router",
+          "signer": "routerOwner",
+          "repeatFor": "remoteDomains",
+          "inputs": [
+            { "name": "destination", "type": "u32", "valueFrom": "remoteDomains[]" },
+            { "name": "recipient", "type": "[u8; 32]", "valueFrom": "remoteRouters[destination].address", "encoding": "remote_router" },
+            { "name": "gas", "type": "u128", "valueFrom": "destinationGas[destination]" }
+          ]
+        },
+        {
+          "order": 4,
+          "program": "hyp_warp_token_bat_v2.aleo",
+          "function": "set_owner",
+          "signer": "routerOwner",
+          "condition": "configuredOwner differs from routerOwner",
+          "mustBeLast": true,
+          "inputs": [
+            { "name": "new_owner", "type": "address", "valueFrom": "configuredOwner" }
+          ]
+        }
+      ]
+    },
+    {
+      "symbol": "USDG",
+      "program": "hyp_warp_token_usdg_v2.aleo",
+      "deploymentArtifact": "warp/hyp_warp_token_usdg_v2/build/hyp_warp_token_usdg_v2/hyp_warp_token_usdg_v2.aleo",
+      "deploymentOverrideEnv": "ALEO_HYP_SYNTHETIC",
+      "underlyingToken": "shield_arc22_usdg.aleo",
+      "remoteDomains": [1, 1399811149],
+      "operations": [
+        {
+          "order": 1,
+          "program": "hyp_warp_token_usdg_v2.aleo",
+          "function": "init",
+          "signer": "routerOwner",
+          "inputs": [
+            { "name": "program_id", "type": "[u8; 128]", "value": "hyp_warp_token_usdg_v2.aleo", "encoding": "program_id" },
+            { "name": "name", "type": "u128", "value": "94938214903427482412697549055203475456u128", "decoded": "Global Dollar" },
+            { "name": "symbol", "type": "u128", "value": "113416725110028826716348428873862479872u128", "decoded": "USDG" },
+            { "name": "local_decimals", "type": "u8", "value": "6u8" },
+            { "name": "remote_decimals", "type": "u8", "value": "6u8" }
+          ]
+        },
+        {
+          "order": 2,
+          "program": "shield_arc22_usdg.aleo",
+          "function": "update_role",
+          "signer": "arc22RoleAdmin",
+          "inputs": [
+            { "name": "account", "type": "address", "valueFrom": "deployedProgramAddress" },
+            { "name": "role", "type": "u16.private", "value": "3u16", "description": "mint and burn" }
+          ]
+        },
+        {
+          "order": 3,
+          "program": "hyp_warp_token_usdg_v2.aleo",
+          "function": "enroll_remote_router",
+          "signer": "routerOwner",
+          "repeatFor": "remoteDomains",
+          "inputs": [
+            { "name": "destination", "type": "u32", "valueFrom": "remoteDomains[]" },
+            { "name": "recipient", "type": "[u8; 32]", "valueFrom": "remoteRouters[destination].address", "encoding": "remote_router" },
+            { "name": "gas", "type": "u128", "valueFrom": "destinationGas[destination]" }
+          ]
+        },
+        {
+          "order": 4,
+          "program": "hyp_warp_token_usdg_v2.aleo",
+          "function": "set_owner",
+          "signer": "routerOwner",
+          "condition": "configuredOwner differs from routerOwner",
+          "mustBeLast": true,
+          "inputs": [
+            { "name": "new_owner", "type": "address", "valueFrom": "configuredOwner" }
+          ]
+        }
+      ]
+    },
+    {
+      "symbol": "ZEC",
+      "program": "hyp_warp_token_zec_v2.aleo",
+      "deploymentArtifact": "warp/hyp_warp_token_zec_v2/build/hyp_warp_token_zec_v2/hyp_warp_token_zec_v2.aleo",
+      "deploymentOverrideEnv": "ALEO_HYP_SYNTHETIC",
+      "underlyingToken": "shield_arc22_zec.aleo",
+      "remoteDomains": [1399811149],
+      "operations": [
+        {
+          "order": 1,
+          "program": "hyp_warp_token_zec_v2.aleo",
+          "function": "init",
+          "signer": "routerOwner",
+          "inputs": [
+            { "name": "program_id", "type": "[u8; 128]", "value": "hyp_warp_token_zec_v2.aleo", "encoding": "program_id" },
+            { "name": "name", "type": "u128", "value": "120146533546794060870416987850130063360u128", "decoded": "Zcash" },
+            { "name": "symbol", "type": "u128", "value": "119990147025324776329629644137783361536u128", "decoded": "ZEC" },
+            { "name": "local_decimals", "type": "u8", "value": "8u8" },
+            { "name": "remote_decimals", "type": "u8", "value": "8u8" }
+          ]
+        },
+        {
+          "order": 2,
+          "program": "shield_arc22_zec.aleo",
+          "function": "update_role",
+          "signer": "arc22RoleAdmin",
+          "inputs": [
+            { "name": "account", "type": "address", "valueFrom": "deployedProgramAddress" },
+            { "name": "role", "type": "u16.private", "value": "3u16", "description": "mint and burn" }
+          ]
+        },
+        {
+          "order": 3,
+          "program": "hyp_warp_token_zec_v2.aleo",
+          "function": "enroll_remote_router",
+          "signer": "routerOwner",
+          "repeatFor": "remoteDomains",
+          "inputs": [
+            { "name": "destination", "type": "u32", "valueFrom": "remoteDomains[]" },
+            { "name": "recipient", "type": "[u8; 32]", "valueFrom": "remoteRouters[destination].address", "encoding": "remote_router" },
+            { "name": "gas", "type": "u128", "valueFrom": "destinationGas[destination]" }
+          ]
+        },
+        {
+          "order": 4,
+          "program": "hyp_warp_token_zec_v2.aleo",
+          "function": "set_owner",
+          "signer": "routerOwner",
+          "condition": "configuredOwner differs from routerOwner",
+          "mustBeLast": true,
+          "inputs": [
+            { "name": "new_owner", "type": "address", "valueFrom": "configuredOwner" }
+          ]
+        }
+      ]
+    }
+  ],
+  "omittedOperations": {
+    "set_custom_ism": "not configured for the Aleo legs",
+    "set_custom_hook": "not configured for the Aleo legs"
+  }
+}
