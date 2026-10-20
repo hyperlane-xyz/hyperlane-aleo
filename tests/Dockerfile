@@ -12,7 +12,7 @@ RUN apt-get install -y git
 
 RUN git clone https://github.com/ProvableHQ/leo.git /opt/leo \
     && cd /opt/leo \
-    && git checkout feat/leo-devnode \
+    && git checkout ad1e02ce63aac3f250d5245dc7ad83b5f93f9ecf \
     && cargo build --release \
     && cp /opt/leo/target/release/leo /usr/local/cargo/bin/
 
