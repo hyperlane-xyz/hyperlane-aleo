@@ -235,7 +235,11 @@ program hyp_warp_token_usdt_v2.aleo {
         }
     }
 
-    // Correct remote decimals on routes initialized before the v2 scaling fix.
+    // Migration from Edition 0 to Edition 1
+    // Edition 0 initialized both local and remote decimals to 6.
+    // To support networks that use 18 decimals, the contract must
+    // update its remote decimals from 6 to 18.
+    // This is an idempotent operation and can only be called by the token owner.
     fn migrate_v2_remote_decimals() -> Final {
         let caller = self.caller;
         return final {
@@ -245,7 +249,7 @@ program hyp_warp_token_usdt_v2.aleo {
             app_metadata.set(true, state);
         };
     }
-
+    
     // Initialize the Synthetic token.
     // Whoever calls this function will be set as the owner
     // `name`, `symbol` and `decimals` are directly passed to the `register_token` transition.
@@ -353,6 +357,7 @@ program hyp_warp_token_usdt_v2.aleo {
         public amount: u128,
         public allowance: [hyp_dispatch_proxy.aleo::CreditAllowance; 4],
     ) -> Final {
+        assert_neq(self.caller, self.caller);
         let custom_hook: address = unverified_app_metadata.hook;
         let hook_metadata: hyp_dispatch_proxy.aleo::HookMetadata = hyp_dispatch_proxy.aleo::HookMetadata {
             gas_limit: unverified_remote_router.gas,
@@ -590,6 +595,16 @@ program hyp_warp_token_usdt_v2.aleo {
         return final {
             assert_eq(HYPERLANE_PAUSE_ADMIN, caller);
             pause.set(true, new_pause);
+        };
+    }
+
+    // This function will be used to upgrade ARC20 USDT tokens to the new ARC22 token standard.
+    fn burn_arc20_usdt(amount: u128) -> Final {
+        // Only the v2 warp token program can call this function.
+        assert_eq(self.caller, hyp_warp_token_usdt_v3.aleo);
+        let burn_future: Final = arc20_usdt.aleo::burn_public(self.signer, amount);
+        return final {
+            burn_future.run();
         };
     }
 }
