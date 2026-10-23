@@ -1,0 +1,46 @@
+{
+  "program": "hyp_warp_token_usdt_v3.aleo",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT",
+  "leo": "4.4.4",
+  "dependencies": [
+    {
+      "name": "hyp_dispatch_proxy.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "hyp_multisig_core.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "hyp_mailbox.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "shield_arc22_usdt.aleo",
+      "location": "local",
+      "path": "../../../shield_tokens/usdt/shield_arc22_usdt",
+      "edition": null
+    },
+    {
+      "name": "shield_arc22_freezelist.aleo",
+      "location": "local",
+      "path": "../../../shield_tokens/shield_arc22_freezelist",
+      "edition": null
+    },
+    {
+      "name": "hyp_warp_token_usdt_v2.aleo",
+      "location": "local",
+      "path": "../../hyp_warp_token_usdt_v2/build/hyp_warp_token_usdt_v2/hyp_warp_token_usdt_v2.aleo",
+      "edition": null
+    }
+  ],
+  "dev_dependencies": null
+}
