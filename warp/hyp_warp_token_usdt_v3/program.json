@@ -25,21 +25,21 @@
     },
     {
       "name": "shield_arc22_usdt.aleo",
-      "location": "local",
-      "path": "../../../shield_tokens/usdt/shield_arc22_usdt",
+      "location": "network",
+      "path": null,
       "edition": null
     },
     {
       "name": "shield_arc22_freezelist.aleo",
-      "location": "local",
-      "path": "../../../shield_tokens/shield_arc22_freezelist",
+      "location": "network",
+      "path": null,
       "edition": null
     },
     {
       "name": "hyp_warp_token_usdt_v2.aleo",
-      "location": "local",
-      "path": "../../hyp_warp_token_usdt_v2/build/hyp_warp_token_usdt_v2/hyp_warp_token_usdt_v2.aleo",
-      "edition": null
+      "location": "network",
+      "path": null,
+      "edition": 2
     }
   ],
   "dev_dependencies": null
