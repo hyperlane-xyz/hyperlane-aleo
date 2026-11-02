@@ -1,0 +1,26 @@
+{
+  "program": "warp_token_interfaces",
+  "version": "0.1.0",
+  "description": "Official ARC interfaces with Warp mint/burn extensions",
+  "license": "MIT",
+  "leo": "4.4.5",
+  "dependencies": [
+    {
+      "name": "IARC20",
+      "location": "git",
+      "git": {
+        "url": "https://github.com/aleo-labs-protocol/ARCs",
+        "rev": "7e66621306953bc58822a393fb45d0e8749ebb5d"
+      }
+    },
+    {
+      "name": "IARC22",
+      "location": "git",
+      "git": {
+        "url": "https://github.com/aleo-labs-protocol/ARCs",
+        "rev": "7e66621306953bc58822a393fb45d0e8749ebb5d"
+      }
+    }
+  ],
+  "dev_dependencies": null
+}

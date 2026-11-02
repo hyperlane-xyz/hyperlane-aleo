@@ -20,6 +20,16 @@ chain asset; on outbound transfers they are burned before dispatch. It defines:
 
 - Mint/burn logic tied to verified bridge messages.
 
+### Hyp Synthetic V2 Template
+
+This template bridges assets using a dedicated ARC-20 token program. Tokens are
+minted on inbound transfers and burned on outbound transfers through the token interface.
+
+### Hyp Synthetic V3 Template
+
+This template extends V2 with ARC-22 support. It adds freezelist checks for
+outbound senders and inbound recipients alongside the token's mint/burn operations.
+
 ## Hyp Collateral Template
 
 This template enables bridging of existing assets that are already registered in the `token_registry` contract.
