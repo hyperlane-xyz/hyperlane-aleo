@@ -2,6 +2,34 @@ import hyp_dispatch_proxy.aleo;
 import hyp_mailbox.aleo;
 import hyp_multisig_core.aleo;
 
+// Wire enum: Public = 0, Private = 1, encoded as Solidity abi.encode(mode).
+// TokenMessage metadata follows the 32-byte recipient and 32-byte amount.
+const PUBLIC: u128 = 0u128;
+const PRIVATE: u128 = 1u128 << 120u8;
+
+fn is_private(metadata: [u128; 2], message_length: u32) -> bool {
+    // Legacy messages have no metadata; trailing array padding is unauthenticated.
+    assert(message_length >= 141u32 && message_length <= 333u32);
+    if message_length == 141u32 {
+        return false;
+    }
+    // Require the entire 32-byte ABI word. Its final byte is the top byte of
+    // the second little-endian u128, hence PRIVATE is shifted by 120 bits.
+    assert(message_length >= 173u32);
+    assert_eq(metadata[0], 0u128);
+    assert(metadata[1] == PUBLIC || metadata[1] == PRIVATE);
+    return metadata[1] == PRIVATE;
+}
+
+fn bytes_raw_to_address(a: [u128; 2]) -> address {
+    let bits = Serialize::to_bits_raw(a);
+    let truncated_bits = [false; 253];
+    for i in 0u8..253u8 {
+        truncated_bits[i] = bits[i];
+    }
+    return Deserialize::from_bits_raw::[address](truncated_bits);
+}
+
 // Aleo integers are little-endian encoded. The bytes in the hyperlane-message are big-endian encoded.
 // This function converts the u128 in the message_body bytes to an u128 representing an integer.
 fn convert_endianness(payload: u128) -> u128 {
@@ -636,10 +664,18 @@ program hyp_synthetic_v3.aleo {
         public id: [u128; 2],
         public metadata: [u8; 512],
     ) -> Final {
-        // Require the full 32-byte commitment and 32-byte amount to be authenticated.
-        assert(message_length >= 141u32 && message_length <= 333u32);
-        // All inbound transfers fund this route until the recipient redeems privately.
-        let recipient = std::ctx::addr();
+        // Read the mint mode from the authenticated token body, not ISM metadata.
+        let private_mint = is_private(
+            [message.body[4], message.body[5]], message_length,
+        );
+        // A commitment is not an address. Sanitize before decoding because
+        // transition branches may evaluate both sides even in private mode.
+        let address_raw = private_mint
+            ? [0u128; 2]
+            : [message.body[0], message.body[1]];
+        let recipient = private_mint
+            ? std::ctx::addr()
+            : bytes_raw_to_address(address_raw);
         let amount = convert_ingoing_amount(
             [message.body[2], message.body[3]],
             unverified_app_metadata.local_decimals,
@@ -665,6 +701,7 @@ program hyp_synthetic_v3.aleo {
                 token_final,
                 unverified_ism,
                 amount,
+                private_mint,
             );
         };
     }
@@ -678,6 +715,7 @@ program hyp_synthetic_v3.aleo {
         token_future: Final,
         unverified_ism: address,
         amount: u128,
+        private_mint: bool,
     ) {
         let paused_status = pause.unwrap_or(false);
         assert_eq(paused_status, false);
@@ -696,12 +734,14 @@ program hyp_synthetic_v3.aleo {
         // Assert that the router recipient matches the message sender
         assert_eq(router.recipient, message.sender);
 
-        let commitment = [message.body[0], message.body[1]];
-        assert(amount > 0u128);
-        let pending = pending_redemptions.get_or_use(commitment, 0u128);
-        pending_redemptions.set(commitment, pending + amount);
+        if private_mint {
+            let commitment = [message.body[0], message.body[1]];
+            assert(amount > 0u128);
+            let pending = pending_redemptions.get_or_use(commitment, 0u128);
+            pending_redemptions.set(commitment, pending + amount);
+        }
 
-        // Check the route escrow against the live list before committing the mint.
+        // Check the public recipient or private route escrow before committing the mint.
         freezelist_future.run();
 
         mailbox_future.run();
