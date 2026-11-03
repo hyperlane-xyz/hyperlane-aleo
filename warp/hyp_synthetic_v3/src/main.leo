@@ -2,8 +2,25 @@ import hyp_dispatch_proxy.aleo;
 import hyp_mailbox.aleo;
 import hyp_multisig_core.aleo;
 
-// It uses the u128;2 array representing 32 bytes in little endian encoding.
-// This representation gets converted to an Aleo-address.
+// Wire enum: Public = 0, Private = 1, encoded as Solidity abi.encode(mode).
+// TokenMessage metadata follows the 32-byte recipient and 32-byte amount.
+const PUBLIC: u128 = 0u128;
+const PRIVATE: u128 = 1u128 << 120u8;
+
+fn is_private(metadata: [u128; 2], message_length: u32) -> bool {
+    // Legacy messages have no metadata; trailing array padding is unauthenticated.
+    assert(message_length >= 141u32 && message_length <= 333u32);
+    if message_length == 141u32 {
+        return false;
+    }
+    // Require the entire 32-byte ABI word. Its final byte is the top byte of
+    // the second little-endian u128, hence PRIVATE is shifted by 120 bits.
+    assert(message_length >= 173u32);
+    assert_eq(metadata[0], 0u128);
+    assert(metadata[1] == PUBLIC || metadata[1] == PRIVATE);
+    return metadata[1] == PRIVATE;
+}
+
 fn bytes_raw_to_address(a: [u128; 2]) -> address {
     let bits = Serialize::to_bits_raw(a);
     let truncated_bits = [false; 253];
@@ -151,6 +168,11 @@ final fn finalize_transfer_remote(
     token_future.run();
 }
 
+struct Redemption {
+    recipient: address,
+    secret: scalar,
+}
+
 struct ChecksumEdition {
     checksum: [u8; 32],
     edition: u16,
@@ -218,6 +240,10 @@ program hyp_synthetic_v3.aleo {
     // This can be changed by the contract owner specified in the `app_metadata`
     // The metadata is queried by the relayer and passed to the process function.
     mapping app_metadata: bool => Metadata;
+
+    // Unclaimed funds per commitment. Fully redeemed entries are removed;
+    // later authenticated deposits may fund the same commitment again.
+    mapping pending_redemptions: [u128; 2] => u128;
 
     // Admin pause mapping to pause the bridging activity
     storage pause: bool;
@@ -431,6 +457,113 @@ program hyp_synthetic_v3.aleo {
         };
     }
 
+    // Private outbound transfers always burn the freshly credited route balance.
+    fn transfer_remote_private(
+        public unverified_app_metadata: Metadata,
+        public unverified_mailbox_state: hyp_dispatch_proxy.aleo::MailboxState,
+        public unverified_remote_router: RemoteRouter,
+        public destination: u32,
+        public recipient: [u128; 2],
+        public amount: u128,
+        public allowance: [hyp_dispatch_proxy.aleo::CreditAllowance; 4],
+        input_record: dyn record,
+        private sender_merkle_proofs: [IARC22::MerkleProof; 2],
+    ) -> (dyn record, dyn record, Final) {
+        assert(amount > 0u128);
+        let route = std::ctx::addr();
+        // Consume the user's private record and credit this route. ARC-22 also
+        // verifies the hidden sender and public route recipient in this call.
+        let (compliance, change, transfer_future): (dyn record, dyn record, Final) =
+            IARC22::IARC22@(TOKEN_PROGRAM)::transfer_private_to_public(
+                route, amount, input_record, sender_merkle_proofs,
+            );
+        let custom_hook: address = unverified_app_metadata.hook;
+        let hook_metadata: hyp_dispatch_proxy.aleo::HookMetadata = hyp_dispatch_proxy.aleo::HookMetadata {
+            gas_limit: unverified_remote_router.gas,
+            extra_data: [0u8; 64],
+        };
+        let body_amount = convert_outgoing_amount(
+            amount,
+            unverified_app_metadata.local_decimals,
+            unverified_app_metadata.remote_decimals,
+        );
+        let message_body = get_message_body(recipient, body_amount);
+        let dispatch_future: Final = hyp_dispatch_proxy.aleo::dispatch(
+            unverified_mailbox_state,
+            destination,
+            unverified_remote_router.recipient,
+            message_body,
+            custom_hook,
+            hook_metadata,
+            allowance,
+        );
+        let token_future: Final =
+            warp_token_interfaces::IWarpARC22@(TOKEN_PROGRAM)::burn_public(route, amount);
+        return (compliance, change, final {
+            finalize_transfer_remote(
+                transfer_future,
+                dispatch_future,
+                token_future,
+                unverified_remote_router,
+                destination,
+                unverified_app_metadata,
+            );
+        });
+    }
+
+    fn transfer_remote_private_hook(
+        public unverified_app_metadata: Metadata,
+        public unverified_mailbox_state: hyp_dispatch_proxy.aleo::MailboxState,
+        public unverified_remote_router: RemoteRouter,
+        public destination: u32,
+        public recipient: [u128; 2],
+        public amount: u128,
+        public allowance: [hyp_dispatch_proxy.aleo::CreditAllowance; 4],
+        input_record: dyn record,
+        private sender_merkle_proofs: [IARC22::MerkleProof; 2],
+        public custom_hook: address,
+        public hook_metadata: hyp_dispatch_proxy.aleo::HookMetadata,
+    ) -> (dyn record, dyn record, Final) {
+        assert(amount > 0u128);
+        let route = std::ctx::addr();
+        // Consume the user's private record and credit this route. ARC-22 also
+        // verifies the hidden sender and public route recipient in this call.
+        let (compliance, change, transfer_future): (dyn record, dyn record, Final) =
+            IARC22::IARC22@(TOKEN_PROGRAM)::transfer_private_to_public(
+                route, amount, input_record, sender_merkle_proofs,
+            );
+        if hook_metadata.gas_limit == 0u128 {
+            hook_metadata.gas_limit = unverified_remote_router.gas;
+        }
+        let body_amount = convert_outgoing_amount(
+            amount,
+            unverified_app_metadata.local_decimals,
+            unverified_app_metadata.remote_decimals,
+        );
+        let message_body = get_message_body(recipient, body_amount);
+        let dispatch_future: Final = hyp_dispatch_proxy.aleo::dispatch(
+            unverified_mailbox_state,
+            destination,
+            unverified_remote_router.recipient,
+            message_body,
+            custom_hook,
+            hook_metadata,
+            allowance,
+        );
+        let token_future: Final =
+            warp_token_interfaces::IWarpARC22@(TOKEN_PROGRAM)::burn_public(route, amount);
+        return (compliance, change, final {
+            finalize_transfer_remote(
+                transfer_future,
+                dispatch_future,
+                token_future,
+                unverified_remote_router,
+                destination,
+                unverified_app_metadata,
+            );
+        });
+    }
+
     fn transfer_remote_as_signer(
         public unverified_app_metadata: Metadata,
         public unverified_mailbox_state: hyp_dispatch_proxy.aleo::MailboxState,
@@ -531,8 +664,18 @@ program hyp_synthetic_v3.aleo {
         public id: [u128; 2],
         public metadata: [u8; 512],
     ) -> Final {
-        let address_raw = [message.body[0], message.body[1]];
-        let recipient = bytes_raw_to_address(address_raw);
+        // Read the mint mode from the authenticated token body, not ISM metadata.
+        let private_mint = is_private(
+            [message.body[4], message.body[5]], message_length,
+        );
+        // A commitment is not an address. Sanitize before decoding because
+        // transition branches may evaluate both sides even in private mode.
+        let address_raw = private_mint
+            ? [0u128; 2]
+            : [message.body[0], message.body[1]];
+        let recipient = private_mint
+            ? std::ctx::addr()
+            : bytes_raw_to_address(address_raw);
         let amount = convert_ingoing_amount(
             [message.body[2], message.body[3]],
             unverified_app_metadata.local_decimals,
@@ -557,6 +700,8 @@ program hyp_synthetic_v3.aleo {
                 message,
                 token_final,
                 unverified_ism,
+                amount,
+                private_mint,
             );
         };
     }
@@ -569,6 +714,8 @@ program hyp_synthetic_v3.aleo {
         message: hyp_mailbox.aleo::Message,
         token_future: Final,
         unverified_ism: address,
+        amount: u128,
+        private_mint: bool,
     ) {
         let paused_status = pause.unwrap_or(false);
         assert_eq(paused_status, false);
@@ -587,11 +734,61 @@ program hyp_synthetic_v3.aleo {
         // Assert that the router recipient matches the message sender
         assert_eq(router.recipient, message.sender);
 
-        // Check the decoded recipient against the live list before committing the mint.
+        if private_mint {
+            let commitment = [message.body[0], message.body[1]];
+            assert(amount > 0u128);
+            let pending = pending_redemptions.get_or_use(commitment, 0u128);
+            pending_redemptions.set(commitment, pending + amount);
+        }
+
+        // Check the public recipient or private route escrow before committing the mint.
         freezelist_future.run();
 
         mailbox_future.run();
         token_future.run();
+    }
+
+    // Redeem a proved amount, leaving any remainder available for a later claim.
+    // Draining the current balance removes the pending entry. The recipient
+    // remains private and need not be the signer; a relayer may broadcast it.
+    fn redeem(
+        public commitment: [u128; 2],
+        public amount: u128,
+        private recipient: address,
+        private secret: scalar,
+        private recipient_merkle_proofs: [IARC22::MerkleProof; 2],
+    ) -> (dyn record, dyn record, Final) {
+        assert(amount > 0u128);
+        // The wallet derives secret = hash_to_scalar(view_key, counter, domain).
+        let expected = BHP256::hash_to_field(Redemption {
+            recipient: recipient,
+            secret: secret,
+        });
+        // Canonical 32-byte encoding: 253 little-endian field bits, then 3 zeros.
+        let bits = Serialize::to_bits_raw(expected);
+        let padded_bits = [false; 256];
+        for i: u32 in 0u32..253u32 {
+            padded_bits[i] = bits[i];
+        }
+        assert_eq(commitment, Deserialize::from_bits_raw::[[u128; 2]](padded_bits));
+        let freezelist_future: Final =
+            IARC22::IARC22Freezelist@(FREEZELIST_PROGRAM)::verify_non_inclusion_priv(
+                recipient, recipient_merkle_proofs,
+            );
+        let (compliance, token, transfer_future): (dyn record, dyn record, Final) =
+            IARC22::IARC22@(TOKEN_PROGRAM)::transfer_public_to_private(recipient, amount);
+        return (compliance, token, final {
+            assert_eq(pause.unwrap_or(false), false);
+            // Checked subtraction rejects spending more than this commitment holds.
+            let remaining = pending_redemptions.get(commitment) - amount;
+            if remaining == 0u128 {
+                pending_redemptions.remove(commitment);
+            } else {
+                pending_redemptions.set(commitment, remaining);
+            }
+            freezelist_future.run();
+            transfer_future.run();
+        });
     }
 
     // This function is called by an admin to pause or unpause the bridging activity.
