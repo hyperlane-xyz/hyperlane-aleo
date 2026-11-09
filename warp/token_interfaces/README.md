@@ -43,13 +43,14 @@ it is not used as a substitute for the official ARC interfaces.
 ## Bindings and execution
 
 The templates select program names through `TOKEN_PROGRAM` and (V3)
-`FREEZELIST_PROGRAM`. Set these fixed identifiers when instantiating a route;
-never accept an unchecked program identifier from a transfer caller. The
-interface checks argument/output types, not the trustworthiness of a target.
+`FREEZELIST_PROGRAM`. Each target also has a matching static reference import
+and network dependency. When instantiating a route, replace the import,
+`program.json` dependency, and identifier together; never accept an unchecked
+program identifier from a transfer caller. Keeping the static import is
+required by the current SDK's ARC token discovery and ensures a fresh relayer
+loads the dynamic target before authorization. The interface checks
+argument/output types, not the trustworthiness of a target.
 
 The target token and freezelist must exist when executing the transaction.
-Off-chain proving tools must resolve the dynamic callees and include their
-executions. Building the Warp source alone does not need their implementations.
-This changes static `call` instructions to `call.dynamic`; consumers that
-infer the token solely from static imports/calls need to support the configured
-dynamic target before using these templates.
+The reference imports preserve the dependency graph used by the deployed
+token-specific routes, while the interface calls preserve reusable source.

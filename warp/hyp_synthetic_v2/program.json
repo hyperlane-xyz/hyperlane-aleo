@@ -24,6 +24,12 @@
       "edition": null
     },
     {
+      "name": "arc20_eth.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
       "name": "warp_token_interfaces",
       "location": "local",
       "path": "../token_interfaces",

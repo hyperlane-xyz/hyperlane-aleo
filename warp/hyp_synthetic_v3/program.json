@@ -24,6 +24,18 @@
       "edition": null
     },
     {
+      "name": "shield_arc22_usdt.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
+      "name": "shield_arc22_freezelist.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
       "name": "warp_token_interfaces",
       "location": "local",
       "path": "../token_interfaces",

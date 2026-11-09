@@ -1,6 +1,10 @@
 import hyp_dispatch_proxy.aleo;
 import hyp_mailbox.aleo;
 import hyp_multisig_core.aleo;
+// Reference bindings. Replace these imports, the matching constants, and the
+// program.json dependencies together when instantiating the template.
+import shield_arc22_usdt.aleo;
+import shield_arc22_freezelist.aleo;
 
 // It uses the u128;2 array representing 32 bytes in little endian encoding.
 // This representation gets converted to an Aleo-address.
@@ -188,14 +192,16 @@ struct Metadata {
 
 const NULL_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
 const TYPE_SYNTHETIC: u8 = 1u8;
-// Fixed deployment bindings; never accept an unchecked token target from a caller.
-const TOKEN_PROGRAM: identifier = 'token';
-const FREEZELIST_PROGRAM: identifier = 'freezelist';
+// Fixed deployment bindings. Matching static imports keep SDK discovery and
+// relayer dependency loading equivalent to the deployed token-specific route.
+const TOKEN_PROGRAM: identifier = 'shield_arc22_usdt';
+const FREEZELIST_PROGRAM: identifier = 'shield_arc22_freezelist';
 // Replace with the intended pause authority before deploying an instance.
 const PAUSE_ADMIN: address = NULL_ADDRESS;
 
 // Generic V3 synthetic Warp route using an external ARC-22 token program.
-// Set TOKEN_PROGRAM to the selected token program name (without .aleo).
+// Replace the reference token/freezelist imports and dependencies together
+// with TOKEN_PROGRAM and FREEZELIST_PROGRAM.
 // It needs to define an owner address which is allowed to change the configuration
 // of the program. If no changes are needed anymore the owner_address can be set to the
 // NULL_ADDRESS to prevent further modification.
