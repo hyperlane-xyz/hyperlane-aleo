@@ -3,6 +3,18 @@
   "git": [],
   "network": [
     {
+      "name": "shield_arc22_freezelist.aleo",
+      "network": "testnet",
+      "edition": 0,
+      "checksum": "5fe37dd42e5a1a85a5da42b5d1c04d1574a322e9f7f529cdf56631912a3e393f"
+    },
+    {
+      "name": "shield_arc22_multisig_core.aleo",
+      "network": "testnet",
+      "edition": 0,
+      "checksum": "52f0a493c33b73dee4a6ebaa7f28a92d6d06f2314c3ee9ee6ba11ea8b32c40ef"
+    },
+    {
       "name": "test_arc20_eth.aleo",
       "network": "testnet",
       "edition": 0,

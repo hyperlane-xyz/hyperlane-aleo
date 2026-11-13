@@ -34,6 +34,12 @@
       "location": "network",
       "path": null,
       "edition": 1
+    },
+    {
+      "name": "shield_arc22_freezelist.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
     }
   ],
   "dev_dependencies": null

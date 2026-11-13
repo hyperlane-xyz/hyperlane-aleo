@@ -4,6 +4,7 @@ import test_hyp_mailbox.aleo;
 import test_hyp_multisig_core.aleo;
 import test_arc20_eth.aleo;
 import test_hyp_warp_token_eth.aleo;
+import shield_arc22_freezelist.aleo;
 
 // It uses the u128;2 array representing 32 bytes in little endian encoding.
 // This representation gets converted to an Aleo-address.
@@ -685,6 +686,7 @@ program test_hyp_warp_token_eth_v2.aleo {
         secret_nonce: scalar,
         recipient: address,
         amount: u128,
+        merkle_proofs: [shield_arc22_freezelist.aleo::MerkleProof__1cblycBMUKU; 2]
     ) -> (test_arc20_eth.aleo::Token, ComplianceRecord, Final) {
         assert(amount > 0u128);
         let hashed_data = BHP256::commit_to_field(recipient, secret_nonce);
@@ -704,6 +706,10 @@ program test_hyp_warp_token_eth_v2.aleo {
             sender: std::ctx::addr(),
             recipient: recipient,
         };
+        let freezelist_future: Final =
+            shield_arc22_freezelist.aleo::verify_non_inclusion_priv(
+                recipient, merkle_proofs,
+            );
         return (
             eth_token, compliance_record,
             final {
@@ -713,6 +719,7 @@ program test_hyp_warp_token_eth_v2.aleo {
                 let claimable_amount: u128 = claimable.get(raw_bytes);
                 assert(claimable_amount >= amount);
                 claimable.set(raw_bytes, claimable_amount - amount);
+                freezelist_future.run();
                 claim_private_final.run();
             },
         );
@@ -727,6 +734,7 @@ program test_hyp_warp_token_eth_v2.aleo {
         public recipient: [u128; 2],
         public amount: u128,
         public allowance: [test_hyp_dispatch_proxy.aleo::CreditAllowance; 4],
+        merkle_proofs: [shield_arc22_freezelist.aleo::MerkleProof__1cblycBMUKU; 2],
         public unverified_fee_bps: u16,
     ) -> (test_arc20_eth.aleo::Token, Final) {
         let (net_amount, fee) = private_transfer_amount(amount, unverified_fee_bps);
@@ -755,6 +763,11 @@ program test_hyp_warp_token_eth_v2.aleo {
             hook_metadata,
             allowance,
         );
+        let record_owner = std::ctx::signer();
+        let freezelist_final: Final = shield_arc22_freezelist.aleo::verify_non_inclusion_priv(
+            record_owner,
+            merkle_proofs,
+        );
         let burn_final: Final = test_arc20_eth.aleo::burn_public(warp_address, net_amount);
         let fee_final: Final = test_arc20_eth.aleo::transfer_public(TESTNET_HYPERLANE_FEE_ADMIN, fee);
         return (
@@ -770,6 +783,7 @@ program test_hyp_warp_token_eth_v2.aleo {
                 );
                 unshield_final.run();
                 dispatch_final.run();
+                freezelist_final.run();
                 burn_final.run();
                 fee_final.run();
             },
