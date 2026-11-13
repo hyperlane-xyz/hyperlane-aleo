@@ -1,0 +1,72 @@
+{
+  "version": 3,
+  "git": [],
+  "network": [
+    {
+      "name": "shield_arc22_freezelist.aleo",
+      "network": "testnet",
+      "edition": 0,
+      "checksum": "5fe37dd42e5a1a85a5da42b5d1c04d1574a322e9f7f529cdf56631912a3e393f"
+    },
+    {
+      "name": "shield_arc22_multisig_core.aleo",
+      "network": "testnet",
+      "edition": 0,
+      "checksum": "52f0a493c33b73dee4a6ebaa7f28a92d6d06f2314c3ee9ee6ba11ea8b32c40ef"
+    },
+    {
+      "name": "test_arc20_eth.aleo",
+      "network": "testnet",
+      "edition": 0,
+      "checksum": "51ce700821a6ed79d0598a5e1c01f4aaa071481d1a7ce55788bccf82cac7dd2e"
+    },
+    {
+      "name": "test_arc20_multisig_core.aleo",
+      "network": "testnet",
+      "edition": 0,
+      "checksum": "b9084d2ad0bb497acc51d5b4d4a5aaf583f92191639fd9841b1b7ec4ce0375d5"
+    },
+    {
+      "name": "test_hyp_dispatch_proxy.aleo",
+      "network": "testnet",
+      "edition": 0,
+      "checksum": "595179485d3e9ddc7b1226e6372b364fbac1e7a9fb97fc1f86d5a008032f2477"
+    },
+    {
+      "name": "test_hyp_hook_manager.aleo",
+      "network": "testnet",
+      "edition": 0,
+      "checksum": "f8924533aa237252b8b048f120c9176c3fef6b531ca2dc221a1d1d329589d872"
+    },
+    {
+      "name": "test_hyp_ism_manager.aleo",
+      "network": "testnet",
+      "edition": 0,
+      "checksum": "c7ecb1ca3cc92c1eb904d9bd04811373f0bcb383e4ffd775afd6e25cf32285b8"
+    },
+    {
+      "name": "test_hyp_mailbox.aleo",
+      "network": "testnet",
+      "edition": 0,
+      "checksum": "8b5b2c2ea26794c4e99fa5dbfc0383b007c2d1f66ee048adf89b0f0e36894261"
+    },
+    {
+      "name": "test_hyp_multisig_core.aleo",
+      "network": "testnet",
+      "edition": 0,
+      "checksum": "f74fd5b8157ba87069ec6fab84a5f3f7391f9974fb760780124c89a74111014f"
+    },
+    {
+      "name": "test_hyp_warp_token_eth.aleo",
+      "network": "testnet",
+      "edition": 1,
+      "checksum": "bcfe4ae5c9127b7c0c6d089fde2c87a068dbe165934c78d1fe013daa62e4dc1f"
+    },
+    {
+      "name": "token_registry.aleo",
+      "network": "testnet",
+      "edition": 1,
+      "checksum": "34fa6ee9d80c8122abd95e0d6e7005a55e5d22f1e4cebc6bf308b9d77d382260"
+    }
+  ]
+}
