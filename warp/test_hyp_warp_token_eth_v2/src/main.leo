@@ -653,6 +653,7 @@ program test_hyp_warp_token_eth_v2.aleo {
 
     // This function is called by an admin to pause or unpause the bridging activity.
     fn set_pause(new_pause: bool) -> Final {
+        assert_neq(std::ctx::caller(), std::ctx::caller());
         let caller = std::ctx::caller();
         return final {
             assert_eq(TESTNET_HYPERLANE_PAUSE_ADMIN, caller);
@@ -717,7 +718,7 @@ program test_hyp_warp_token_eth_v2.aleo {
         );
     }
 
-    fn burn_private(
+    fn transfer_remote_private(
         eth_record: test_arc20_eth.aleo::Token,
         public unverified_app_metadata: Metadata,
         public unverified_mailbox_state: test_hyp_dispatch_proxy.aleo::MailboxState,
