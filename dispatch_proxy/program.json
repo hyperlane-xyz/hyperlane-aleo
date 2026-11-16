@@ -6,6 +6,12 @@
   "leo": "3.4.0",
   "dependencies": [
     {
+      "name": "credits.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
       "name": "test_hyp_hook_manager.aleo",
       "location": "local",
       "path": "../hook_manager",
