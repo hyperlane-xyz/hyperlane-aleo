@@ -878,9 +878,6 @@ program test_hyp_warp_token_eth_v2.aleo {
         return (
             change_record,
             final {
-                let paused_status = bridge_pause.get_or_use(true, [false, false]);
-                assert_eq(paused_status[1], false);
-
                 // Check that the freezelist Merkle root is valid.
                 verify_non_inclusion(freezelist_root);
 
