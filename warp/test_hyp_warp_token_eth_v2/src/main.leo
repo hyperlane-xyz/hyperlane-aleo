@@ -7,33 +7,6 @@ import test_arc20_eth.aleo;
 import test_hyp_warp_token_eth.aleo;
 import shield_arc22_freezelist.aleo;
 
-// It uses the u128;2 array representing 32 bytes in little endian encoding.
-// This representation gets converted to an Aleo-address.
-fn bytes_raw_to_address(a: [u128; 2]) -> address {
-    let bits = Serialize::to_bits_raw(a);
-    let truncated_bits = [false; 253];
-    for i in 0u8..253u8 {
-        truncated_bits[i] = bits[i];
-    }
-    return Deserialize::from_bits_raw::[address](truncated_bits);
-}
-
-// The 77-byte header and 64-byte recipient/amount must be authenticated.
-// Mints to this program also require the complete 32-byte claim commitment.
-fn validated_token_recipient(
-    body: [u128; 16],
-    message_length: u32,
-    warp_address: address,
-) -> address {
-    assert(message_length >= 141u32);
-    let recipient = bytes_raw_to_address([body[0], body[1]]);
-    if recipient == warp_address {
-        assert(message_length >= 173u32);
-        assert(body[4] != 0u128 || body[5] != 0u128);
-    }
-    return recipient;
-}
-
 // Aleo integers are little-endian encoded. The bytes in the hyperlane-message are big-endian encoded.
 // This function converts the u128 in the message_body bytes to an u128 representing an integer.
 fn convert_endianness(payload: u128) -> u128 {
@@ -673,7 +646,16 @@ program test_hyp_warp_token_eth_v2.aleo {
         public id: [u128; 2],
         public metadata: [u8; 512],
     ) -> Final {
-        let recipient = validated_token_recipient(message.body, message_length, std::ctx::addr());
+        // The signed message must include the entire commitment (32 bytes) and
+        // amount (32 bytes), after the 77-byte Hyperlane header. Its body cannot
+        // exceed the 256 bytes represented by Message.body ([u128; 16]).
+        assert(message_length >= 77u32 + 32u32 + 32u32);
+        assert(message_length <= 77u32 + 256u32);
+
+        // claim_private encodes its 253-bit commitment as two little-endian u128s:
+        // 128 bits in body[0], then 125 bits in body[1], with 3 zero padding bits.
+        // Reject nonzero padding: claim_private can never reproduce those bytes.
+        assert(message.body[1] < (1u128 << 125u8));
         let mailbox_future: Final = test_hyp_mailbox.aleo::process(
             unverified_ism,
             message,
@@ -686,7 +668,8 @@ program test_hyp_warp_token_eth_v2.aleo {
             unverified_app_metadata.local_decimals,
             unverified_app_metadata.remote_decimals,
         );
-        let token_future: Final = test_arc20_eth.aleo::mint_public(recipient, amount);
+        // Escrow inbound funds until the commitment is claimed privately.
+        let token_future: Final = test_arc20_eth.aleo::mint_public(std::ctx::addr(), amount);
         return final {
             finalize_process(
                 mailbox_future,
@@ -723,23 +706,16 @@ program test_hyp_warp_token_eth_v2.aleo {
         // Assert that the router recipient matches the message sender
         assert_eq(router.recipient, message.sender);
 
-        // Check that if the message body contains an encoding, the recipient must be the program itself.
-        if message.body[4] != 0u128 || message.body[5] != 0u128 {
-            let address_raw = [message.body[0], message.body[1]];
-            let recipient = bytes_raw_to_address(address_raw);
-            assert_eq(recipient, std::ctx::addr());
-            let raw_encoding: [u128; 2] = [message.body[4], message.body[5]];
-
-            // Recompute the amount.
-            let amount = convert_ingoing_amount(
-                [message.body[2], message.body[3]],
-                unverified_app_metadata.local_decimals,
-                unverified_app_metadata.remote_decimals,
-            );
-            // Populate the mapping for claimable amounts.
-            let current_amount = claimable.get_or_use(raw_encoding, 0u128);
-            claimable.set(raw_encoding, current_amount + amount);
-        }
+        // The standard 32-byte recipient field carries the private claim commitment.
+        // This keeps the Warp body at recipient + amount, without appended metadata.
+        let commitment: [u128; 2] = [message.body[0], message.body[1]];
+        let amount = convert_ingoing_amount(
+            [message.body[2], message.body[3]],
+            unverified_app_metadata.local_decimals,
+            unverified_app_metadata.remote_decimals,
+        );
+        let current_amount = claimable.get_or_use(commitment, 0u128);
+        claimable.set(commitment, current_amount + amount);
         mailbox_future.run();
         token_future.run();
     }
