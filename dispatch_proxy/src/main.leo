@@ -1,3 +1,4 @@
+import credits.aleo;
 import test_hyp_mailbox.aleo;
 import test_hyp_hook_manager.aleo;
 import test_hyp_multisig_core.aleo;
@@ -64,6 +65,39 @@ program test_hyp_dispatch_proxy.aleo {
             default_hook_future,
             required_hook_future,
         );
+    }
+
+    /// Dispatch with private ALEO payments for both selected and required hooks.
+    /// Spend the first hook's change in the second hook, never the original twice.
+    async transition dispatch_private(
+        credits_record: credits.aleo/credits,
+        public passed_state: MailboxState,
+        public destination_domain: u32,
+        public recipient_address: [u8; 32],
+        public message_body: [u128; 16],
+        public hook_address: address,
+        public hook_metadata: HookMetadata,
+        public hook_allowance: [CreditAllowance; 4]
+    ) -> (credits.aleo/credits, Future) {
+        assert_neq(passed_state.default_hook, NULL_ADDRESS);
+        assert_neq(passed_state.required_hook, NULL_ADDRESS);
+
+        let default_hook = hook_address == NULL_ADDRESS ? passed_state.default_hook : hook_address;
+        let mailbox_dispatch_future = test_hyp_mailbox.aleo/dispatch(
+            destination_domain, recipient_address, message_body, self.caller
+        );
+        let (change, default_hook_future) = test_hyp_hook_manager.aleo/post_dispatch_private(
+            credits_record, default_hook, hook_metadata, hook_allowance
+        );
+        let (credits_change, required_hook_future) = test_hyp_hook_manager.aleo/post_dispatch_private(
+            change, passed_state.required_hook, hook_metadata, hook_allowance
+        );
+        return (credits_change, finalize_dispatch(
+            passed_state,
+            mailbox_dispatch_future,
+            default_hook_future,
+            required_hook_future,
+        ));
     }
 
     async function finalize_dispatch(passed_state: MailboxState, mailbox_dispatch: Future, default_hook: Future, required_hook: Future) {

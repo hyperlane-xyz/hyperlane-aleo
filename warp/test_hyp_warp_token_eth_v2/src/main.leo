@@ -1,3 +1,4 @@
+import credits.aleo;
 import test_hyp_dispatch_proxy.aleo;
 import test_hyp_hook_manager.aleo;
 import test_hyp_mailbox.aleo;
@@ -832,6 +833,7 @@ program test_hyp_warp_token_eth_v2.aleo {
 
     fn transfer_remote_private(
         eth_record: test_arc20_eth.aleo::Token,
+        credits_record: credits.aleo::credits,
         public unverified_app_metadata: Metadata,
         public unverified_mailbox_state: test_hyp_dispatch_proxy.aleo::MailboxState,
         public unverified_remote_router: RemoteRouter,
@@ -841,7 +843,7 @@ program test_hyp_warp_token_eth_v2.aleo {
         public allowance: [test_hyp_dispatch_proxy.aleo::CreditAllowance; 4],
         merkle_proofs: [shield_arc22_freezelist.aleo::MerkleProof__1cblycBMUKU; 2],
         public unverified_fee_bps: u16,
-    ) -> (test_arc20_eth.aleo::Token, Final) {
+    ) -> (test_arc20_eth.aleo::Token, credits.aleo::credits, Final) {
         let (net_amount, fee) = private_transfer_amount(amount, unverified_fee_bps);
         let warp_address = std::ctx::addr();
         let (change_record, unshield_final): (test_arc20_eth.aleo::Token, Final) = test_arc20_eth.aleo::transfer_private_to_public(
@@ -859,7 +861,8 @@ program test_hyp_warp_token_eth_v2.aleo {
             unverified_app_metadata.remote_decimals,
         );
         let message_body = get_message_body(recipient, body_amount);
-        let dispatch_final: Final = test_hyp_dispatch_proxy.aleo::dispatch(
+        let (credits_change, dispatch_final) = test_hyp_dispatch_proxy.aleo::dispatch_private(
+            credits_record,
             unverified_mailbox_state,
             destination,
             unverified_remote_router.recipient,
@@ -877,6 +880,7 @@ program test_hyp_warp_token_eth_v2.aleo {
         );
         return (
             change_record,
+            credits_change,
             final {
                 // Check that the freezelist Merkle root is valid.
                 verify_non_inclusion(freezelist_root);

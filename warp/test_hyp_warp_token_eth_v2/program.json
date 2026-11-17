@@ -6,6 +6,12 @@
   "leo": "4.4.6",
   "dependencies": [
     {
+      "name": "credits.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
+    {
       "name": "test_hyp_dispatch_proxy.aleo",
       "location": "network",
       "path": null,
