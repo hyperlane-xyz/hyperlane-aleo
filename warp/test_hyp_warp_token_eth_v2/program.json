@@ -3,8 +3,14 @@
   "version": "0.1.0",
   "description": "",
   "license": "MIT",
-  "leo": "4.3.0",
+  "leo": "4.4.6",
   "dependencies": [
+    {
+      "name": "credits.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    },
     {
       "name": "test_hyp_dispatch_proxy.aleo",
       "location": "network",
@@ -34,6 +40,12 @@
       "location": "network",
       "path": null,
       "edition": 1
+    },
+    {
+      "name": "shield_arc22_freezelist.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
     }
   ],
   "dev_dependencies": null

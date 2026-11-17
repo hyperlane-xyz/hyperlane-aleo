@@ -467,6 +467,27 @@ program test_hyp_hook_manager.aleo {
         return finalize_post_dispatch(hook, metadata, self.caller, credits_amount, transfer);
     }
 
+    /// Pays from a private ALEO record, including when the hook charges zero.
+    /// The public payment entry point remains available for public transfers.
+    async transition post_dispatch_private(
+        credits_record: credits.aleo/credits,
+        public hook: address,
+        public metadata: HookMetadata,
+        public hook_allowance: [CreditAllowance; 4]
+    ) -> (credits.aleo/credits, Future) {
+        let credits_amount = 0u64;
+        for i in 0u8..4u8 {
+            let allowance = hook_allowance[i];
+            if allowance.spender == hook {
+                credits_amount = allowance.amount;
+            }
+        }
+        let (change, transfer) = credits.aleo/transfer_private_to_public(
+            credits_record, self.address, credits_amount
+        );
+        return (change, finalize_post_dispatch(hook, metadata, self.caller, credits_amount, transfer));
+    }
+
     async function finalize_post_dispatch(hook: address, metadata: HookMetadata, caller: address, credits_amount: u64, transfer: Future) {
         assert(hooks.contains(hook));
         let type: u8 = hooks.get(hook);

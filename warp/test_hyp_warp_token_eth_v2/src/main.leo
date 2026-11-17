@@ -1,9 +1,11 @@
+import credits.aleo;
 import test_hyp_dispatch_proxy.aleo;
 import test_hyp_hook_manager.aleo;
 import test_hyp_mailbox.aleo;
 import test_hyp_multisig_core.aleo;
 import test_arc20_eth.aleo;
 import test_hyp_warp_token_eth.aleo;
+import shield_arc22_freezelist.aleo;
 
 // It uses the u128;2 array representing 32 bytes in little endian encoding.
 // This representation gets converted to an Aleo-address.
@@ -16,6 +18,22 @@ fn bytes_raw_to_address(a: [u128; 2]) -> address {
     return Deserialize::from_bits_raw::[address](truncated_bits);
 }
 
+// The 77-byte header and 64-byte recipient/amount must be authenticated.
+// Mints to this program also require the complete 32-byte claim commitment.
+fn validated_token_recipient(
+    body: [u128; 16],
+    message_length: u32,
+    warp_address: address,
+) -> address {
+    assert(message_length >= 141u32);
+    let recipient = bytes_raw_to_address([body[0], body[1]]);
+    if recipient == warp_address {
+        assert(message_length >= 173u32);
+        assert(body[4] != 0u128 || body[5] != 0u128);
+    }
+    return recipient;
+}
+
 // Aleo integers are little-endian encoded. The bytes in the hyperlane-message are big-endian encoded.
 // This function converts the u128 in the message_body bytes to an u128 representing an integer.
 fn convert_endianness(payload: u128) -> u128 {
@@ -26,6 +44,7 @@ fn convert_endianness(payload: u128) -> u128 {
     return res;
 }
 
+// Call this directly from entry points so Leo preserves the deployed closure for upgrades.
 fn convert_outgoing_amount(amount: u128, local_decimals: u8, remote_decimals: u8) -> [u128; 2] {
     if local_decimals == remote_decimals {
         return [0u128, convert_endianness(amount)];
@@ -121,6 +140,7 @@ fn downscale(payload: [u128; 2], scale: u64) -> u128 {
     return amount;
 }
 
+// This deployed closure must also remain unchanged and be called directly from entry points.
 fn get_message_body(recipient: [u128; 2], amount: [u128; 2]) -> [u128; 16] {
     let message_body: [u128; 16] = [0u128; 16];
     message_body[0] = recipient[0];
@@ -130,6 +150,37 @@ fn get_message_body(recipient: [u128; 2], amount: [u128; 2]) -> [u128; 16] {
     return message_body;
 }
 
+// Calculate the outbound burn fee in local ETH-token base units, rounding down. Splitting
+// the multiplication prevents overflow even when amount is u128::MAX.
+@no_inline
+export fn private_transfer_amount(amount: u128, fee_bps: u16) -> (u128, u128) {
+    assert(fee_bps < 10000u16);
+    assert(amount > 0u128);
+    let rate = fee_bps as u128;
+    let fee = (amount / 10000u128) * rate + ((amount % 10000u128) * rate) / 10000u128;
+    return (amount - fee, fee);
+}
+
+export final fn validate_private_transfer_fee(unverified_fee_bps: u16) {
+    assert_eq(unverified_fee_bps, private_transfer_fee_bps.unwrap_or(0u16));
+}
+
+final fn validate_transfer_remote(
+    unverified_remote_router: RemoteRouter,
+    destination: u32,
+    unverified_metadata: Metadata,
+) {
+    let paused_status = bridge_pause.get_or_use(true, [false, false]);
+    assert_eq(paused_status[1], false);
+
+    let actual_remote_router = remote_routers.get(destination);
+    assert_eq(actual_remote_router, unverified_remote_router);
+
+    let actual_metadata = app_metadata.get(true);
+    assert_eq(unverified_metadata, actual_metadata);
+}
+
+// Keep the futures first to preserve the deployed finalize input order.
 final fn finalize_transfer_remote(
     dispatch_future: Final,
     token_future: Final,
@@ -137,17 +188,110 @@ final fn finalize_transfer_remote(
     destination: u32,
     unverified_metadata: Metadata,
 ) {
-    let paused_status = pause.get_or_use(true, false);
-    assert_eq(paused_status, false);
-
-    let actual_remote_router = remote_routers.get(destination);
-    assert_eq(actual_remote_router, unverified_remote_router);
-
-    let actual_metadata = app_metadata.get(true);
-    assert_eq(unverified_metadata, actual_metadata);
-
+    validate_transfer_remote(unverified_remote_router, destination, unverified_metadata);
     dispatch_future.run();
     token_future.run();
+}
+
+// Calculates the hash of two sibling nodes in a Merkle tree.
+// The order of the siblings depends on the index bit (0 = left, 1 = right).
+// Uses Poseidon hash to compute the result.
+fn calculate_hash_for_nodes(sibling1: field, sibling2: field, indexbit: u32) -> field {
+    let poseidon_params: [field; 3] = indexbit == 0u32 ? [0field, sibling1, sibling2] : [
+        0field,
+        sibling2,
+        sibling1,
+    ];
+    return Poseidon4::hash_to_field(poseidon_params);
+}
+
+fn calculate_hash_for_leaves(sibling1: field, sibling2: field, indexbit: u32) -> field {
+    let poseidon_params: [field; 3] = indexbit == 0u32 ? [1field, sibling1, sibling2] : [
+        1field,
+        sibling2,
+        sibling1,
+    ];
+    return Poseidon4::hash_to_field(poseidon_params);
+}
+
+// Calculates the Merkle root and the depth of a Merkle proof path.
+// Iteratively hashes the sibling path based on the leaf index to reconstruct the root.
+// Stops when a zero field is encountered in the siblings array, indicating the end of the valid path.
+// Returns the calculated root and the actual depth reached.
+fn calculate_root_depth_siblings(
+    merkle_proof: shield_arc22_freezelist.aleo::MerkleProof__1cblycBMUKU,
+) -> (public field, public u32) {
+    let root: field = calculate_hash_for_leaves(
+        merkle_proof.siblings[0u8],
+        merkle_proof.siblings[1u8],
+        merkle_proof.leaf_index % 2u32,
+    );
+    for i: u32 in 2u32..MAX_TREE_DEPTH + 1u32 {
+        if (merkle_proof.siblings[i] == 0field) {
+            return (root, i - 1u32);
+        }
+        root = calculate_hash_for_nodes(
+            root,
+            merkle_proof.siblings[i],
+            (merkle_proof.leaf_index / (2u32 ** (i - 1u32))) % 2u32,
+        );
+    }
+    return (root, MAX_TREE_DEPTH);
+}
+
+// Verifies non-inclusion of an address in a Merkle tree sorted in ascending order by address (as field).
+// Accepts two Merkle proofs representing the neighboring leaves around the missing address.
+// Returns the common Merkle root if the address is proven to be outside the tree.
+// If the tree is not sorted correctly, this function may return incorrect results.
+fn verify_non_inclusion_private(
+    addr: address,
+    merkle_proofs: [shield_arc22_freezelist.aleo::MerkleProof__1cblycBMUKU; 2],
+) -> field {
+    let (root1, depth1): (field, u32) = calculate_root_depth_siblings(merkle_proofs[0u32]);
+    let (root2, depth2): (field, u32) = calculate_root_depth_siblings(merkle_proofs[1u32]);
+
+    // Ensure the roots from the merkle proofs are the same.
+    assert_eq(root1, root2);
+    assert_eq(depth1, depth2);
+
+    let addr_field: field = addr as field;
+    if (merkle_proofs[0u32].leaf_index == merkle_proofs[1u32].leaf_index) {
+        // Ensure that if the address is the most left leaf, it is less than the first sibling.
+        if (merkle_proofs[0u32].leaf_index == 0u32) {
+            assert(addr_field < merkle_proofs[0u32].siblings[0u32]);
+        } else {
+            // Ensure that if the address is the most right leaf.
+            let last_index_leaf: u32 = 2u32 ** depth1 - 1u32;
+            assert_eq(merkle_proofs[0u32].leaf_index, last_index_leaf);
+            // Ensure that the address is bigger than the first sibling.
+            assert(addr_field > merkle_proofs[0u32].siblings[0u32]);
+        }
+    } else {
+        // Ensure the address is in between the provided leaves.
+        assert(addr_field > merkle_proofs[0u32].siblings[0u32]);
+        assert(addr_field < merkle_proofs[1u32].siblings[0u32]);
+        // Ensure that the leaf indexes are not greater than the last possible leaf index.
+        let last_index_leaf: u32 = 2u32 ** depth1 - 1u32;
+        assert(merkle_proofs[1u32].leaf_index <= last_index_leaf);
+        // Ensure the leaves are adjacent.
+        assert_eq(merkle_proofs[0u32].leaf_index + 1u32, merkle_proofs[1u32].leaf_index);
+    }
+    return root1;
+}
+
+final fn verify_non_inclusion(freezelist_root: field) {
+    // Check that the freezelist Merkle root is valid.
+    let current_root: field = shield_arc22_freezelist.aleo::freeze_list_root
+        .get(CURRENT_FREEZE_LIST_ROOT_INDEX);
+    let window: u32 = shield_arc22_freezelist.aleo::block_height_window___.get_or_use(false, 1u32);
+    if (current_root != freezelist_root) {
+        let previous_root: field = shield_arc22_freezelist.aleo::freeze_list_root
+            .get(PREVIOUS_FREEZE_LIST_ROOT_INDEX);
+        assert_eq(freezelist_root, previous_root);
+        let updated_height: u32 = shield_arc22_freezelist.aleo::root_updated_height___
+            .get_or_use(false, std::ctx::block_height());
+        assert(updated_height + window > std::ctx::block_height());
+    }
 }
 
 struct ChecksumEdition {
@@ -188,6 +332,11 @@ struct Metadata {
 const NULL_ADDRESS: address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
 const TYPE_SYNTHETIC: u8 = 1u8;
 const TESTNET_HYPERLANE_PAUSE_ADMIN: address = aleo1h9x8mx3yc8uqylsrguuqklkq9us4t7vkd7z9wxp04nt0p8sxjgzqhth7t0;
+const TESTNET_HYPERLANE_FEE_ADMIN: address = aleo1h9x8mx3yc8uqylsrguuqklkq9us4t7vkd7z9wxp04nt0p8sxjgzqhth7t0;
+const INVESTIGATOR_ADDRESS: address = aleo1h9x8mx3yc8uqylsrguuqklkq9us4t7vkd7z9wxp04nt0p8sxjgzqhth7t0;
+const MAX_TREE_DEPTH: u32 = 15u32;
+const CURRENT_FREEZE_LIST_ROOT_INDEX: u8 = 1u8;
+const PREVIOUS_FREEZE_LIST_ROOT_INDEX: u8 = 2u8;
 
 // The 'hyp_synthetic' implements the Hyperlane Hyp Synthetic Token which is used
 // for bridging tokens from other chains to the Aleo network. It uses the stablecoin_program program.
@@ -217,16 +366,34 @@ program test_hyp_warp_token_eth_v2.aleo {
     // Admin pause mapping to pause the bridging activity
     mapping pause: bool => bool;
 
+    // Mapping to store claimable amounts for each user
+    mapping claimable: [u128; 2] => u128;
+
+    // Outbound private burn fee: 100 basis points = 1%, defaulting to zero.
+    storage private_transfer_fee_bps: u16;
+
+    // Mapping to store the pause status for inbound and outbound bridge transactions.
+    // Replaces previous pause mapping.
+    mapping bridge_pause: bool => [bool; 2];
+
+    // Compliance record for private mints and private burns.
+    record ComplianceRecord {
+        owner: address,
+        amount: u128,
+        sender: address,
+        recipient: address,
+    }
+
     @custom
     constructor() {
         // Only require multisig for upgrades - initial deployment has no checks.
-        if self.edition > 0u16 {
+        if std::ctx::edition() > 0u16 {
             let signing_op_id = BHP256::hash_to_field(
-                ChecksumEdition { checksum: self.checksum, edition: self.edition },
+                ChecksumEdition { checksum: std::ctx::checksum(), edition: std::ctx::edition() },
             );
             let wallet_signing_op_id_hash = BHP256::hash_to_field(
                 test_hyp_multisig_core.aleo::WalletSigningOpId {
-                    wallet_id: self.address,
+                    wallet_id: std::ctx::addr(),
                     signing_op_id: signing_op_id,
                 },
             );
@@ -246,9 +413,9 @@ program test_hyp_warp_token_eth_v2.aleo {
         public local_decimals: u8,
         public remote_decimals: u8,
     ) -> Final {
-        let caller = self.caller;
+        let caller = std::ctx::caller();
         let max_u128 = !0u128;
-        let token_id = self.address as field;
+        let token_id = std::ctx::addr() as field;
 
         let difference = remote_decimals as i16 - local_decimals as i16;
         assert_eq(difference.abs() <= 18i16, true);
@@ -272,12 +439,12 @@ program test_hyp_warp_token_eth_v2.aleo {
     }
 
     fn get_address() -> address {
-        return self.address;
+        return std::ctx::addr();
     }
 
     // Set a custom Hook which will be used instead of the default Hook of the mailbox
     fn set_custom_hook(hook_address: address) -> Final {
-        let caller = self.caller;
+        let caller = std::ctx::caller();
         return final {
             let state = app_metadata.get(true);
             assert_eq(state.token_owner, caller);
@@ -288,7 +455,7 @@ program test_hyp_warp_token_eth_v2.aleo {
 
     // Set a custom ISM which will be used instead of the default ISM of the mailbox
     fn set_custom_ism(ism_address: address) -> Final {
-        let caller = self.caller;
+        let caller = std::ctx::caller();
         return final {
             let state = app_metadata.get(true);
             assert_eq(state.token_owner, caller);
@@ -299,7 +466,7 @@ program test_hyp_warp_token_eth_v2.aleo {
 
     // Change ownership for the configuration owner.
     fn set_owner(new_owner: address) -> Final {
-        let caller = self.caller;
+        let caller = std::ctx::caller();
         return final {
             let state = app_metadata.get(true);
             assert_eq(state.token_owner, caller);
@@ -310,7 +477,7 @@ program test_hyp_warp_token_eth_v2.aleo {
     }
 
     fn enroll_remote_router(destination: u32, recipient: [u8; 32], gas: u128) -> Final {
-        let caller = self.caller;
+        let caller = std::ctx::caller();
         return final {
             let state = app_metadata.get(true);
             assert_eq(state.token_owner, caller);
@@ -320,12 +487,12 @@ program test_hyp_warp_token_eth_v2.aleo {
                 remote_router_length.set(true, current_length + 1);
             }
             remote_routers
-                .set(destination,RemoteRouter { domain: destination, recipient: recipient, gas: gas });
+                .set(destination, RemoteRouter { domain: destination, recipient: recipient, gas: gas });
         };
     }
 
     fn unroll_remote_router(destination: u32) -> Final {
-        let caller = self.caller;
+        let caller = std::ctx::caller();
         return final {
             let state = app_metadata.get(true);
             assert_eq(state.token_owner, caller);
@@ -344,7 +511,7 @@ program test_hyp_warp_token_eth_v2.aleo {
         public allowance: [test_hyp_dispatch_proxy.aleo::CreditAllowance; 4],
     ) -> Final {
         let custom_hook: address = unverified_app_metadata.hook;
-        let hook_metadata: test_hyp_dispatch_proxy.aleo::HookMetadata = test_hyp_dispatch_proxy.aleo::HookMetadata {
+        let hook_metadata = test_hyp_dispatch_proxy.aleo::HookMetadata {
             gas_limit: unverified_remote_router.gas,
             extra_data: [0u8; 64],
         };
@@ -363,7 +530,7 @@ program test_hyp_warp_token_eth_v2.aleo {
             hook_metadata,
             allowance,
         );
-        let token_future: Final = test_arc20_eth.aleo::burn_public(self.caller, amount);
+        let token_future: Final = test_arc20_eth.aleo::burn_public(std::ctx::caller(), amount);
         return final {
             finalize_transfer_remote(
                 dispatch_future,
@@ -404,7 +571,7 @@ program test_hyp_warp_token_eth_v2.aleo {
             hook_metadata,
             allowance,
         );
-        let token_future: Final = test_arc20_eth.aleo::burn_public(self.caller, amount);
+        let token_future: Final = test_arc20_eth.aleo::burn_public(std::ctx::caller(), amount);
         return final {
             finalize_transfer_remote(
                 dispatch_future,
@@ -445,7 +612,7 @@ program test_hyp_warp_token_eth_v2.aleo {
             hook_metadata,
             allowance,
         );
-        let token_future: Final = test_arc20_eth.aleo::burn_public(self.signer, amount);
+        let token_future: Final = test_arc20_eth.aleo::burn_public(std::ctx::signer(), amount);
         return final {
             finalize_transfer_remote(
                 dispatch_future,
@@ -486,7 +653,7 @@ program test_hyp_warp_token_eth_v2.aleo {
             hook_metadata,
             allowance,
         );
-        let token_future: Final = test_arc20_eth.aleo::burn_public(self.signer, amount);
+        let token_future: Final = test_arc20_eth.aleo::burn_public(std::ctx::signer(), amount);
         return final {
             finalize_transfer_remote(
                 dispatch_future,
@@ -506,6 +673,7 @@ program test_hyp_warp_token_eth_v2.aleo {
         public id: [u128; 2],
         public metadata: [u8; 512],
     ) -> Final {
+        let recipient = validated_token_recipient(message.body, message_length, std::ctx::addr());
         let mailbox_future: Final = test_hyp_mailbox.aleo::process(
             unverified_ism,
             message,
@@ -513,8 +681,6 @@ program test_hyp_warp_token_eth_v2.aleo {
             id,
             metadata,
         );
-        let address_raw = [message.body[0], message.body[1]];
-        let recipient = bytes_raw_to_address(address_raw);
         let amount = convert_ingoing_amount(
             [message.body[2], message.body[3]],
             unverified_app_metadata.local_decimals,
@@ -540,8 +706,8 @@ program test_hyp_warp_token_eth_v2.aleo {
         token_future: Final,
         unverified_ism: address,
     ) {
-        let paused_status = pause.get_or_use(true, false);
-        assert_eq(paused_status, false);
+        let paused_status = bridge_pause.get_or_use(true, [false, false]);
+        assert_eq(paused_status[0], false);
 
         let metadata = app_metadata.get(true);
         assert_eq(metadata, unverified_app_metadata);
@@ -557,6 +723,23 @@ program test_hyp_warp_token_eth_v2.aleo {
         // Assert that the router recipient matches the message sender
         assert_eq(router.recipient, message.sender);
 
+        // Check that if the message body contains an encoding, the recipient must be the program itself.
+        if message.body[4] != 0u128 || message.body[5] != 0u128 {
+            let address_raw = [message.body[0], message.body[1]];
+            let recipient = bytes_raw_to_address(address_raw);
+            assert_eq(recipient, std::ctx::addr());
+            let raw_encoding: [u128; 2] = [message.body[4], message.body[5]];
+
+            // Recompute the amount.
+            let amount = convert_ingoing_amount(
+                [message.body[2], message.body[3]],
+                unverified_app_metadata.local_decimals,
+                unverified_app_metadata.remote_decimals,
+            );
+            // Populate the mapping for claimable amounts.
+            let current_amount = claimable.get_or_use(raw_encoding, 0u128);
+            claimable.set(raw_encoding, current_amount + amount);
+        }
         mailbox_future.run();
         token_future.run();
     }
@@ -567,7 +750,7 @@ program test_hyp_warp_token_eth_v2.aleo {
     // Funds are burned from the signer and minted to the signer.
     fn upgrade_token(amount: u128) -> Final {
         let burn_final: Final = test_hyp_warp_token_eth.aleo::burn_token_registry_eth(amount);
-        let mint_final: Final = test_arc20_eth.aleo::mint_public(self.signer, amount);
+        let mint_final: Final = test_arc20_eth.aleo::mint_public(std::ctx::signer(), amount);
         return final {
             burn_final.run();
             mint_final.run();
@@ -576,10 +759,143 @@ program test_hyp_warp_token_eth_v2.aleo {
 
     // This function is called by an admin to pause or unpause the bridging activity.
     fn set_pause(new_pause: bool) -> Final {
-        let caller = self.caller;
+        assert_neq(std::ctx::caller(), std::ctx::caller());
+        let caller = std::ctx::caller();
         return final {
             assert_eq(TESTNET_HYPERLANE_PAUSE_ADMIN, caller);
             pause.set(true, new_pause);
         };
+    }
+
+    // This function sets the pause status for inbound and outbound transactions.
+    fn set_bridge_pause(new_inbound_pause: bool, new_outbound_pause: bool) -> Final {
+        let caller = std::ctx::caller();
+        return final {
+            assert_eq(TESTNET_HYPERLANE_PAUSE_ADMIN, caller);
+            bridge_pause.set(true, [new_inbound_pause, new_outbound_pause]);
+        };
+    }
+
+    // Set the percentage charged on outbound private burns. An unset fee is zero.
+    fn set_private_transfer_fee(public fee_bps: u16) -> Final {
+        let caller = std::ctx::caller();
+        return final {
+            assert_eq(caller, TESTNET_HYPERLANE_FEE_ADMIN);
+            assert(fee_bps < 10000u16);
+            private_transfer_fee_bps = fee_bps;
+        };
+    }
+
+    // Inbound claims are fee-free; the recipient receives the full claim debit.
+    fn claim_private(
+        secret_nonce: scalar,
+        recipient: address,
+        amount: u128,
+        merkle_proofs: [shield_arc22_freezelist.aleo::MerkleProof__1cblycBMUKU; 2],
+    ) -> (test_arc20_eth.aleo::Token, ComplianceRecord, Final) {
+        assert(amount > 0u128);
+        let hashed_data = BHP256::commit_to_field(recipient, secret_nonce);
+        let field_bits = Serialize::to_bits_raw(hashed_data);
+        let padded_bits = [false; 256];
+        for i in 0u8..253u8 {
+            padded_bits[i] = field_bits[i];
+        }
+        let raw_bytes = Deserialize::from_bits_raw::[[u128; 2]](padded_bits);
+        let (eth_token, claim_private_final): (test_arc20_eth.aleo::Token, Final) = test_arc20_eth.aleo::transfer_public_to_private(
+            recipient,
+            amount,
+        );
+        let compliance_record: ComplianceRecord = ComplianceRecord {
+            owner: INVESTIGATOR_ADDRESS,
+            amount: amount,
+            sender: std::ctx::addr(),
+            recipient: recipient,
+        };
+        // Verify that the recipient is not in the freezelist.
+        let freezelist_root: field = verify_non_inclusion_private(recipient, merkle_proofs);
+        return (
+            eth_token,
+            compliance_record,
+            final {
+                let paused_status = bridge_pause.get_or_use(true, [false, false]);
+                assert_eq(paused_status[0], false);
+
+                // Check that the freezelist Merkle root is valid.
+                verify_non_inclusion(freezelist_root);
+
+                let claimable_amount: u128 = claimable.get(raw_bytes);
+                assert(claimable_amount >= amount);
+                claimable.set(raw_bytes, claimable_amount - amount);
+                claim_private_final.run();
+            },
+        );
+    }
+
+    fn transfer_remote_private(
+        eth_record: test_arc20_eth.aleo::Token,
+        credits_record: credits.aleo::credits,
+        public unverified_app_metadata: Metadata,
+        public unverified_mailbox_state: test_hyp_dispatch_proxy.aleo::MailboxState,
+        public unverified_remote_router: RemoteRouter,
+        public destination: u32,
+        public recipient: [u128; 2],
+        public amount: u128,
+        public allowance: [test_hyp_dispatch_proxy.aleo::CreditAllowance; 4],
+        merkle_proofs: [shield_arc22_freezelist.aleo::MerkleProof__1cblycBMUKU; 2],
+        public unverified_fee_bps: u16,
+    ) -> (test_arc20_eth.aleo::Token, credits.aleo::credits, Final) {
+        let (net_amount, fee) = private_transfer_amount(amount, unverified_fee_bps);
+        let warp_address = std::ctx::addr();
+        let (change_record, unshield_final): (test_arc20_eth.aleo::Token, Final) = test_arc20_eth.aleo::transfer_private_to_public(
+            eth_record,
+            warp_address,
+            amount,
+        );
+        let hook_metadata = test_hyp_dispatch_proxy.aleo::HookMetadata {
+            gas_limit: unverified_remote_router.gas,
+            extra_data: [0u8; 64],
+        };
+        let body_amount = convert_outgoing_amount(
+            net_amount,
+            unverified_app_metadata.local_decimals,
+            unverified_app_metadata.remote_decimals,
+        );
+        let message_body = get_message_body(recipient, body_amount);
+        let (credits_change, dispatch_final) = test_hyp_dispatch_proxy.aleo::dispatch_private(
+            credits_record,
+            unverified_mailbox_state,
+            destination,
+            unverified_remote_router.recipient,
+            message_body,
+            unverified_app_metadata.hook,
+            hook_metadata,
+            allowance,
+        );
+        let record_owner = std::ctx::signer();
+        let freezelist_root: field = verify_non_inclusion_private(record_owner, merkle_proofs);
+        let burn_final: Final = test_arc20_eth.aleo::burn_public(warp_address, net_amount);
+        let fee_final: Final = test_arc20_eth.aleo::transfer_public(
+            TESTNET_HYPERLANE_FEE_ADMIN,
+            fee,
+        );
+        return (
+            change_record,
+            credits_change,
+            final {
+                // Check that the freezelist Merkle root is valid.
+                verify_non_inclusion(freezelist_root);
+
+                validate_private_transfer_fee(unverified_fee_bps);
+                validate_transfer_remote(
+                    unverified_remote_router,
+                    destination,
+                    unverified_app_metadata,
+                );
+                unshield_final.run();
+                dispatch_final.run();
+                burn_final.run();
+                fee_final.run();
+            },
+        );
     }
 }
